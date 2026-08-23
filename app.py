@@ -56,15 +56,11 @@ if 'session_start_time' not in st.session_state:
 
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
+tabs = st.tabs(["⏱️ تسجيل الحضور ", "📝 تقييمات الأعضاء", "👥 دليل الأعضاء", "📊 الدرجات الكلية"])
 
-st.title("⚡ نظام إدارة الفريق والتسجيل التنازلي")
-st.caption("تطبيق متكامل لتسجيل الحضور بخصم 0.2 كل دقيقة وتقييمات الأعضاء")
-
-tabs = st.tabs(["⏱️ تسجيل الحضور التنازلي", "📝 تقييمات الأعضاء", "👥 دليل الأعضاء", "📊 الدرجات الكلية"])
-
-# --- Tab 1: الحضور والغياب التنازلي ---
+# --- Tab 1: الحضور والغياب  ---
 with tabs[0]:
-    st.header("تسجيل الحضور التنازلي (خصم 0.2 كل دقيقة)")
+    st.header("تسجيل الحضور")
     
     col_start, col_stop = st.columns(2)
     with col_start:
