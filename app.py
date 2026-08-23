@@ -4,11 +4,13 @@ import datetime
 import time
 
 st.set_page_config(
-    page_title="نظام إدارة الفريق التفاعلي",
-    page_icon="⚡",
-    layout="centered",
-    initial_sidebar_state="expanded"
+    page_title="كشافة أم النور ",
+    page_icon="⚜️",
+    layout="centered"
 )
+
+st.title("⚜️ نظام إدارة كشافة أم النور")
+st.caption("تطبيق تسجيل الحضور وتقييمات الأعضاء")
 
 # تطبيق اتجاه RTL ونمط بصري جذاب
 st.markdown("""
