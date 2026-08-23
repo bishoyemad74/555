@@ -9,9 +9,7 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("⚜️ نظام إدارة كشافة أم النور")
-st.caption("تطبيق تسجيل الحضور وتقييمات الأعضاء")
-
+st.title("⚜️ كشافة أم النور")
 # تطبيق اتجاه RTL ونمط بصري جذاب
 st.markdown("""
     <style>
