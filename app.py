@@ -4,6 +4,20 @@ import datetime
 import time
 from PIL import Image
 
+# مكتبة قراءة الـ QR والباركود الاحترافية (ZXing)
+try:
+    import zxingcpp
+    HAS_ZXING = True
+except ImportError:
+    HAS_ZXING = False
+
+# مكتبة fallback ثانوية لقراءة الباركود
+try:
+    from pyzbar.pyzbar import decode
+    HAS_PYZBAR = True
+except Exception:
+    HAS_PYZBAR = False
+
 # مكتبات الربط المباشر مع Google Sheets
 try:
     import gspread
@@ -12,24 +26,25 @@ try:
 except ImportError:
     HAS_GSPREAD = False
 
-# محرك قراءة الباركود
-try:
-    from pyzbar.pyzbar import decode
-    HAS_PYZBAR = True
-except Exception:
-    HAS_PYZBAR = False
 
 # ⚠️ ضع الـ ID الحقيقي الخاص بشيت جوجل هنا بدلاً من النص المؤقت
 SPREADSHEET_ID = "1B4Ho5U0x0TDf36bu7KqxXnMZCnvAiVxzfLthX_ga94c"
 SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
 
+
 # دالة الاتصال المباشر بشيت جوجل
 def get_gsheet_client():
     if HAS_GSPREAD and "gcp_service_account" in st.secrets:
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
+        scope = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        creds = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"], scopes=scope
+        )
         return gspread.authorize(creds)
     return None
+
 
 # دالة حفظ صف جديد في شيت جوجل فوراً
 def append_to_google_sheet(sheet_name, row_data):
@@ -43,7 +58,34 @@ def append_to_google_sheet(sheet_name, row_data):
         st.error(f"خطأ في المزامنة السحابية ({sheet_name}): {str(e)}")
     return False
 
-# إعدادات الصفحة (يجب أن تكون في البداية منفصلة)
+
+# دالة استخراج بيانات الـ QR بكفاءة عالية للتصاميم والصور المرفوعة
+def extract_qr_code(image_file):
+    try:
+        img = Image.open(image_file)
+        
+        # 1. المحاولة الأولى باستخدام zxing-cpp (الأدق للتصاميم عالية الجودة)
+        if HAS_ZXING:
+            results = zxingcpp.read_barcodes(img)
+            if results:
+                raw_text = results[0].text
+                clean_digits = "".join(filter(str.isdigit, raw_text))
+                return clean_digits if clean_digits else raw_text
+        
+        # 2. المحاولة الثانية بـ pyzbar كخيار إضافي
+        if HAS_PYZBAR:
+            decoded = decode(img)
+            if decoded:
+                raw_text = decoded[0].data.decode("utf-8")
+                clean_digits = "".join(filter(str.isdigit, raw_text))
+                return clean_digits if clean_digits else raw_text
+                
+    except Exception as e:
+        st.error(f"خطأ أثناء معالجة الصورة: {e}")
+    return None
+
+
+# --- إعدادات الصفحة ---
 st.set_page_config(
     page_title="كشافة أم النور",
     page_icon="⚜️",
@@ -51,6 +93,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# تنسيقات الواجهة (CSS)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -88,6 +131,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# إدارة حالة التطبيق (Session State)
 if 'members' not in st.session_state or 'اسم الكشاف' not in st.session_state.members.columns:
     st.session_state.members = pd.DataFrame([
         {"كود العضو": 1001, "اسم الكشاف": "مينا سامح", "الفرقة": "فتيان", "تاريخ الانضمام": "2026-01-15"},
@@ -107,7 +151,9 @@ if 'session_start_time' not in st.session_state:
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
 
+# التبويبات الرئيسية
 tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "👥 دليل الكشافة", "☁️ الشيت السحابي المباشر"])
+
 
 # --- Tab 1: الحضور والغياب المباشر ---
 with tabs[0]:
@@ -167,22 +213,16 @@ with tabs[0]:
     else:
         img_file = st.camera_input("وجّه الكاميرا إلى الكارت واضغط التقاط")
     
-    if img_file is not None and HAS_PYZBAR:
-        try:
-            img = Image.open(img_file)
-            decoded_objs = decode(img)
-            if decoded_objs:
-                qr_data = decoded_objs[0].data.decode("utf-8")
-                clean_code = "".join(filter(str.isdigit, qr_data))
-                if clean_code:
-                    detected_code = int(clean_code)
-                    st.success(f"🎯 تم استخراج الكود بنجاح: {detected_code}")
-                else:
-                    st.warning(f"الـ QR يحتوي على نص وليس رقماً: {qr_data}")
-            else:
-                st.error("لم يتم التعرف على الرمز. تأكد من وضوح الصورة وتدفق الإضاءة.")
-        except Exception:
-            st.error("حدث خطأ أثناء معالجة الصورة.")
+    if img_file is not None:
+        extracted = extract_qr_code(img_file)
+        if extracted:
+            try:
+                detected_code = int(extracted)
+                st.success(f"🎯 تم استخراج الكود بنجاح: {detected_code}")
+            except ValueError:
+                st.warning(f"الـ QR يحتوي على نص وليس رقماً فقط: {extracted}")
+        else:
+            st.error("❌ لم يتم التعرف على الرمز. تأكد أن الـ QR واضح وتحيط به مساحة بيضاء خالية.")
 
     manual_code = st.number_input("أو ادخل الكود يدوياً:", step=1, value=detected_code)
     
@@ -197,6 +237,7 @@ with tabs[0]:
                 st.success(f"تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
             else:
                 st.error("الكود غير مسجل في دليل الكشافة!")
+
 
 # --- Tab 2: تقييمات النشاط الكشفي ---
 with tabs[1]:
@@ -218,6 +259,7 @@ with tabs[1]:
             else:
                 st.error("الكود غير موجود!")
 
+
 # --- Tab 3: دليل الكشافة ---
 with tabs[2]:
     st.subheader("👥 إضافة كشاف جديد")
@@ -236,6 +278,7 @@ with tabs[2]:
             st.success(f"تم تسجيل {m_name} وحفظه في السحاب - الكود: {new_c}")
 
     st.dataframe(st.session_state.members, use_container_width=True)
+
 
 # --- Tab 4: فتح الشيت المباشر ---
 with tabs[3]:
