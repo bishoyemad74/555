@@ -265,7 +265,7 @@ with tabs[2]:
     st.subheader("👥 إضافة كشاف جديد")
     with st.form("add_member"):
         m_name = st.text_input("اسم الكشاف رباعي")
-        m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "مرشدات", "متقدم", "جوال", "جوالات", "قادة"])
+        m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "متقدم", "جوالة","مرشدات","جوالات", "قادة"])
         if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
             max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 1000
             new_c = int(max_c + 1)
