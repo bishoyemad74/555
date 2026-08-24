@@ -123,7 +123,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- إخفاء كافة خيارات المطور والـ Streamlit Branding لجعل الواجهة تطبيقاً احترافياً ---
+# --- إخفاء كافة خيارات المطور وزر Manage App والـ Streamlit Branding ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -134,21 +134,30 @@ st.markdown("""
         text-align: right;
     }
     
-    /* إخفاء القوائم العلوية وشريط Streamlit وقدم الصفحة */
-    #MainMenu {visibility: hidden; display: none !important;}
-    footer {visibility: hidden; display: none !important;}
-    header {visibility: hidden; display: none !important;}
+    /* 1. إخفاء القوائم العلوية والسفلية وشريط المطور بالكامل */
+    #MainMenu {visibility: hidden !important; display: none !important;}
+    footer {visibility: hidden !important; display: none !important;}
+    header {visibility: hidden !important; display: none !important;}
     .stDeployButton {display: none !important;}
     
-    /* إخفاء شريط أدوات المطور وزر Manage App وشعارات Streamlit */
-    [data-testid="stToolbar"] {visibility: hidden; display: none !important;}
+    /* 2. إخفاء زر Manage App والأزرار العائمة وشريط الأدوات */
+    [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important;}
-    .viewerBadge_container__1tB92 {display: none !important;}
-    ._profileContainer_gz836_1 {display: none !important;}
-    #stDecoration {display: none !important;}
-    div[class*="viewerBadge"] {display: none !important;}
+    [data-testid="manage-app-button"] {display: none !important;}
     
+    /* target مباشر لزر Manage app وشعار Streamlit */
+    .viewerBadge_container__1tB92,
+    ._profileContainer_gz836_1,
+    .viewerBadge_link__1S137,
+    div[class*="viewerBadge"],
+    div[class*="styles_viewerBadge"],
+    div[data-testid="stSidebarCollapseButton"] {
+        display: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
     /* تحسين تصميم الأزرار للـ Mobile */
     .stButton>button {
         width: 100%;
@@ -479,7 +488,7 @@ with tabs[3]:
         m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
         
         if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
-            max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
+            max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 1000
             new_c = int(max_c + 1)
             t_date = datetime.datetime.now().strftime("%Y-%m-%d")
             
@@ -494,7 +503,6 @@ with tabs[3]:
             }
             st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
             
-            # تحديث الشيت السحابي لجدول الترتيب تلقائياً عند إضافة عضو جديد
             if not leaderboard.empty:
                 update_leaderboard_in_gsheet(leaderboard)
                 
