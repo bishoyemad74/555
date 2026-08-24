@@ -18,6 +18,13 @@ try:
 except Exception:
     HAS_PYZBAR = False
 
+# مكتبة المسح المباشر الفوري عبر الكاميرا بدون الضغط على أزرار
+try:
+    from streamlit_qr_bar_scanner import qr_bar_scanned_id
+    HAS_LIVE_SCANNER = True
+except ImportError:
+    HAS_LIVE_SCANNER = False
+
 # مكتبات الربط المباشر مع Google Sheets
 try:
     import gspread
@@ -46,12 +53,16 @@ def get_gsheet_client():
     return None
 
 
-# دالة حفظ صف جديد في شيت جوجل فوراً
+# دالة حفظ صف جديد في شيت جوجل فوراً مع التعامل الذكي مع أسماء التبويبات
 def append_to_google_sheet(sheet_name, row_data):
     try:
         client = get_gsheet_client()
         if client:
-            sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
+            doc = client.open_by_key(SPREADSHEET_ID)
+            try:
+                sheet = doc.worksheet(sheet_name)
+            except Exception:
+                sheet = doc.add_worksheet(title=sheet_name, rows="1000", cols="20")
             sheet.append_row(row_data)
             return True
     except Exception as e:
@@ -59,12 +70,12 @@ def append_to_google_sheet(sheet_name, row_data):
     return False
 
 
-# دالة استخراج بيانات الـ QR بكفاءة عالية للتصاميم والصور المرفوعة
+# دالة استخراج بيانات الـ QR من الصور المرفوعة
 def extract_qr_code(image_file):
     try:
         img = Image.open(image_file)
         
-        # 1. المحاولة الأولى باستخدام zxing-cpp (الأدق للتصاميم عالية الجودة)
+        # 1. المحاولة الأولى بـ zxing-cpp
         if HAS_ZXING:
             results = zxingcpp.read_barcodes(img)
             if results:
@@ -72,7 +83,7 @@ def extract_qr_code(image_file):
                 clean_digits = "".join(filter(str.isdigit, raw_text))
                 return clean_digits if clean_digits else raw_text
         
-        # 2. المحاولة الثانية بـ pyzbar كخيار إضافي
+        # 2. المحاولة الثانية بـ pyzbar
         if HAS_PYZBAR:
             decoded = decode(img)
             if decoded:
@@ -202,31 +213,52 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📷 مسح كارت الـ QR")
+    st.subheader("📷 المسح الفوري التلقائي للـ QR")
     
     detected_code = 0
-    scan_mode = st.radio("اختر طريقة المسح الضوئي:", ["رفع صورة عالية الجودة (أدق وأسرع)", "فتح الكاميرا المباشرة"])
+    scan_mode = st.radio("اختر طريقة المسح:", ["الكاميرا المباشرة (مسح وتسجيل تلقائي)", "رفع صورة عالية الجودة"])
     
-    img_file = None
-    if scan_mode == "رفع صورة عالية الجودة (أدق وأسرع)":
-        img_file = st.file_uploader("اختر صورة كارت الـ QR من الاستوديو", type=["png", "jpg", "jpeg"])
-    else:
-        img_file = st.camera_input("وجّه الكاميرا إلى الكارت واضغط التقاط")
-    
-    if img_file is not None:
-        extracted = extract_qr_code(img_file)
-        if extracted:
-            try:
-                detected_code = int(extracted)
-                st.success(f"🎯 تم استخراج الكود بنجاح: {detected_code}")
-            except ValueError:
-                st.warning(f"الـ QR يحتوي على نص وليس رقماً فقط: {extracted}")
+    if scan_mode == "الكاميرا المباشرة (مسح وتسجيل تلقائي)":
+        st.write("ضع رمز الـ QR أمام الكاميرا وسيتم التعرف عليه وتسجيله فوراً:")
+        
+        if HAS_LIVE_SCANNER:
+            qr_code_scanned = qr_bar_scanned_id(key="qr_live_scanner")
+            
+            if qr_code_scanned:
+                clean_digits = "".join(filter(str.isdigit, str(qr_code_scanned)))
+                if clean_digits:
+                    detected_code = int(clean_digits)
+                    
+                    m = st.session_state.members[st.session_state.members["كود العضو"] == detected_code]
+                    if not m.empty:
+                        m_name = m.iloc[0]["اسم الكشاف"]
+                        if detected_code not in st.session_state.scanned_members:
+                            t_now = datetime.datetime.now().strftime("%H:%M:%S")
+                            st.session_state.scanned_members[detected_code] = (t_now, curr_score)
+                            st.success(f"🎉 تم التسجيل التلقائي: {m_name} | الدرجة: {curr_score}/10")
+                            st.balloons()
+                        else:
+                            st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
+                    else:
+                        st.error(f"❌ الكود ({detected_code}) غير مسجل في دليل الكشافة!")
         else:
-            st.error("❌ لم يتم التعرف على الرمز. تأكد أن الـ QR واضح وتحيط به مساحة بيضاء خالية.")
+            st.warning("يرجى إضافة `streamlit-qr-bar-scanner` إلى ملف requirements.txt لتفعيل المسح المباشر التلقائي.")
 
-    manual_code = st.number_input("أو ادخل الكود يدوياً:", step=1, value=detected_code)
+    else:
+        img_file = st.file_uploader("اختر صورة كارت الـ QR من الاستوديو", type=["png", "jpg", "jpeg"])
+        if img_file is not None:
+            extracted = extract_qr_code(img_file)
+            if extracted:
+                try:
+                    detected_code = int(extracted)
+                    st.success(f"🎯 تم استخراج الكود: {detected_code}")
+                except ValueError:
+                    st.warning(f"الرمز يحتوي على نص: {extracted}")
+
+    st.divider()
+    manual_code = st.number_input("أو أدخل الكود يدوياً:", step=1, value=0)
     
-    if st.button("✅ تسجيل الحضور"):
+    if st.button("✅ تسجيل الحضور يدوياً"):
         code_to_use = manual_code if manual_code > 0 else detected_code
         if code_to_use > 0:
             m = st.session_state.members[st.session_state.members["كود العضو"] == code_to_use]
@@ -243,7 +275,7 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
     with st.form("score_form"):
-        s_code = st.number_input("كود الكشاف", step=1, value=21820261)
+        s_code = st.number_input("كود الكشاف", step=1, value=1001)
         s_type = st.selectbox("نوع التقييم", ["الزي الكشفي", "السلوك والانضباط", "الأنشطة والمهارات", "المخيمات والرحلات", "اختبارات الترقي"])
         s_val = st.number_input("الدرجة (من 10)", min_value=0.0, max_value=10.0, step=0.5, value=10.0)
         s_notes = st.text_input("ملاحظات / اسم النشاط")
@@ -265,7 +297,7 @@ with tabs[2]:
     st.subheader("👥 إضافة كشاف جديد")
     with st.form("add_member"):
         m_name = st.text_input("اسم الكشاف رباعي")
-        m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "متقدم", "جوالة","مرشدات","جوالات", "قادة"])
+        m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "مرشدات", "متقدم", "جوالة", "جوالات", "قادة"])
         if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
             max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 1000
             new_c = int(max_c + 1)
