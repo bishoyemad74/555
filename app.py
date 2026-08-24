@@ -1,17 +1,27 @@
 import streamlit as st
 
-# إخفاء كافة عناصر Streamlit بما فيها الفوتر السفلي (Built with Streamlit)
+# إخفاء الهيدر والفوتر والـ Embed Toolbar بجميع مسمياتها
 st.markdown("""
     <style>
-        #MainMenu {visibility: hidden !important;}
-        header {visibility: hidden !important;}
-        footer {visibility: hidden !important;}
-        [data-testid="stHeader"] {display: none !important;}
-        [data-testid="stToolbar"] {display: none !important;}
-        [data-testid="stBottom"] {display: none !important;}
-        [data-testid="stStatusWidget"] {display: none !important;}
-        div[class*="viewerBadge"] {display: none !important;}
-        div[class*="stAppViewerFooter"] {display: none !important;}
+        /* إخفاء الهيدر والقوائم العلوية */
+        #MainMenu, header, [data-testid="stHeader"], [data-testid="stToolbar"] {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        
+        /* إخفاء الفوتر السفلي بجميع الأشكال والتسميات الحديثة */
+        footer, 
+        [data-testid="stFooter"], 
+        [data-testid="stBottom"],
+        [data-testid="stAppViewerFooter"],
+        .stAppViewerFooter,
+        div[class*="viewerBadge"],
+        div[class*="styles_viewerBadge"],
+        div[class*="stAppViewerFooter"] {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0px !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 import pandas as pd
