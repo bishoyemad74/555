@@ -281,14 +281,12 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
 
-    # زر لفتح/إغلاق كاميرا الـ QR في التقييمات
     col_cam_btn, _ = st.columns([1, 1])
     with col_cam_btn:
         if st.button("📷 فتح/إغلاق الكاميرا لمسح الكود"):
             st.session_state.show_eval_camera = not st.session_state.show_eval_camera
             st.rerun()
 
-    # قسم الكاميرا المساند للتقييمات
     if st.session_state.show_eval_camera:
         eval_img = st.camera_input("التقط صورة كارت الكشاف للتقييم", key="eval_cam")
         if eval_img is not None:
@@ -301,32 +299,41 @@ with tabs[1]:
             else:
                 st.error("لم يتم التعرف على الرمز، يرجى المحاولة مرة أخرى.")
 
-    # نموذج التقييم (بدون أزرار الزيادة والنقصان)
+    s_code_input = st.text_input("كود الكشاف", value=st.session_state.eval_scanned_code, placeholder="أدخل الكود أو امسحه بالكاميرا")
+
+    # التحقق التلقائي وعرض الاسم فوراً قبل إرسال النموذج
+    found_member_name = None
+    if s_code_input.strip():
+        try:
+            check_code = int(s_code_input.strip())
+            matched = st.session_state.members[st.session_state.members["كود العضو"] == check_code]
+            if not matched.empty:
+                row_found = matched.iloc[0]
+                found_member_name = row_found.get("اسم الكشاف", row_found.get("الاسم", "غير معروف"))
+                st.success(f"👤 **اسم الكشاف:** {found_member_name}")
+            else:
+                st.error("❌ الكود المدخل غير موجود في دليل الكشافة.")
+        except ValueError:
+            st.error("⚠️ يرجى إدخال أرقام فقط للكود.")
+
     with st.form("score_form"):
-        s_code_input = st.text_input("كود الكشاف", value=st.session_state.eval_scanned_code, placeholder="أدخل الكود أو امسحه بالكاميرا")
         s_type = st.selectbox("نوع التقييم", ["الزي الكشفي", "السلوك والانضباط", "الأنشطة والمهارات", "الخدمة", "الاعتراف", "التناول"])
         s_val = st.number_input("الدرجة (من 10)", min_value=0.0, max_value=10.0, step=0.5, value=10.0)
         s_notes = st.text_input("ملاحظات / اسم النشاط")
         
         if st.form_submit_button("حفظ التقييم والمزامنة السحابية"):
-            if s_code_input.strip():
+            if found_member_name and s_code_input.strip():
                 try:
                     s_code = int(s_code_input.strip())
-                    m = st.session_state.members[st.session_state.members["كود العضو"] == s_code]
-                    if not m.empty:
-                        row_data = m.iloc[0]
-                        m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
-                        t_date = datetime.datetime.now().strftime("%Y-%m-%d")
-                        
-                        append_to_google_sheet("التقييمات", [t_date, s_code, m_name, s_type, s_val, s_notes])
-                        st.session_state.eval_scanned_code = ""
-                        st.success(f"تم تسجيل تقييم ({s_type}) للكشاف {m_name} وحفظه في Google Sheets!")
-                    else:
-                        st.error("الكود غير موجود في دليل الكشافة!")
+                    t_date = datetime.datetime.now().strftime("%Y-%m-%d")
+                    
+                    append_to_google_sheet("التقييمات", [t_date, s_code, found_member_name, s_type, s_val, s_notes])
+                    st.session_state.eval_scanned_code = ""
+                    st.success(f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} وحفظه في Google Sheets!")
                 except ValueError:
-                    st.error("يرجى إدخال أرقام فقط لكود الكشاف.")
+                    st.error("حدث خطأ أثناء معالجة الكود.")
             else:
-                st.warning("يرجى إدخال كود الكشاف أولاً.")
+                st.warning("يرجى التأكد من إدخال كود صحيح لكشاف موجود قبل الحفظ.")
 
 
 # --- Tab 3: دليل الكشافة ---
