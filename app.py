@@ -28,18 +28,21 @@ def get_gsheet_client():
     return None
 
 # دالة حفظ صف جديد في شيت جوجل فوراً
+# ضع الـ ID الخاص بشيت جوجل هنا
+SPREADSHEET_ID = "1B4Ho5U0x0TDf36bu7KqxXnMZCnvAiVxzfLthX_ga94c"
+
 def append_to_google_sheet(sheet_name, row_data):
     try:
         client = get_gsheet_client()
         if client:
-            # اسم الملف في Google Drive
-            sheet = client.open("كشافة أم النور").worksheet(sheet_name)
+            # الفتح عن طريق الـ ID أضمن بكثير من الاسم
+            sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
             sheet.append_row(row_data)
             return True
     except Exception as e:
-        st.error(f"خطأ في المزامنة السحابية: {e}")
+        # عرض نص الخطأ الحقيقي بدلاً من كائن الاستجابة
+        st.error(f"خطأ في المزامنة السحابية ({sheet_name}): {str(e)}")
     return False
-
 st.set_page_config(
     page_title="كشافة أم النور",
     page_icon="⚜️",
