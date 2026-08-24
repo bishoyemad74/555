@@ -64,7 +64,7 @@ def load_data_from_gsheet(sheet_name):
             records = sheet.get_all_records()
             if records:
                 df = pd.DataFrame(records)
-                df.columns = df.columns.str.strip()
+                df.columns = df.columns.astype(str).str.strip()
                 return df
     except Exception as e:
         st.warning(f"تعذر جلب بيانات ({sheet_name}) من Google Sheets: {str(e)}")
@@ -352,39 +352,66 @@ with tabs[2]:
     if not st.session_state.members.empty:
         members_df = st.session_state.members.copy()
         
+        # التأكد الآمن من وجود أعمدة جدول الأعضاء
+        code_col = [c for c in members_df.columns if "كود" in c or "Code" in c]
+        name_col = [c for c in members_df.columns if "اسم" in c or "Name" in c]
+        group_col = [c for c in members_df.columns if "فرقة" in c or "الفرقة" in c or "Group" in c]
+        
+        c_name = code_col[0] if code_col else members_df.columns[0]
+        n_name = name_col[0] if name_col else members_df.columns[1] if len(members_df.columns) > 1 else c_name
+        g_name = group_col[0] if group_col else None
+        
+        cols_to_use = [c_name, n_name]
+        if g_name:
+            cols_to_use.append(g_name)
+            
+        leaderboard = members_df[cols_to_use].copy()
+        
         # حساب مجموع الحضور
         att_df = st.session_state.attendance
-        if not att_df.empty and "كود العضو" in att_df.columns and "درجة الحضور" in att_df.columns:
-            att_df["درجة الحضور"] = pd.to_numeric(att_df["درجة الحضور"], errors="coerce").fillna(0)
-            att_sum = att_df.groupby("كود العضو")["درجة الحضور"].sum().reset_index()
-            att_sum.rename(columns={"درجة الحضور": "نقاط الحضور"}, inplace=True)
+        if not att_df.empty:
+            att_code_col = [c for c in att_df.columns if "كود" in c or "Code" in c]
+            att_score_col = [c for c in att_df.columns if "درجة" in c or "Score" in c]
+            
+            if att_code_col and att_score_col:
+                ac = att_code_col[0]
+                asc = att_score_col[0]
+                att_df[asc] = pd.to_numeric(att_df[asc], errors="coerce").fillna(0)
+                att_sum = att_df.groupby(ac)[asc].sum().reset_index()
+                att_sum.columns = [c_name, "نقاط الحضور"]
+            else:
+                att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
         else:
-            att_sum = pd.DataFrame(columns=["كود العضو", "نقاط الحضور"])
+            att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
 
         # حساب مجموع التقييمات
         sc_df = st.session_state.scores
-        if not sc_df.empty and "كود العضو" in sc_df.columns and "الدرجة (من 10)" in sc_df.columns:
-            sc_df["الدرجة (من 10)"] = pd.to_numeric(sc_df["الدرجة (من 10)"], errors="coerce").fillna(0)
-            sc_sum = sc_df.groupby("كود العضو")["الدرجة (من 10)"].sum().reset_index()
-            sc_sum.rename(columns={"الدرجة (من 10)": "نقاط التقييمات"}, inplace=True)
+        if not sc_df.empty:
+            sc_code_col = [c for c in sc_df.columns if "كود" in c or "Code" in c]
+            sc_val_col = [c for c in sc_df.columns if "الدرجة" in c or "درجة" in c or "Score" in c]
+            
+            if sc_code_col and sc_val_col:
+                scc = sc_code_col[0]
+                scv = sc_val_col[0]
+                sc_df[scv] = pd.to_numeric(sc_df[scv], errors="coerce").fillna(0)
+                sc_sum = sc_df.groupby(scc)[scv].sum().reset_index()
+                sc_sum.columns = [c_name, "نقاط التقييمات"]
+            else:
+                sc_sum = pd.DataFrame(columns=[c_name, "نقاط التقييمات"])
         else:
-            sc_sum = pd.DataFrame(columns=["كود العضو", "نقاط التقييمات"])
+            sc_sum = pd.DataFrame(columns=[c_name, "نقاط التقييمات"])
 
-        # دمج البيانات لحساب الترتيب الإجمالي
-        leaderboard = members_df[["كود العضو", "اسم الكشاف", "الفرقة"]].copy()
-        leaderboard = leaderboard.merge(att_sum, on="كود العضو", how="left").fillna(0)
-        leaderboard = leaderboard.merge(sc_sum, on="كود العضو", how="left").fillna(0)
+        # دمج البيانات بأمان
+        leaderboard = leaderboard.merge(att_sum, on=c_name, how="left").fillna(0)
+        leaderboard = leaderboard.merge(sc_sum, on=c_name, how="left").fillna(0)
         
         leaderboard["المجموع الكلي"] = leaderboard["نقاط الحضور"] + leaderboard["نقاط التقييمات"]
         
-        # ترتيب الجدول من الأعلى للأقل
+        # ترتيب الجدول تنازلياً من الأعلى للأقل
         leaderboard = leaderboard.sort_values(by="المجموع الكلي", ascending=False).reset_index(drop=True)
-        leaderboard.index = leaderboard.index + 1  # لبدء الترتيب من 1
+        leaderboard.index = leaderboard.index + 1
         
-        st.dataframe(
-            leaderboard[["كود العضو", "اسم الكشاف", "الفرقة", "نقاط الحضور", "نقاط التقييمات", "المجموع الكلي"]],
-            use_container_width=True
-        )
+        st.dataframe(leaderboard, use_container_width=True)
     else:
         st.info("لا توجد بيانات أعضاء متاحة لحساب الترتيب.")
 
