@@ -1,26 +1,21 @@
 import streamlit as st
 
-# إخفاء الهيدر والفوتر والـ Embed Toolbar بجميع مسمياتها
 st.markdown("""
     <style>
-        /* إخفاء الهيدر والقوائم العلوية */
-        #MainMenu, header, [data-testid="stHeader"], [data-testid="stToolbar"] {
+        /* إخفاء الهيدر والفوتر والقوائم */
+        #MainMenu, header, footer, [data-testid="stHeader"], [data-testid="stToolbar"] {
             display: none !important;
             visibility: hidden !important;
         }
+
+        /* تمديد مساحة التطبيق لتغطي أسفل الشاشة وتخفي أي شريط خارجي */
+        .main .block-container {
+            padding-bottom: 0rem !important;
+            margin-bottom: -50px !important;
+        }
         
-        /* إخفاء الفوتر السفلي بجميع الأشكال والتسميات الحديثة */
-        footer, 
-        [data-testid="stFooter"], 
-        [data-testid="stBottom"],
-        [data-testid="stAppViewerFooter"],
-        .stAppViewerFooter,
-        div[class*="viewerBadge"],
-        div[class*="styles_viewerBadge"],
-        div[class*="stAppViewerFooter"] {
-            display: none !important;
-            visibility: hidden !important;
-            height: 0px !important;
+        body, .stApp {
+            margin-bottom: -50px !important;
         }
     </style>
 """, unsafe_allow_html=True)
