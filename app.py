@@ -149,10 +149,14 @@ if 'members' not in st.session_state or st.session_state.members.empty:
         st.session_state.members = pd.DataFrame(columns=["كود العضو", "اسم الكشاف", "الفرقة", "رقم التليفون", "تاريخ الانضمام"])
 
 if 'attendance' not in st.session_state:
-    st.session_state.attendance = pd.DataFrame(columns=["التاريخ", "كود العضو", "اسم الكشاف", "حالة الحضور", "وقت التسجيل", "درجة الحضور"])
+    st.session_state.attendance = load_data_from_gsheet("الحضور")
+    if st.session_state.attendance.empty:
+        st.session_state.attendance = pd.DataFrame(columns=["التاريخ", "كود العضو", "اسم الكشاف", "حالة الحضور", "وقت التسجيل", "درجة الحضور"])
 
-if 'scores' not in st.session_state or 'اسم الكشاف' not in st.session_state.scores.columns:
-    st.session_state.scores = pd.DataFrame(columns=["تاريخ التقييم", "كود العضو", "اسم الكشاف", "نوع التقييم", "الدرجة (من 10)", "ملاحظات"])
+if 'scores' not in st.session_state:
+    st.session_state.scores = load_data_from_gsheet("التقييمات")
+    if st.session_state.scores.empty:
+        st.session_state.scores = pd.DataFrame(columns=["تاريخ التقييم", "كود العضو", "اسم الكشاف", "نوع التقييم", "الدرجة (من 10)", "ملاحظات"])
 
 if 'session_start_time' not in st.session_state:
     st.session_state.session_start_time = None
@@ -167,7 +171,7 @@ if 'show_eval_camera' not in st.session_state:
     st.session_state.show_eval_camera = False
 
 
-tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "👥 دليل الكشافة", "☁️ الشيت السحابي المباشر"])
+tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "🏆 لوحة الصدارة", "👥 دليل الكشافة", "☁️ الشيت السحابي المباشر"])
 
 
 # --- Tab 1: الحضور والغياب المباشر ---
@@ -301,7 +305,6 @@ with tabs[1]:
 
     s_code_input = st.text_input("كود الكشاف", value=st.session_state.eval_scanned_code, placeholder="أدخل الكود أو امسحه بالكاميرا")
 
-    # التحقق التلقائي وعرض الاسم فوراً قبل إرسال النموذج
     found_member_name = None
     if s_code_input.strip():
         try:
@@ -336,8 +339,58 @@ with tabs[1]:
                 st.warning("يرجى التأكد من إدخال كود صحيح لكشاف موجود قبل الحفظ.")
 
 
-# --- Tab 3: دليل الكشافة ---
+# --- Tab 3: 🏆 لوحة الصدارة والترتيب ---
 with tabs[2]:
+    st.subheader("🏆 ترتيب الكشافة حسَب إجمالي الدرجات")
+    
+    if st.button("🔄 إعادة حساب وتحديث الترتيب"):
+        st.session_state.attendance = load_data_from_gsheet("الحضور")
+        st.session_state.scores = load_data_from_gsheet("التقييمات")
+        st.session_state.members = load_data_from_gsheet("الأعضاء")
+        st.rerun()
+
+    if not st.session_state.members.empty:
+        members_df = st.session_state.members.copy()
+        
+        # حساب مجموع الحضور
+        att_df = st.session_state.attendance
+        if not att_df.empty and "كود العضو" in att_df.columns and "درجة الحضور" in att_df.columns:
+            att_df["درجة الحضور"] = pd.to_numeric(att_df["درجة الحضور"], errors="coerce").fillna(0)
+            att_sum = att_df.groupby("كود العضو")["درجة الحضور"].sum().reset_index()
+            att_sum.rename(columns={"درجة الحضور": "نقاط الحضور"}, inplace=True)
+        else:
+            att_sum = pd.DataFrame(columns=["كود العضو", "نقاط الحضور"])
+
+        # حساب مجموع التقييمات
+        sc_df = st.session_state.scores
+        if not sc_df.empty and "كود العضو" in sc_df.columns and "الدرجة (من 10)" in sc_df.columns:
+            sc_df["الدرجة (من 10)"] = pd.to_numeric(sc_df["الدرجة (من 10)"], errors="coerce").fillna(0)
+            sc_sum = sc_df.groupby("كود العضو")["الدرجة (من 10)"].sum().reset_index()
+            sc_sum.rename(columns={"الدرجة (من 10)": "نقاط التقييمات"}, inplace=True)
+        else:
+            sc_sum = pd.DataFrame(columns=["كود العضو", "نقاط التقييمات"])
+
+        # دمج البيانات لحساب الترتيب الإجمالي
+        leaderboard = members_df[["كود العضو", "اسم الكشاف", "الفرقة"]].copy()
+        leaderboard = leaderboard.merge(att_sum, on="كود العضو", how="left").fillna(0)
+        leaderboard = leaderboard.merge(sc_sum, on="كود العضو", how="left").fillna(0)
+        
+        leaderboard["المجموع الكلي"] = leaderboard["نقاط الحضور"] + leaderboard["نقاط التقييمات"]
+        
+        # ترتيب الجدول من الأعلى للأقل
+        leaderboard = leaderboard.sort_values(by="المجموع الكلي", ascending=False).reset_index(drop=True)
+        leaderboard.index = leaderboard.index + 1  # لبدء الترتيب من 1
+        
+        st.dataframe(
+            leaderboard[["كود العضو", "اسم الكشاف", "الفرقة", "نقاط الحضور", "نقاط التقييمات", "المجموع الكلي"]],
+            use_container_width=True
+        )
+    else:
+        st.info("لا توجد بيانات أعضاء متاحة لحساب الترتيب.")
+
+
+# --- Tab 4: دليل الكشافة ---
+with tabs[3]:
     st.subheader("👥 إضافة كشاف جديد")
     
     if st.button("🔄 تحديث البيانات من Google Sheets"):
@@ -372,8 +425,8 @@ with tabs[2]:
     st.dataframe(st.session_state.members, use_container_width=True)
 
 
-# --- Tab 4: فتح الشيت المباشر ---
-with tabs[3]:
+# --- Tab 5: فتح الشيت المباشر ---
+with tabs[4]:
     st.subheader("☁️ شيت Google Sheets السحابي التفاعلي")
     st.info("البيانات تُحفظ تلقائياً في شيت جوجل بدون أي تدخل يدوي.")
     
