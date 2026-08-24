@@ -2,15 +2,7 @@ import streamlit as st
 import pandas as pd
 import datetime
 import time
-import numpy as np
-from PIL import Image
-
-# مكتبة OpenCV لمعالجة الصور وقراءة الـ QR
-try:
-    import cv2
-    HAS_CV2 = True
-except ImportError:
-    HAS_CV2 = False
+import streamlit.components.v1 as components
 
 # مكتبات الربط المباشر مع Google Sheets
 try:
@@ -21,12 +13,10 @@ except ImportError:
     HAS_GSPREAD = False
 
 
-# ⚠️ ضع الـ ID الحقيقي الخاص بشيت جوجل هنا بدلاً من النص المؤقت
 SPREADSHEET_ID = "ضع_الـ_ID_الحقيقي_هنا"
 SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
 
 
-# دالة الاتصال المباشر بشيت جوجل
 def get_gsheet_client():
     if HAS_GSPREAD and "gcp_service_account" in st.secrets:
         scope = [
@@ -40,7 +30,6 @@ def get_gsheet_client():
     return None
 
 
-# دالة حفظ صف جديد في شيت جوجل فوراً
 def append_to_google_sheet(sheet_name, row_data):
     try:
         client = get_gsheet_client()
@@ -57,22 +46,6 @@ def append_to_google_sheet(sheet_name, row_data):
     return False
 
 
-# دالة استخراج بيانات الـ QR باستخدام OpenCV
-def extract_qr_code(image_bytes):
-    try:
-        if HAS_CV2:
-            file_bytes = np.asarray(bytearray(image_bytes.read()), dtype=np.uint8)
-            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-            detector = cv2.QRCodeDetector()
-            data, bbox, _ = detector.detectAndDecode(img)
-            if data:
-                clean_digits = "".join(filter(str.isdigit, data))
-                return clean_digits if clean_digits else data
-    except Exception as e:
-        st.error(f"خطأ أثناء معالجة الصورة: {e}")
-    return None
-
-
 # --- إعدادات الصفحة ---
 st.set_page_config(
     page_title="كشافة أم النور",
@@ -81,7 +54,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# تنسيقات الواجهة (CSS)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -120,7 +92,6 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# إدارة حالة التطبيق (Session State)
 if 'members' not in st.session_state or 'اسم الكشاف' not in st.session_state.members.columns:
     st.session_state.members = pd.DataFrame([
         {"كود العضو": 1001, "اسم الكشاف": "مينا سامح", "الفرقة": "فتيان", "تاريخ الانضمام": "2026-01-15"},
@@ -140,7 +111,6 @@ if 'session_start_time' not in st.session_state:
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
 
-# التبويبات الرئيسية
 tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "👥 دليل الكشافة", "☁️ الشيت السحابي المباشر"])
 
 
@@ -191,47 +161,40 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📷 قراءة رمز الـ QR")
-    
-    detected_code = 0
-    scan_mode = st.radio("اختر طريقة المسح:", ["التقاط صورة بالنظام (الكاميرا)", "رفع صورة من الجهاز"])
-    
-    if scan_mode == "التقاط صورة بالنظام (الكاميرا)":
-        cam_img = st.camera_input("التقط صورة لرمز الـ QR للكشاف")
-        if cam_img is not None:
-            extracted = extract_qr_code(cam_img)
-            if extracted:
-                try:
-                    detected_code = int(extracted)
-                    st.success(f"🎯 تم استخراج الكود: {detected_code}")
-                except ValueError:
-                    st.warning(f"الرمز يحتوي على نص: {extracted}")
-            else:
-                st.warning("تعذر قراءة رمز QR من الصورة، يرجى إعادة المحاولة بوضوح أكثر.")
+    st.subheader("📷 الكاميرا المباشرة (مسح تلقائي فوراً بدون أزرار)")
 
-    else:
-        img_file = st.file_uploader("اختر صورة كارت الـ QR من الاستوديو", type=["png", "jpg", "jpeg"])
-        if img_file is not None:
-            extracted = extract_qr_code(img_file)
-            if extracted:
-                try:
-                    detected_code = int(extracted)
-                    st.success(f"🎯 تم استخراج الكود: {detected_code}")
-                except ValueError:
-                    st.warning(f"الرمز يحتوي على نص: {extracted}")
+    # كود HTML + JS لمسح الـ QR تلقائياً عبر المتصفح
+    qr_scanner_html = """
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <div id="reader" style="width: 100%; max-width: 400px; margin: auto;"></div>
+    <div id="result" style="text-align:center; font-weight:bold; font-size:18px; color:green; margin-top:10px;"></div>
+
+    <script>
+        function onScanSuccess(decodedText, decodedResult) {
+            document.getElementById('result').innerText = "تم القراءة: " + decodedText;
+            window.parent.postMessage({type: 'streamlit:setComponentValue', value: decodedText}, '*');
+        }
+
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: {width: 250, height: 250} }, /* verbose= */ false);
+        html5QrcodeScanner.render(onScanSuccess);
+    </script>
+    """
+    
+    # عرض الكاميرا
+    components.html(qr_scanner_html, height=360)
 
     st.divider()
-    manual_code = st.number_input("أو أدخل الكود يدوياً:", step=1, value=0)
+    manual_code = st.number_input("أدخل أو تأكد من كود الكشاف وتسجيله:", step=1, value=0)
     
     if st.button("✅ تسجيل الحضور"):
-        code_to_use = manual_code if manual_code > 0 else detected_code
-        if code_to_use > 0:
-            m = st.session_state.members[st.session_state.members["كود العضو"] == code_to_use]
+        if manual_code > 0:
+            m = st.session_state.members[st.session_state.members["كود العضو"] == manual_code]
             if not m.empty:
                 m_name = m.iloc[0]["اسم الكشاف"]
-                if code_to_use not in st.session_state.scanned_members:
+                if manual_code not in st.session_state.scanned_members:
                     t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                    st.session_state.scanned_members[code_to_use] = (t_now, curr_score)
+                    st.session_state.scanned_members[manual_code] = (t_now, curr_score)
                     st.success(f"🎉 تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
                     st.balloons()
                 else:
