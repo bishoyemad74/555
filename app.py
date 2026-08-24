@@ -3,17 +3,8 @@ import pandas as pd
 import datetime
 import time
 from PIL import Image
-import cv2
-import av
 
-# مكتبة البث المباشر مع Streamlit
-try:
-    from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
-    HAS_WEBRTC = True
-except ImportError:
-    HAS_WEBRTC = False
-
-# مكتبة قراءة الـ QR والباركود الاحترافية (ZXing)
+# مكتبة قراءة الـ QR والباركود السريعة (ZXing)
 try:
     import zxingcpp
     HAS_ZXING = True
@@ -40,7 +31,6 @@ SPREADSHEET_ID = "1B4Ho5U0x0TDf36bu7KqxXnMZCnvAiVxzfLthX_ga94c"
 SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
 
 
-# دالة الاتصال المباشر بشيت جوجل
 def get_gsheet_client():
     if HAS_GSPREAD and "gcp_service_account" in st.secrets:
         scope = [
@@ -54,7 +44,6 @@ def get_gsheet_client():
     return None
 
 
-# دالة حفظ صف جديد في شيت جوجل فوراً
 def append_to_google_sheet(sheet_name, row_data):
     try:
         client = get_gsheet_client()
@@ -67,7 +56,6 @@ def append_to_google_sheet(sheet_name, row_data):
     return False
 
 
-# دالة قراءة البيانات المباشرة من Google Sheets
 def load_data_from_gsheet(sheet_name):
     try:
         client = get_gsheet_client()
@@ -81,27 +69,27 @@ def load_data_from_gsheet(sheet_name):
     return pd.DataFrame()
 
 
-# كلاس معالجة الفيديو للبث المباشر (Real-time Video Processing)
-class BarcodeScanner(VideoProcessorBase):
-    def __init__(self):
-        self.last_scanned = None
-
-    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-        img = frame.to_ndarray(format="bgr24")
+def extract_qr_code(image_file):
+    try:
+        img = Image.open(image_file)
         
         if HAS_ZXING:
             results = zxingcpp.read_barcodes(img)
-            for res in results:
-                raw_text = res.text
-                digits = "".join(filter(str.isdigit, raw_text))
-                if digits:
-                    self.last_scanned = int(digits)
-                    # رسم إطار أخضر على الباركود المكتشف
-                    pts = [(int(p.x), int(p.y)) for p in res.position]
-                    for i in range(len(pts)):
-                        cv2.line(img, pts[i], pts[(i + 1) % len(pts)], (0, 255, 0), 3)
-
-        return av.VideoFrame.from_ndarray(img, format="bgr24")
+            if results:
+                raw_text = results[0].text
+                clean_digits = "".join(filter(str.isdigit, raw_text))
+                return clean_digits if clean_digits else raw_text
+        
+        if HAS_PYZBAR:
+            decoded = decode(img)
+            if decoded:
+                raw_text = decoded[0].data.decode("utf-8")
+                clean_digits = "".join(filter(str.isdigit, raw_text))
+                return clean_digits if clean_digits else raw_text
+                
+    except Exception as e:
+        st.error(f"خطأ أثناء معالجة الصورة: {e}")
+    return None
 
 
 # --- إعدادات الصفحة ---
@@ -165,7 +153,7 @@ if 'scores' not in st.session_state or 'اسم الكشاف' not in st.session_s
     st.session_state.scores = pd.DataFrame(columns=["تاريخ التقييم", "كود العضو", "اسم الكشاف", "نوع التقييم", "الدرجة (من 10)", "ملاحظات"])
 
 if 'session_start_time' not in st.session_state:
-    st.session_state.session_start_time = None
+    st.session_start_time = None
 
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
@@ -176,7 +164,7 @@ tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "�
 
 # --- Tab 1: الحضور والغياب المباشر ---
 with tabs[0]:
-    st.subheader("تسجيل الحضور")
+    st.subheader("تسجيل الحضور الفوري")
     
     col_start, col_stop = st.columns(2)
     with col_start:
@@ -221,43 +209,48 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📷 الكاميرا المباشرة للمسح التلقائي")
+    st.subheader("📷 التقاط الكارت والتسجيل التلقائي")
     
-    if HAS_WEBRTC:
-        ctx = webrtc_streamer(
-            key="barcode-scanner",
-            video_processor_factory=BarcodeScanner,
-            media_stream_constraints={"video": True, "audio": False},
-        )
-
-        if ctx.video_processor and ctx.video_processor.last_scanned:
-            code_val = ctx.video_processor.last_scanned
-            m = st.session_state.members[st.session_state.members["كود العضو"] == code_val]
-            if not m.empty:
-                m_name = m.iloc[0]["اسم الكشاف"]
-                if code_val not in st.session_state.scanned_members:
-                    t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                    st.session_state.scanned_members[code_val] = (t_now, curr_score)
-                    st.success(f"🎉 تم تسجيل الحضور تلقائياً: {m_name} (كود: {code_val})")
-                    st.toast(f"تم تسجيل {m_name} بنجاح!", icon="✅")
+    # التقاط الصورة (بمجرد التقاط الصورة يتم التنفيذ فوراً)
+    img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
+    
+    if img_file is not None:
+        extracted = extract_qr_code(img_file)
+        if extracted:
+            try:
+                code_val = int(extracted)
+                m = st.session_state.members[st.session_state.members["كود العضو"] == code_val]
+                if not m.empty:
+                    m_name = m.iloc[0]["اسم الكشاف"]
+                    if code_val not in st.session_state.scanned_members:
+                        t_now = datetime.datetime.now().strftime("%H:%M:%S")
+                        st.session_state.scanned_members[code_val] = (t_now, curr_score)
+                        st.success(f"🎉 تم قراءة الكود وتسجيل الحضور فوراً: {m_name} (كود: {code_val})")
+                        st.balloons()
+                    else:
+                        st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
                 else:
-                    st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
-            else:
-                st.error(f"❌ الكود {code_val} غير مسجل في الدليل!")
-    else:
-        st.error("مكتبة streamlit-webrtc غير مثبته!")
+                    st.error(f"❌ الكود المنسوخ ({code_val}) غير مسجل في دليل الكشافة!")
+            except ValueError:
+                st.warning(f"الـ QR يحتوي على نص: {extracted}")
+        else:
+            st.error("❌ لم يتم التعرف على الرمز، يرجى التقاط صورة أقرب وأوضح للـ QR.")
 
     st.divider()
-    manual_code = st.number_input("أو ادخل الكود يدوياً:", step=1, value=0)
-    if st.button("✅ تسجيل الحضور اليدوي"):
-        if manual_code > 0:
+    
+    # إدخال يدوي سريع
+    with st.form("manual_attendance_form"):
+        manual_code = st.number_input("أو أدخل الكود يدوياً اضغط تسجيل:", step=1, value=0)
+        submit_manual = st.form_submit_button("✅ تسجيل يدوي سريع")
+        
+        if submit_manual and manual_code > 0:
             m = st.session_state.members[st.session_state.members["كود العضو"] == manual_code]
             if not m.empty:
                 m_name = m.iloc[0]["اسم الكشاف"]
                 if manual_code not in st.session_state.scanned_members:
                     t_now = datetime.datetime.now().strftime("%H:%M:%S")
                     st.session_state.scanned_members[manual_code] = (t_now, curr_score)
-                    st.success(f"تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
+                    st.success(f"🎉 تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
                 else:
                     st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
             else:
