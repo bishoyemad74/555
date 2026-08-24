@@ -64,7 +64,6 @@ def load_data_from_gsheet(sheet_name):
             records = sheet.get_all_records()
             if records:
                 df = pd.DataFrame(records)
-                # تنظيف أسماء الأعمدة وإزالة المسافات الزائدة
                 df.columns = df.columns.str.strip()
                 return df
     except Exception as e:
@@ -161,6 +160,12 @@ if 'session_start_time' not in st.session_state:
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
 
+if 'eval_scanned_code' not in st.session_state:
+    st.session_state.eval_scanned_code = ""
+
+if 'show_eval_camera' not in st.session_state:
+    st.session_state.show_eval_camera = False
+
 
 tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "👥 دليل الكشافة", "☁️ الشيت السحابي المباشر"])
 
@@ -217,7 +222,6 @@ with tabs[0]:
 
     st.divider()
     
-    # الكاميرا تظهر فقط عند فتح الجلسة
     if st.session_state.session_start_time is not None:
         st.subheader("📷 التقاط الكارت والتسجيل التلقائي")
         img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
@@ -251,44 +255,78 @@ with tabs[0]:
     st.divider()
     
     with st.form("manual_attendance_form"):
-        manual_code = st.number_input("أو أدخل الكود يدوياً واضغط تسجيل:", step=1, value=0)
+        manual_code_str = st.text_input("أو أدخل الكود يدوياً واضغط تسجيل:", value="")
         submit_manual = st.form_submit_button("✅ تسجيل يدوي سريع")
         
-        if submit_manual and manual_code > 0:
-            m = st.session_state.members[st.session_state.members["كود العضو"] == manual_code]
-            if not m.empty:
-                row_data = m.iloc[0]
-                m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
-                if manual_code not in st.session_state.scanned_members:
-                    t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                    st.session_state.scanned_members[manual_code] = (t_now, curr_score)
-                    st.success(f"🎉 تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
+        if submit_manual and manual_code_str.strip():
+            try:
+                manual_code = int(manual_code_str.strip())
+                m = st.session_state.members[st.session_state.members["كود العضو"] == manual_code]
+                if not m.empty:
+                    row_data = m.iloc[0]
+                    m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
+                    if manual_code not in st.session_state.scanned_members:
+                        t_now = datetime.datetime.now().strftime("%H:%M:%S")
+                        st.session_state.scanned_members[manual_code] = (t_now, curr_score)
+                        st.success(f"🎉 تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
+                    else:
+                        st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
                 else:
-                    st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
-            else:
-                st.error("الكود غير مسجل في دليل الكشافة!")
+                    st.error("الكود غير مسجل في دليل الكشافة!")
+            except ValueError:
+                st.error("يرجى إدخال أرقام فقط لكود الكشاف.")
 
 
 # --- Tab 2: تقييمات النشاط الكشفي ---
 with tabs[1]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
+
+    # زر لفتح/إغلاق كاميرا الـ QR في التقييمات
+    col_cam_btn, _ = st.columns([1, 1])
+    with col_cam_btn:
+        if st.button("📷 فتح/إغلاق الكاميرا لمسح الكود"):
+            st.session_state.show_eval_camera = not st.session_state.show_eval_camera
+            st.rerun()
+
+    # قسم الكاميرا المساند للتقييمات
+    if st.session_state.show_eval_camera:
+        eval_img = st.camera_input("التقط صورة كارت الكشاف للتقييم", key="eval_cam")
+        if eval_img is not None:
+            extracted_eval = extract_qr_code(eval_img)
+            if extracted_eval:
+                st.session_state.eval_scanned_code = str(extracted_eval)
+                st.session_state.show_eval_camera = False
+                st.success(f"تم التقاط الكود: {extracted_eval}")
+                st.rerun()
+            else:
+                st.error("لم يتم التعرف على الرمز، يرجى المحاولة مرة أخرى.")
+
+    # نموذج التقييم (بدون أزرار الزيادة والنقصان)
     with st.form("score_form"):
-        s_code = st.number_input("كود الكشاف", step=1, value=1001)
+        s_code_input = st.text_input("كود الكشاف", value=st.session_state.eval_scanned_code, placeholder="أدخل الكود أو امسحه بالكاميرا")
         s_type = st.selectbox("نوع التقييم", ["الزي الكشفي", "السلوك والانضباط", "الأنشطة والمهارات", "الخدمة", "الاعتراف", "التناول"])
         s_val = st.number_input("الدرجة (من 10)", min_value=0.0, max_value=10.0, step=0.5, value=10.0)
         s_notes = st.text_input("ملاحظات / اسم النشاط")
         
         if st.form_submit_button("حفظ التقييم والمزامنة السحابية"):
-            m = st.session_state.members[st.session_state.members["كود العضو"] == s_code]
-            if not m.empty:
-                row_data = m.iloc[0]
-                m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
-                t_date = datetime.datetime.now().strftime("%Y-%m-%d")
-                
-                append_to_google_sheet("التقييمات", [t_date, s_code, m_name, s_type, s_val, s_notes])
-                st.success(f"تم تسجيل تقييم ({s_type}) للكشاف {m_name} وحفظه في Google Sheets!")
+            if s_code_input.strip():
+                try:
+                    s_code = int(s_code_input.strip())
+                    m = st.session_state.members[st.session_state.members["كود العضو"] == s_code]
+                    if not m.empty:
+                        row_data = m.iloc[0]
+                        m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
+                        t_date = datetime.datetime.now().strftime("%Y-%m-%d")
+                        
+                        append_to_google_sheet("التقييمات", [t_date, s_code, m_name, s_type, s_val, s_notes])
+                        st.session_state.eval_scanned_code = ""
+                        st.success(f"تم تسجيل تقييم ({s_type}) للكشاف {m_name} وحفظه في Google Sheets!")
+                    else:
+                        st.error("الكود غير موجود في دليل الكشافة!")
+                except ValueError:
+                    st.error("يرجى إدخال أرقام فقط لكود الكشاف.")
             else:
-                st.error("الكود غير موجود!")
+                st.warning("يرجى إدخال كود الكشاف أولاً.")
 
 
 # --- Tab 3: دليل الكشافة ---
@@ -308,7 +346,7 @@ with tabs[2]:
         m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
         
         if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
-            max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 1000
+            max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
             new_c = int(max_c + 1)
             t_date = datetime.datetime.now().strftime("%Y-%m-%d")
             
