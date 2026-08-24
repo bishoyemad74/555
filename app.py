@@ -3,7 +3,7 @@ import pandas as pd
 import datetime
 import time
 from PIL import Image
-# test
+
 # مكتبة قراءة الـ QR والباركود الاحترافية (ZXing)
 try:
     import zxingcpp
@@ -27,7 +27,6 @@ except ImportError:
     HAS_GSPREAD = False
 
 
-# ⚠️ ضع الـ ID الحقيقي الخاص بشيت جوجل هنا بدلاً من النص المؤقت
 SPREADSHEET_ID = "1B4Ho5U0x0TDf36bu7KqxXnMZCnvAiVxzfLthX_ga94c"
 SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
 
@@ -59,12 +58,25 @@ def append_to_google_sheet(sheet_name, row_data):
     return False
 
 
-# دالة استخراج بيانات الـ QR بكفاءة عالية للتصاميم والصور المرفوعة
+# دالة قراءة البيانات المباشرة من Google Sheets
+def load_data_from_gsheet(sheet_name):
+    try:
+        client = get_gsheet_client()
+        if client:
+            sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
+            records = sheet.get_all_records()
+            if records:
+                return pd.DataFrame(records)
+    except Exception as e:
+        st.warning(f"تعذر جلب بيانات ({sheet_name}) من Google Sheets: {str(e)}")
+    return pd.DataFrame()
+
+
+# دالة استخراج بيانات الـ QR
 def extract_qr_code(image_file):
     try:
         img = Image.open(image_file)
         
-        # 1. المحاولة الأولى باستخدام zxing-cpp (الأدق للتصاميم عالية الجودة)
         if HAS_ZXING:
             results = zxingcpp.read_barcodes(img)
             if results:
@@ -72,7 +84,6 @@ def extract_qr_code(image_file):
                 clean_digits = "".join(filter(str.isdigit, raw_text))
                 return clean_digits if clean_digits else raw_text
         
-        # 2. المحاولة الثانية بـ pyzbar كخيار إضافي
         if HAS_PYZBAR:
             decoded = decode(img)
             if decoded:
@@ -93,7 +104,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# تنسيقات الواجهة (CSS)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -132,6 +142,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+# --- تهيئة الحالة (Session State) في بداية الكود لتجنب الأخطاء ---
+
+if 'members' not in st.session_state or st.session_state.members.empty:
+    fetched_members = load_data_from_gsheet("الأعضاء")
+    if not fetched_members.empty:
+        st.session_state.members = fetched_members
+    else:
+        st.session_state.members = pd.DataFrame(columns=["كود العضو", "اسم الكشاف", "الفرقة", "رقم التليفون", "تاريخ الانضمام"])
+
 if 'attendance' not in st.session_state:
     st.session_state.attendance = pd.DataFrame(columns=["التاريخ", "كود العضو", "اسم الكشاف", "حالة الحضور", "وقت التسجيل", "درجة الحضور"])
 
@@ -144,7 +163,7 @@ if 'session_start_time' not in st.session_state:
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
 
-# التبويبات الرئيسية
+
 tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "👥 دليل الكشافة", "☁️ الشيت السحابي المباشر"])
 
 
@@ -230,9 +249,7 @@ with tabs[0]:
                 st.success(f"تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
             else:
                 st.error("الكود غير مسجل في دليل الكشافة!")
-# إدارة حالة التطبيق (Session State)
-if 'members' not in st.session_state or 'اسم الكشاف' not in st.session_state.members.columns:
-    st.session_state.members = pd.DataFrame([])
+
 
 # --- Tab 2: تقييمات النشاط الكشفي ---
 with tabs[1]:
@@ -258,6 +275,15 @@ with tabs[1]:
 # --- Tab 3: دليل الكشافة ---
 with tabs[2]:
     st.subheader("👥 إضافة كشاف جديد")
+    
+    # زر تحديث يدوي لجلب آخر البيانات المضافة من الشيت مباشرة
+    if st.button("🔄 تحديث البيانات من Google Sheets"):
+        updated_data = load_data_from_gsheet("الأعضاء")
+        if not updated_data.empty:
+            st.session_state.members = updated_data
+            st.success("تم تحديث قائمة الأعضاء بنجاح!")
+            st.rerun()
+
     with st.form("add_member"):
         m_name = st.text_input("اسم الكشاف رباعي")
         m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"])
@@ -268,7 +294,7 @@ with tabs[2]:
             new_c = int(max_c + 1)
             t_date = datetime.datetime.now().strftime("%Y-%m-%d")
             
-            # حفظ في Google Sheets (الكود، الاسم، الفرقة، التليفون، تاريخ الانضمام)
+            # حفظ في Google Sheets
             append_to_google_sheet("الأعضاء", [new_c, m_name, m_dept, m_phone, t_date])
             
             # حفظ في الحالة المحلية
@@ -283,6 +309,7 @@ with tabs[2]:
             st.success(f"تم تسجيل {m_name} ورقم التليفون ({m_phone}) - الكود: {new_c}")
 
     st.dataframe(st.session_state.members, use_container_width=True)
+
 
 # --- Tab 4: فتح الشيت المباشر ---
 with tabs[3]:
