@@ -3,3 +3,5 @@ Pillow
 gspread
 google-auth
 zxing-cpp
+streamlit-webrtc
+opencv-python-headless
