@@ -2,3 +2,4 @@ streamlit
 pyzbar
 pyzbar-x
 Pillow
+openpyxl
