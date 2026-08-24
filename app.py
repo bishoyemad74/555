@@ -56,6 +56,27 @@ def append_to_google_sheet(sheet_name, row_data):
     return False
 
 
+def update_leaderboard_in_gsheet(df_leaderboard):
+    """تحديث شيت لوحة الصدارة في Google Sheets بالكامل"""
+    try:
+        client = get_gsheet_client()
+        if client:
+            sh = client.open_by_key(SPREADSHEET_ID)
+            try:
+                sheet = sh.worksheet("ترتيب الأعضاء")
+            except Exception:
+                sheet = sh.add_worksheet(title="ترتيب الأعضاء", rows="100", cols="10")
+            
+            sheet.clear()
+            headers = df_leaderboard.columns.tolist()
+            data = df_leaderboard.astype(str).values.tolist()
+            sheet.update([headers] + data)
+            return True
+    except Exception as e:
+        st.error(f"خطأ في تحديث شيت الترتيب السحابي: {str(e)}")
+    return False
+
+
 def load_data_from_gsheet(sheet_name):
     try:
         client = get_gsheet_client()
@@ -343,16 +364,13 @@ with tabs[1]:
 with tabs[2]:
     st.subheader("🏆 ترتيب الكشافة حسَب إجمالي الدرجات")
     
-    if st.button("🔄 إعادة حساب وتحديث الترتيب"):
-        st.session_state.attendance = load_data_from_gsheet("الحضور")
-        st.session_state.scores = load_data_from_gsheet("التقييمات")
-        st.session_state.members = load_data_from_gsheet("الأعضاء")
-        st.rerun()
+    col_ref, col_sync = st.columns(2)
+    
+    leaderboard = pd.DataFrame()
 
     if not st.session_state.members.empty:
         members_df = st.session_state.members.copy()
         
-        # التأكد الآمن من وجود أعمدة جدول الأعضاء
         code_col = [c for c in members_df.columns if "كود" in c or "Code" in c]
         name_col = [c for c in members_df.columns if "اسم" in c or "Name" in c]
         group_col = [c for c in members_df.columns if "فرقة" in c or "الفرقة" in c or "Group" in c]
@@ -367,7 +385,6 @@ with tabs[2]:
             
         leaderboard = members_df[cols_to_use].copy()
         
-        # حساب مجموع الحضور
         att_df = st.session_state.attendance
         if not att_df.empty:
             att_code_col = [c for c in att_df.columns if "كود" in c or "Code" in c]
@@ -384,7 +401,6 @@ with tabs[2]:
         else:
             att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
 
-        # حساب مجموع التقييمات
         sc_df = st.session_state.scores
         if not sc_df.empty:
             sc_code_col = [c for c in sc_df.columns if "كود" in c or "Code" in c]
@@ -401,16 +417,29 @@ with tabs[2]:
         else:
             sc_sum = pd.DataFrame(columns=[c_name, "نقاط التقييمات"])
 
-        # دمج البيانات بأمان
         leaderboard = leaderboard.merge(att_sum, on=c_name, how="left").fillna(0)
         leaderboard = leaderboard.merge(sc_sum, on=c_name, how="left").fillna(0)
         
         leaderboard["المجموع الكلي"] = leaderboard["نقاط الحضور"] + leaderboard["نقاط التقييمات"]
-        
-        # ترتيب الجدول تنازلياً من الأعلى للأقل
         leaderboard = leaderboard.sort_values(by="المجموع الكلي", ascending=False).reset_index(drop=True)
         leaderboard.index = leaderboard.index + 1
-        
+
+    with col_ref:
+        if st.button("🔄 تحديث البيانات"):
+            st.session_state.attendance = load_data_from_gsheet("الحضور")
+            st.session_state.scores = load_data_from_gsheet("التقييمات")
+            st.session_state.members = load_data_from_gsheet("الأعضاء")
+            st.rerun()
+
+    with col_sync:
+        if st.button("☁️ رفع ترتيب الأعضاء إلى Google Sheets"):
+            if not leaderboard.empty:
+                if update_leaderboard_in_gsheet(leaderboard):
+                    st.success("تم تحديث ورقة 'ترتيب الأعضاء' داخل Google Sheets بنجاح! 🎉")
+            else:
+                st.warning("لا توجد بيانات لرفعها.")
+
+    if not leaderboard.empty:
         st.dataframe(leaderboard, use_container_width=True)
     else:
         st.info("لا توجد بيانات أعضاء متاحة لحساب الترتيب.")
