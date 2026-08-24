@@ -56,6 +56,21 @@ def append_to_google_sheet(sheet_name, row_data):
     return False
 
 
+def verify_current_password(username, current_password):
+    """التحقق من صحة كلمة السر الحالية للمستخدم"""
+    try:
+        users_df = load_data_from_gsheet("المستخدمين")
+        if not users_df.empty:
+            match = users_df[
+                (users_df["اسم المستخدم"].astype(str).str.strip() == str(username).strip()) & 
+                (users_df["كلمة السر"].astype(str).str.strip() == str(current_password).strip())
+            ]
+            return not match.empty
+    except Exception as e:
+        st.error(f"خطأ أثناء التحقق من كلمة السر الحالية: {e}")
+    return False
+
+
 def update_user_password_in_gsheet(username, new_password):
     """تحديث كلمة السر لمستخدم معين في ورقة المستخدمين سحابياً"""
     try:
@@ -296,28 +311,34 @@ with col_user_info:
     st.info(f"👤 **المستخدم:** {st.session_state.current_username} | **الصلاحية:** {st.session_state.user_role}")
 
 with col_pwd:
-    # نافذة منبثقة لتغيير كلمة السر
+    # نافذة منبثقة تفاعلية لتغيير كلمة السر بالتحقق من الكلمة القديمة
     @st.dialog("🔑 تغيير كلمة السر")
     def change_password_dialog():
         st.write(f"تغيير كلمة السر لحساب: **{st.session_state.current_username}**")
         with st.form("change_pass_form"):
+            old_p = st.text_input("كلمة السر الحالية", type="password")
             new_p1 = st.text_input("كلمة السر الجديدة", type="password")
             new_p2 = st.text_input("تأكيد كلمة السر الجديدة", type="password")
-            btn_save = st.form_submit_button("حفظ التغييرات")
+            btn_save = st.form_submit_button("تحديث كلمة السر")
             
             if btn_save:
-                if not new_p1.strip():
-                    st.error("يرجى إدخال كلمة سر جديدة.")
+                if not old_p.strip():
+                    st.error("❌ يرجى أدخال كلمة السر الحالية أولاً.")
+                elif not new_p1.strip():
+                    st.error("❌ يرجى إدخال كلمة سر جديدة.")
                 elif new_p1 != new_p2:
-                    st.error("كلمتا السر غير متطابقتين!")
+                    st.error("❌ كلمة السر الجديدة وتأكيدها غير متطابقتين!")
                 else:
-                    with st.spinner("جاري التحديث في Google Sheets..."):
-                        if update_user_password_in_gsheet(st.session_state.current_username, new_p1):
-                            st.success("تم تحديث كلمة السر بنجاح ورُفعت للشيت السحابي!")
-                            time.sleep(1.5)
-                            st.rerun()
+                    with st.spinner("جاري التحقق من كلمة السر الحالية..."):
+                        if verify_current_password(st.session_state.current_username, old_p):
+                            if update_user_password_in_gsheet(st.session_state.current_username, new_p1):
+                                st.success("🎉 تم تغيير كلمة السر بنجاح ورُفعت للشيت السحابي!")
+                                time.sleep(1.5)
+                                st.rerun()
+                            else:
+                                st.error("حدث خطأ أثناء الاتصال بـ Google Sheets.")
                         else:
-                            st.error("حدث خطأ أثناء الاتصال بالشيت السحابي.")
+                            st.error("❌ كلمة السر الحالية غير صحيحة!")
 
     if st.button("🔑 كلمة السر"):
         change_password_dialog()
