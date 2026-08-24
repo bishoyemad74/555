@@ -266,20 +266,29 @@ with tabs[2]:
     st.subheader("👥 إضافة كشاف جديد")
     with st.form("add_member"):
         m_name = st.text_input("اسم الكشاف رباعي")
-        m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "مرشدات", "متقدم", "جوال", "جوالات", "قادة"])
+        m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"])
+        m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
+        
         if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
             max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 1000
             new_c = int(max_c + 1)
             t_date = datetime.datetime.now().strftime("%Y-%m-%d")
             
-            append_to_google_sheet("الأعضاء", [new_c, m_name, m_dept, t_date])
+            # حفظ في Google Sheets (الكود، الاسم، الفرقة، التليفون، تاريخ الانضمام)
+            append_to_google_sheet("الأعضاء", [new_c, m_name, m_dept, m_phone, t_date])
             
-            new_m = {"كود العضو": new_c, "اسم الكشاف": m_name, "الفرقة": m_dept, "تاريخ الانضمام": t_date}
+            # حفظ في الحالة المحلية
+            new_m = {
+                "كود العضو": new_c, 
+                "اسم الكشاف": m_name, 
+                "الفرقة": m_dept, 
+                "رقم التليفون": m_phone, 
+                "تاريخ الانضمام": t_date
+            }
             st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
-            st.success(f"تم تسجيل {m_name} وحفظه في السحاب - الكود: {new_c}")
+            st.success(f"تم تسجيل {m_name} ورقم التليفون ({m_phone}) - الكود: {new_c}")
 
     st.dataframe(st.session_state.members, use_container_width=True)
-
 
 # --- Tab 4: فتح الشيت المباشر ---
 with tabs[3]:
