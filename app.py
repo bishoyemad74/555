@@ -153,7 +153,7 @@ if 'scores' not in st.session_state or 'اسم الكشاف' not in st.session_s
     st.session_state.scores = pd.DataFrame(columns=["تاريخ التقييم", "كود العضو", "اسم الكشاف", "نوع التقييم", "الدرجة (من 10)", "ملاحظات"])
 
 if 'session_start_time' not in st.session_state:
-    st.session_start_time = None
+    st.session_state.session_start_time = None
 
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
@@ -211,7 +211,6 @@ with tabs[0]:
     st.divider()
     st.subheader("📷 التقاط الكارت والتسجيل التلقائي")
     
-    # التقاط الصورة (بمجرد التقاط الصورة يتم التنفيذ فوراً)
     img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
     
     if img_file is not None:
@@ -238,9 +237,8 @@ with tabs[0]:
 
     st.divider()
     
-    # إدخال يدوي سريع
     with st.form("manual_attendance_form"):
-        manual_code = st.number_input("أو أدخل الكود يدوياً اضغط تسجيل:", step=1, value=0)
+        manual_code = st.number_input("أو أدخل الكود يدوياً واضغط تسجيل:", step=1, value=0)
         submit_manual = st.form_submit_button("✅ تسجيل يدوي سريع")
         
         if submit_manual and manual_code > 0:
@@ -295,7 +293,7 @@ with tabs[2]:
         m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
         
         if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
-            max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820261
+            max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 1000
             new_c = int(max_c + 1)
             t_date = datetime.datetime.now().strftime("%Y-%m-%d")
             
