@@ -19,6 +19,10 @@ try:
 except Exception:
     HAS_PYZBAR = False
 
+# ⚠️ ضع الـ ID الحقيقي الخاص بشيت جوجل هنا بدلاً من النص المؤقت
+SPREADSHEET_ID = "ضع_الـ_ID_الحقيقي_هنا"
+SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
+
 # دالة الاتصال المباشر بشيت جوجل
 def get_gsheet_client():
     if HAS_GSPREAD and "gcp_service_account" in st.secrets:
@@ -27,12 +31,7 @@ def get_gsheet_client():
         return gspread.authorize(creds)
     return None
 
-# ضع الـ ID الحقيقي المستخرج من الرابط هنا
-SPREADSHEET_ID = "1B4Ho5U0x0TDf36bu7KqxXnMZCnvAiVxzfLthX_ga94c"
-
-# رابط الشيت الكامل للفتح المباشر
-SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
-
+# دالة حفظ صف جديد في شيت جوجل فوراً
 def append_to_google_sheet(sheet_name, row_data):
     try:
         client = get_gsheet_client()
@@ -44,12 +43,8 @@ def append_to_google_sheet(sheet_name, row_data):
         st.error(f"خطأ في المزامنة السحابية ({sheet_name}): {str(e)}")
     return False
 
-# --- وفي Tab 4 (الشيت السحابي) استبدل زر الفتح بهذا الكود: ---
-with tabs[3]:
-    st.subheader("☁️ شيت Google Sheets السحابي التفاعلي")
-    st.info("البيانات تُحفظ تلقائياً في شيت جوجل بدون أي تدخل يدوي.")
-    
-    st.link_button("🔗 فتح Google Sheets في نافذة جديدة للتعديل المباشر", SHEET_FULL_URL)st.set_page_config(
+# إعدادات الصفحة (يجب أن تكون في البداية منفصلة)
+st.set_page_config(
     page_title="كشافة أم النور",
     page_icon="⚜️",
     layout="centered",
@@ -130,7 +125,7 @@ with tabs[0]:
         if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
             if st.session_state.session_start_time is not None:
                 today = datetime.datetime.now().strftime("%Y-%m-%d")
-                new_att, new_sc = [], []
+                new_att = []
                 for _, row in st.session_state.members.iterrows():
                     c, n = row["كود العضو"], row["اسم الكشاف"]
                     if c in st.session_state.scanned_members:
@@ -139,7 +134,6 @@ with tabs[0]:
                     else:
                         t_str, sc, st_name = "تلقائي", 0.0, "غائب"
                     
-                    # حفظ محلي + رفع سحابي تلقائي
                     row_data = [today, c, n, st_name, t_str, sc]
                     append_to_google_sheet("الحضور", row_data)
                     
@@ -220,7 +214,6 @@ with tabs[1]:
                 m_name = m.iloc[0]["اسم الكشاف"]
                 t_date = datetime.datetime.now().strftime("%Y-%m-%d")
                 
-                # رفع سحابي آلي
                 append_to_google_sheet("التقييمات", [t_date, s_code, m_name, s_type, s_val, s_notes])
                 st.success(f"تم تسجيل تقييم ({s_type}) للكشاف {m_name} وحفظه في Google Sheets!")
             else:
@@ -237,7 +230,6 @@ with tabs[2]:
             new_c = int(max_c + 1)
             t_date = datetime.datetime.now().strftime("%Y-%m-%d")
             
-            # رفع سحابي آلي
             append_to_google_sheet("الأعضاء", [new_c, m_name, m_dept, t_date])
             
             new_m = {"كود العضو": new_c, "اسم الكشاف": m_name, "الفرقة": m_dept, "تاريخ الانضمام": t_date}
@@ -249,7 +241,6 @@ with tabs[2]:
 # --- Tab 4: فتح الشيت المباشر ---
 with tabs[3]:
     st.subheader("☁️ شيت Google Sheets السحابي التفاعلي")
-    st.info("البيانات تُحفظ تلقائياً في شيت جوجل بدون أي تدخل يدوي منك.")
+    st.info("البيانات تُحفظ تلقائياً في شيت جوجل بدون أي تدخل يدوي.")
     
-    sheet_url = "https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID/edit"
-    st.link_button("🔗 فتح Google Sheets في نافذة جديدة للتعديل المباشر", sheet_url)
+    st.link_button("🔗 فتح Google Sheets في نافذة جديدة للتعديل المباشر", SHEET_FULL_URL)
