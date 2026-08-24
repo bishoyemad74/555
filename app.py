@@ -2,23 +2,17 @@ import streamlit as st
 import pandas as pd
 import datetime
 import time
+import numpy as np
 from PIL import Image
 
-# مكتبة قراءة الـ QR والباركود الاحترافية (ZXing)
+# مكتبة OpenCV الاحترافية والمستقرة للقراءة
 try:
-    import zxingcpp
-    HAS_ZXING = True
+    import cv2
+    HAS_CV2 = True
 except ImportError:
-    HAS_ZXING = False
+    HAS_CV2 = False
 
-# مكتبة fallback ثانوية لقراءة الباركود
-try:
-    from pyzbar.pyzbar import decode
-    HAS_PYZBAR = True
-except Exception:
-    HAS_PYZBAR = False
-
-# مكتبة المسح المباشر الفوري عبر الكاميرا بدون الضغط على أزرار
+# مكتبة المسح التلقائي الفوري من الكاميرا
 try:
     from streamlit_qr_bar_scanner import qr_bar_scanned_id
     HAS_LIVE_SCANNER = True
@@ -35,7 +29,7 @@ except ImportError:
 
 
 # ⚠️ ضع الـ ID الحقيقي الخاص بشيت جوجل هنا بدلاً من النص المؤقت
-SPREADSHEET_ID = "1B4Ho5U0x0TDf36bu7KqxXnMZCnvAiVxzfLthX_ga94c"
+SPREADSHEET_ID = "ضع_الـ_ID_الحقيقي_هنا"
 SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
 
 
@@ -53,7 +47,7 @@ def get_gsheet_client():
     return None
 
 
-# دالة حفظ صف جديد في شيت جوجل فوراً مع التعامل الذكي مع أسماء التبويبات
+# دالة حفظ صف جديد في شيت جوجل فوراً
 def append_to_google_sheet(sheet_name, row_data):
     try:
         client = get_gsheet_client()
@@ -70,27 +64,17 @@ def append_to_google_sheet(sheet_name, row_data):
     return False
 
 
-# دالة استخراج بيانات الـ QR من الصور المرفوعة
+# دالة استخراج بيانات الـ QR من الصور المرفوعة باستخدام OpenCV
 def extract_qr_code(image_file):
     try:
-        img = Image.open(image_file)
-        
-        # 1. المحاولة الأولى بـ zxing-cpp
-        if HAS_ZXING:
-            results = zxingcpp.read_barcodes(img)
-            if results:
-                raw_text = results[0].text
-                clean_digits = "".join(filter(str.isdigit, raw_text))
-                return clean_digits if clean_digits else raw_text
-        
-        # 2. المحاولة الثانية بـ pyzbar
-        if HAS_PYZBAR:
-            decoded = decode(img)
-            if decoded:
-                raw_text = decoded[0].data.decode("utf-8")
-                clean_digits = "".join(filter(str.isdigit, raw_text))
-                return clean_digits if clean_digits else raw_text
-                
+        if HAS_CV2:
+            file_bytes = np.asarray(bytearray(image_file.read()), dtype=np.uint8)
+            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+            detector = cv2.QRCodeDetector()
+            data, bbox, _ = detector.detectAndDecode(img)
+            if data:
+                clean_digits = "".join(filter(str.isdigit, data))
+                return clean_digits if clean_digits else data
     except Exception as e:
         st.error(f"خطأ أثناء معالجة الصورة: {e}")
     return None
@@ -139,6 +123,7 @@ st.markdown("""
 st.markdown("""
     <div class="header-box">
         <h2>⚜️ كشافة أم النور ⚜️</h2>
+        <p>نظام الحضور التنازلي والمزامنة السحابية المباشرة</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -168,7 +153,7 @@ tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "�
 
 # --- Tab 1: الحضور والغياب المباشر ---
 with tabs[0]:
-    st.subheader("تسجيل الحضور")
+    st.subheader("⏱️ إدارة جلسة الحضور التنازلي")
     
     col_start, col_stop = st.columns(2)
     with col_start:
@@ -242,7 +227,7 @@ with tabs[0]:
                     else:
                         st.error(f"❌ الكود ({detected_code}) غير مسجل في دليل الكشافة!")
         else:
-            st.warning("يرجى إضافة `streamlit-qr-bar-scanner` إلى ملف requirements.txt لتفعيل المسح المباشر التلقائي.")
+            st.warning("يرجى التأكد من إضافة `streamlit-qr-bar-scanner` إلى requirements.txt")
 
     else:
         img_file = st.file_uploader("اختر صورة كارت الـ QR من الاستوديو", type=["png", "jpg", "jpeg"])
@@ -297,7 +282,7 @@ with tabs[2]:
     st.subheader("👥 إضافة كشاف جديد")
     with st.form("add_member"):
         m_name = st.text_input("اسم الكشاف رباعي")
-        m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "مرشدات", "متقدم", "جوالة", "جوالات", "قادة"])
+        m_dept = st.selectbox("الفرقة الكشفية", ["براعم", "أشبال", "فتيان", "متقدم", "جوالة", "قادة"])
         if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
             max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 1000
             new_c = int(max_c + 1)
