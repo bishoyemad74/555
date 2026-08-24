@@ -56,6 +56,30 @@ def append_to_google_sheet(sheet_name, row_data):
     return False
 
 
+def update_user_password_in_gsheet(username, new_password):
+    """تحديث كلمة السر لمستخدم معين في ورقة المستخدمين سحابياً"""
+    try:
+        client = get_gsheet_client()
+        if client:
+            sheet = client.open_by_key(SPREADSHEET_ID).worksheet("المستخدمين")
+            records = sheet.get_all_records()
+            if records:
+                df = pd.DataFrame(records)
+                df.columns = df.columns.astype(str).str.strip()
+                
+                # البحث عن رقم الصف بناءً على اسم المستخدم
+                # إضافة 2 لأن السطر الأول رؤوس أعمدة والترتيب يبدأ من 1 في gspread
+                for idx, row in df.iterrows():
+                    if str(row.get("اسم المستخدم", "")).strip() == str(username).strip():
+                        row_number = idx + 2
+                        # تحديث الخلية في العمود B (كلمة السر)
+                        sheet.update_cell(row_number, 2, str(new_password).strip())
+                        return True
+    except Exception as e:
+        st.error(f"خطأ أثناء تحديث كلمة السر سحابياً: {str(e)}")
+    return False
+
+
 def update_leaderboard_in_gsheet(df_leaderboard):
     """تحديث شيت لوحة الصدارة في Google Sheets بالكامل"""
     try:
@@ -266,10 +290,38 @@ if not st.session_state.logged_in:
     st.stop()
 
 
-# --- شريط معلومات الحساب وتسجيل الخروج ---
-col_user_info, col_logout = st.columns([3, 1])
+# --- شريط معلومات الحساب وتسجيل الخروج وتغيير كلمة السر ---
+col_user_info, col_pwd, col_logout = st.columns([2.5, 1.2, 1])
 with col_user_info:
-    st.info(f"👤 **المستخدم الحالي:** {st.session_state.current_username} | **الصلاحية:** {st.session_state.user_role}")
+    st.info(f"👤 **المستخدم:** {st.session_state.current_username} | **الصلاحية:** {st.session_state.user_role}")
+
+with col_pwd:
+    # نافذة منبثقة لتغيير كلمة السر
+    @st.dialog("🔑 تغيير كلمة السر")
+    def change_password_dialog():
+        st.write(f"تغيير كلمة السر لحساب: **{st.session_state.current_username}**")
+        with st.form("change_pass_form"):
+            new_p1 = st.text_input("كلمة السر الجديدة", type="password")
+            new_p2 = st.text_input("تأكيد كلمة السر الجديدة", type="password")
+            btn_save = st.form_submit_button("حفظ التغييرات")
+            
+            if btn_save:
+                if not new_p1.strip():
+                    st.error("يرجى إدخال كلمة سر جديدة.")
+                elif new_p1 != new_p2:
+                    st.error("كلمتا السر غير متطابقتين!")
+                else:
+                    with st.spinner("جاري التحديث في Google Sheets..."):
+                        if update_user_password_in_gsheet(st.session_state.current_username, new_p1):
+                            st.success("تم تحديث كلمة السر بنجاح ورُفعت للشيت السحابي!")
+                            time.sleep(1.5)
+                            st.rerun()
+                        else:
+                            st.error("حدث خطأ أثناء الاتصال بالشيت السحابي.")
+
+    if st.button("🔑 كلمة السر"):
+        change_password_dialog()
+
 with col_logout:
     if st.button("🚪 خروج"):
         st.session_state.logged_in = False
@@ -301,7 +353,7 @@ if 'scores' not in st.session_state:
 
 if 'session_start_time' not in st.session_state:
     st.session_state.session_start_time = None
-    
+
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
 
