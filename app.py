@@ -2,7 +2,14 @@ import streamlit as st
 import pandas as pd
 import datetime
 import time
-import streamlit.components.v1 as components
+from PIL import Image
+
+# استيراد مكتبة قراءة الباركود/QR
+try:
+    from pyzbar.pyzbar import decode
+    HAS_PYZBAR = True
+except ImportError:
+    HAS_PYZBAR = False
 
 # مكتبات Google Sheets
 try:
@@ -163,66 +170,39 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📷 الكاميرا والمسح المباشر")
+    st.subheader("📷 مسح الكارت عبر الكاميرا")
 
-    # تطبيق القارئ الذي يتفاعل مباشرة مع السيرفر ويرسل النتيجة المباشرة
-    def custom_qr_component():
-        component_code = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <script src="https://unpkg.com/html5-qrcode"></script>
-        </head>
-        <body style="margin:0; padding:0; font-family:sans-serif; text-align:center;">
-            <div id="reader" style="width:100%; max-width:380px; margin:auto;"></div>
-            <div id="result" style="margin-top:10px; font-weight:bold; font-size:18px; color:#0D47A1;">
-                وجّه الكاميرا لرمز QR...
-            </div>
+    # استخدام كاميرا Streamlit الأصلية المستقرة
+    img_file_buffer = st.camera_input("وجه كارت الكشاف نحو الكاميرا لالتقاط الـ QR")
+
+    if img_file_buffer is not None:
+        if HAS_PYZBAR:
+            img = Image.open(img_file_buffer)
+            decoded_objects = decode(img)
             
-            <script>
-                function sendValueToStreamlit(value) {
-                    window.parent.postMessage({
-                        isStreamlitMessage: true,
-                        type: "streamlit:setComponentValue",
-                        value: value
-                    }, "*");
-                }
-
-                function onScanSuccess(decodedText, decodedResult) {
-                    let digits = decodedText.replace(/[^0-9]/g, '');
-                    if(digits.length > 0) {
-                        document.getElementById('result').innerHTML = "✅ تم المسح: <span style='color:green;'>" + digits + "</span>";
-                        sendValueToStreamlit(parseInt(digits));
-                    }
-                }
-
-                let html5QrcodeScanner = new Html5QrcodeScanner(
-                    "reader", { fps: 10, qrbox: 250 }, false);
-                html5QrcodeScanner.render(onScanSuccess);
-            </script>
-        </body>
-        </html>
-        """
-        return components.html(component_code, height=380)
-
-    # تشغيل القارئ واستقبال القيمة المقروءة فوراً
-    scanned_code = custom_qr_component()
-
-    # إذا تم التقاط كود
-    if scanned_code:
-        code_val = int(scanned_code)
-        m = st.session_state.members[st.session_state.members["كود العضو"] == code_val]
-        if not m.empty:
-            m_name = m.iloc[0]["اسم الكشاف"]
-            if code_val not in st.session_state.scanned_members:
-                t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                st.session_state.scanned_members[code_val] = (t_now, curr_score)
-                st.success(f"🎉 تم تسجيل الحضور تلقائياً: {m_name} (كود: {code_val}) | الدرجة: {curr_score}/10")
-                st.balloons()
+            if decoded_objects:
+                for obj in decoded_objects:
+                    raw_data = obj.data.decode("utf-8")
+                    digits = ''.join(filter(str.isdigit, raw_data))
+                    
+                    if digits:
+                        code_val = int(digits)
+                        m = st.session_state.members[st.session_state.members["كود العضو"] == code_val]
+                        if not m.empty:
+                            m_name = m.iloc[0]["اسم الكشاف"]
+                            if code_val not in st.session_state.scanned_members:
+                                t_now = datetime.datetime.now().strftime("%H:%M:%S")
+                                st.session_state.scanned_members[code_val] = (t_now, curr_score)
+                                st.success(f"🎉 تم تسجيل الحضور تلقائياً: {m_name} (كود: {code_val}) | الدرجة: {curr_score}/10")
+                                st.balloons()
+                            else:
+                                st.info(f"ℹ️ الكشاف {m_name} (كود: {code_val}) مسجل بالفعل.")
+                        else:
+                            st.error(f"❌ الكود المقروء ({code_val}) غير مسجل في دليل الكشافة!")
             else:
-                st.info(f"ℹ️ الكشاف {m_name} (كود: {code_val}) مسجل بالفعل.")
+                st.warning("لم يتم التعرف على رمز QR في الصورة، يرجى التقاط صورة أوضح.")
         else:
-            st.error(f"❌ الكود المقروء ({code_val}) غير مسجل في دليل الكشافة!")
+            st.error("مكتبة pyzbar غير مثبته، يرجى إضافتها لملف requirements.txt")
 
     st.divider()
     
