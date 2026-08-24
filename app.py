@@ -85,7 +85,6 @@ st.markdown("""
 st.markdown("""
     <div class="header-box">
         <h2>⚜️ كشافة أم النور ⚜️</h2>
-        <p>نظام الحضور التنازلي والمزامنة السحابية المباشرة</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -112,7 +111,7 @@ tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "�
 
 # --- Tab 1: الحضور والغياب المباشر ---
 with tabs[0]:
-    st.subheader("⏱️ إدارة جلسة الحضور التنازلي")
+    st.subheader("تسجيل الحضور")
     
     col_start, col_stop = st.columns(2)
     with col_start:
@@ -203,7 +202,7 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
     with st.form("score_form"):
-        s_code = st.number_input("كود الكشاف", step=1, value=1001)
+        s_code = st.number_input("كود الكشاف", step=1, value=21820261)
         s_type = st.selectbox("نوع التقييم", ["الزي الكشفي", "السلوك والانضباط", "الأنشطة والمهارات", "المخيمات والرحلات", "اختبارات الترقي"])
         s_val = st.number_input("الدرجة (من 10)", min_value=0.0, max_value=10.0, step=0.5, value=10.0)
         s_notes = st.text_input("ملاحظات / اسم النشاط")
