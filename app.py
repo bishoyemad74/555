@@ -35,7 +35,7 @@ except ImportError:
 
 
 # ⚠️ ضع الـ ID الحقيقي الخاص بشيت جوجل هنا بدلاً من النص المؤقت
-SPREADSHEET_ID = "ضع_الـ_ID_الحقيقي_هنا"
+SPREADSHEET_ID = "1B4Ho5U0x0TDf36bu7KqxXnMZCnvAiVxzfLthX_ga94c"
 SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
 
 
