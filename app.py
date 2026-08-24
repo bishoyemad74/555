@@ -3,6 +3,15 @@ import pandas as pd
 import datetime
 import time
 from PIL import Image
+import cv2
+import av
+
+# مكتبة البث المباشر مع Streamlit
+try:
+    from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
+    HAS_WEBRTC = True
+except ImportError:
+    HAS_WEBRTC = False
 
 # مكتبة قراءة الـ QR والباركود الاحترافية (ZXing)
 try:
@@ -72,28 +81,27 @@ def load_data_from_gsheet(sheet_name):
     return pd.DataFrame()
 
 
-# دالة استخراج بيانات الـ QR
-def extract_qr_code(image_file):
-    try:
-        img = Image.open(image_file)
+# كلاس معالجة الفيديو للبث المباشر (Real-time Video Processing)
+class BarcodeScanner(VideoProcessorBase):
+    def __init__(self):
+        self.last_scanned = None
+
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        img = frame.to_ndarray(format="bgr24")
         
         if HAS_ZXING:
             results = zxingcpp.read_barcodes(img)
-            if results:
-                raw_text = results[0].text
-                clean_digits = "".join(filter(str.isdigit, raw_text))
-                return clean_digits if clean_digits else raw_text
-        
-        if HAS_PYZBAR:
-            decoded = decode(img)
-            if decoded:
-                raw_text = decoded[0].data.decode("utf-8")
-                clean_digits = "".join(filter(str.isdigit, raw_text))
-                return clean_digits if clean_digits else raw_text
-                
-    except Exception as e:
-        st.error(f"خطأ أثناء معالجة الصورة: {e}")
-    return None
+            for res in results:
+                raw_text = res.text
+                digits = "".join(filter(str.isdigit, raw_text))
+                if digits:
+                    self.last_scanned = int(digits)
+                    # رسم إطار أخضر على الباركود المكتشف
+                    pts = [(int(p.x), int(p.y)) for p in res.position]
+                    for i in range(len(pts)):
+                        cv2.line(img, pts[i], pts[(i + 1) % len(pts)], (0, 255, 0), 3)
+
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 
 # --- إعدادات الصفحة ---
@@ -142,8 +150,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- تهيئة الحالة (Session State) في بداية الكود لتجنب الأخطاء ---
-
+# --- تهيئة الحالة (Session State) ---
 if 'members' not in st.session_state or st.session_state.members.empty:
     fetched_members = load_data_from_gsheet("الأعضاء")
     if not fetched_members.empty:
@@ -214,39 +221,45 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📷 مسح كارت الـ QR")
+    st.subheader("📷 الكاميرا المباشرة للمسح التلقائي")
     
-    detected_code = 0
-    scan_mode = st.radio("اختر طريقة المسح الضوئي:", ["رفع صورة عالية الجودة (أدق وأسرع)", "فتح الكاميرا المباشرة"])
-    
-    img_file = None
-    if scan_mode == "رفع صورة عالية الجودة (أدق وأسرع)":
-        img_file = st.file_uploader("اختر صورة كارت الـ QR من الاستوديو", type=["png", "jpg", "jpeg"])
-    else:
-        img_file = st.camera_input("وجّه الكاميرا إلى الكارت واضغط التقاط")
-    
-    if img_file is not None:
-        extracted = extract_qr_code(img_file)
-        if extracted:
-            try:
-                detected_code = int(extracted)
-                st.success(f"🎯 تم استخراج الكود بنجاح: {detected_code}")
-            except ValueError:
-                st.warning(f"الـ QR يحتوي على نص وليس رقماً فقط: {extracted}")
-        else:
-            st.error("❌ لم يتم التعرف على الرمز. تأكد أن الـ QR واضح وتحيط به مساحة بيضاء خالية.")
+    if HAS_WEBRTC:
+        ctx = webrtc_streamer(
+            key="barcode-scanner",
+            video_processor_factory=BarcodeScanner,
+            media_stream_constraints={"video": True, "audio": False},
+        )
 
-    manual_code = st.number_input("أو ادخل الكود يدوياً:", step=1, value=detected_code)
-    
-    if st.button("✅ تسجيل الحضور"):
-        code_to_use = manual_code if manual_code > 0 else detected_code
-        if code_to_use > 0:
-            m = st.session_state.members[st.session_state.members["كود العضو"] == code_to_use]
+        if ctx.video_processor and ctx.video_processor.last_scanned:
+            code_val = ctx.video_processor.last_scanned
+            m = st.session_state.members[st.session_state.members["كود العضو"] == code_val]
             if not m.empty:
                 m_name = m.iloc[0]["اسم الكشاف"]
-                t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                st.session_state.scanned_members[code_to_use] = (t_now, curr_score)
-                st.success(f"تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
+                if code_val not in st.session_state.scanned_members:
+                    t_now = datetime.datetime.now().strftime("%H:%M:%S")
+                    st.session_state.scanned_members[code_val] = (t_now, curr_score)
+                    st.success(f"🎉 تم تسجيل الحضور تلقائياً: {m_name} (كود: {code_val})")
+                    st.toast(f"تم تسجيل {m_name} بنجاح!", icon="✅")
+                else:
+                    st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
+            else:
+                st.error(f"❌ الكود {code_val} غير مسجل في الدليل!")
+    else:
+        st.error("مكتبة streamlit-webrtc غير مثبته!")
+
+    st.divider()
+    manual_code = st.number_input("أو ادخل الكود يدوياً:", step=1, value=0)
+    if st.button("✅ تسجيل الحضور اليدوي"):
+        if manual_code > 0:
+            m = st.session_state.members[st.session_state.members["كود العضو"] == manual_code]
+            if not m.empty:
+                m_name = m.iloc[0]["اسم الكشاف"]
+                if manual_code not in st.session_state.scanned_members:
+                    t_now = datetime.datetime.now().strftime("%H:%M:%S")
+                    st.session_state.scanned_members[manual_code] = (t_now, curr_score)
+                    st.success(f"تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
+                else:
+                    st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
             else:
                 st.error("الكود غير مسجل في دليل الكشافة!")
 
@@ -255,7 +268,7 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
     with st.form("score_form"):
-        s_code = st.number_input("كود الكشاف", step=1, value=21820261)
+        s_code = st.number_input("كود الكشاف", step=1, value=1001)
         s_type = st.selectbox("نوع التقييم", ["الزي الكشفي", "السلوك والانضباط", "الأنشطة والمهارات", "الخدمة", "الاعتراف", "التناول"])
         s_val = st.number_input("الدرجة (من 10)", min_value=0.0, max_value=10.0, step=0.5, value=10.0)
         s_notes = st.text_input("ملاحظات / اسم النشاط")
@@ -276,7 +289,6 @@ with tabs[1]:
 with tabs[2]:
     st.subheader("👥 إضافة كشاف جديد")
     
-    # زر تحديث يدوي لجلب آخر البيانات المضافة من الشيت مباشرة
     if st.button("🔄 تحديث البيانات من Google Sheets"):
         updated_data = load_data_from_gsheet("الأعضاء")
         if not updated_data.empty:
@@ -294,10 +306,8 @@ with tabs[2]:
             new_c = int(max_c + 1)
             t_date = datetime.datetime.now().strftime("%Y-%m-%d")
             
-            # حفظ في Google Sheets
             append_to_google_sheet("الأعضاء", [new_c, m_name, m_dept, m_phone, t_date])
             
-            # حفظ في الحالة المحلية
             new_m = {
                 "كود العضو": new_c, 
                 "اسم الكشاف": m_name, 
