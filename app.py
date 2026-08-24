@@ -132,12 +132,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # إدارة حالة التطبيق (Session State)
-if 'members' not in st.session_state or 'اسم الكشاف' not in st.session_state.members.columns:
-    st.session_state.members = pd.DataFrame([
-        {"كود العضو": 21820261, "اسم الكشاف": "مينا سامح", "الفرقة": "فتيان", "تاريخ الانضمام": "2026-01-15"},
-        {"كود العضو": 21820262, "اسم الكشاف": "كيرلس جرجس", "الفرقة": "متقدم", "تاريخ الانضمام": "2026-01-15"},
-        {"كود العضو": 21820263, "اسم الكشاف": "بيشوي عماد", "الفرقة": "جوالة", "تاريخ الانضمام": "2026-01-20"}
-    ])
 
 if 'attendance' not in st.session_state:
     st.session_state.attendance = pd.DataFrame(columns=["التاريخ", "كود العضو", "اسم الكشاف", "حالة الحضور", "وقت التسجيل", "درجة الحضور"])
