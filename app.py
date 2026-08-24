@@ -115,6 +115,22 @@ def extract_qr_code(image_file):
     return None
 
 
+def check_login(username, password):
+    """جلب بيانات المستخدمين من شيت 'المستخدمين' والتحقق من صحتها"""
+    try:
+        users_df = load_data_from_gsheet("المستخدمين")
+        if not users_df.empty:
+            user_match = users_df[
+                (users_df["اسم المستخدم"].astype(str).str.strip() == str(username).strip()) & 
+                (users_df["كلمة السر"].astype(str).str.strip() == str(password).strip())
+            ]
+            if not user_match.empty:
+                return True, user_match.iloc[0].get("الصلاحية", "مستخدم")
+    except Exception as e:
+        st.error(f"خطأ أثناء التحقق من بيانات الدخول: {e}")
+    return False, None
+
+
 # --- إعدادات الصفحة ---
 st.set_page_config(
     page_title="كشافة أم النور",
@@ -123,7 +139,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- إخفاء كافة خيارات المطور وزر Manage App والـ Streamlit Branding ---
+# --- إخفاء كافة خيارات المطور والـ Streamlit Branding ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -134,19 +150,16 @@ st.markdown("""
         text-align: right;
     }
     
-    /* 1. إخفاء القوائم العلوية والسفلية وشريط المطور بالكامل */
     #MainMenu {visibility: hidden !important; display: none !important;}
     footer {visibility: hidden !important; display: none !important;}
     header {visibility: hidden !important; display: none !important;}
     .stDeployButton {display: none !important;}
     
-    /* 2. إخفاء زر Manage App والأزرار العائمة وشريط الأدوات */
     [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important;}
     [data-testid="manage-app-button"] {display: none !important;}
     
-    /* target مباشر لزر Manage app وشعار Streamlit */
     .viewerBadge_container__1tB92,
     ._profileContainer_gz836_1,
     .viewerBadge_link__1S137,
@@ -158,7 +171,6 @@ st.markdown("""
         pointer-events: none !important;
     }
 
-    /* تحسين تصميم الأزرار للـ Mobile */
     .stButton>button {
         width: 100%;
         background-color: #1565C0;
@@ -187,7 +199,56 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- تهيئة الحالة (Session State) ---
+# --- تهيئة حالة الجلسة والتسجيل ---
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "user_role" not in st.session_state:
+    st.session_state.user_role = None
+if "current_username" not in st.session_state:
+    st.session_state.current_username = ""
+
+
+# --- 🔐 شاشة تسجيل الدخول ---
+if not st.session_state.logged_in:
+    st.subheader("🔐 تسجيل الدخول للبرنامج")
+    
+    with st.form("login_form"):
+        u_name = st.text_input("اسم المستخدم")
+        u_pass = st.text_input("كلمة السر", type="password")
+        btn_login = st.form_submit_button("دخول")
+        
+        if btn_login:
+            if u_name.strip() and u_pass.strip():
+                is_valid, role = check_login(u_name, u_pass)
+                if is_valid:
+                    st.session_state.logged_in = True
+                    st.session_state.user_role = role
+                    st.session_state.current_username = u_name
+                    st.success(f"مرحباً بك ({u_name})! جاري التحميل...")
+                    st.rerun()
+                else:
+                    st.error("❌ اسم المستخدم أو كلمة السر غير صحيحة.")
+            else:
+                st.warning("يرجى كتابة اسم المستخدم وكلمة السر.")
+                
+    st.stop()
+
+
+# --- شريط معلومات الحساب وتسجيل الخروج ---
+col_user_info, col_logout = st.columns([3, 1])
+with col_user_info:
+    st.info(f"👤 **المستخدم الحالي:** {st.session_state.current_username} | **الصلاحية:** {st.session_state.user_role}")
+with col_logout:
+    if st.button("🚪 خروج"):
+        st.session_state.logged_in = False
+        st.session_state.user_role = None
+        st.session_state.current_username = ""
+        st.rerun()
+
+st.divider()
+
+
+# --- تهيئة البيانات (Session State) ---
 if 'members' not in st.session_state or st.session_state.members.empty:
     fetched_members = load_data_from_gsheet("الأعضاء")
     if not fetched_members.empty:
@@ -218,7 +279,11 @@ if 'show_eval_camera' not in st.session_state:
     st.session_state.show_eval_camera = False
 
 
-tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "🏆 لوحة الصدارة", "👥 دليل الكشافة", "☁️ الشيت السحابي المباشر"])
+# تحديد التبويبات بناءً على الصلاحية
+if st.session_state.user_role == "آدمن":
+    tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "🏆 لوحة الصدارة", "👥 دليل الكشافة", "⚙️ إدارة الحسابات", "☁️ الشيت السحابي"])
+else:
+    tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "🏆 لوحة الصدارة", "👥 دليل الكشافة"])
 
 
 # --- Tab 1: الحضور والغياب المباشر ---
@@ -488,7 +553,7 @@ with tabs[3]:
         m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
         
         if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
-            max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 1000
+            max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
             new_c = int(max_c + 1)
             t_date = datetime.datetime.now().strftime("%Y-%m-%d")
             
@@ -511,9 +576,32 @@ with tabs[3]:
     st.dataframe(st.session_state.members, use_container_width=True)
 
 
-# --- Tab 5: فتح الشيت المباشر ---
-with tabs[4]:
-    st.subheader("☁️ شيت Google Sheets السحابي التفاعلي")
-    st.info("البيانات تُحفظ تلقائياً في شيت جوجل بدون أي تدخل يدوي.")
-    
-    st.link_button("🔗 فتح Google Sheets في نافذة جديدة للتعديل المباشر", SHEET_FULL_URL)
+# --- Tab 5: إدارة الحسابات (ظهر للآدمن فقط) ---
+if st.session_state.user_role == "آدمن":
+    with tabs[4]:
+        st.subheader("⚙️ إضافة مستخدم جديد للبرنامج")
+        
+        with st.form("add_user_form"):
+            new_u_name = st.text_input("اسم المستخدم الجديد")
+            new_u_pass = st.text_input("كلمة السر الجديدة")
+            new_u_role = st.selectbox("الصلاحية", ["مستخدم", "آدمن"])
+            
+            submit_user = st.form_submit_button("إضافة الحساب وحفظه سحابياً")
+            
+            if submit_user and new_u_name.strip() and new_u_pass.strip():
+                if append_to_google_sheet("المستخدمين", [new_u_name.strip(), new_u_pass.strip(), new_u_role]):
+                    st.success(f"تم إنشاء حساب للمستخدم ({new_u_name}) بنجاح بصلاحية {new_u_role}!")
+                else:
+                    st.error("حدث خطأ أثناء حفظ الحساب.")
+        
+        st.divider()
+        st.subheader("📋 قائمة الحسابات المسجلة")
+        users_list = load_data_from_gsheet("المستخدمين")
+        if not users_list.empty:
+            st.dataframe(users_list, use_container_width=True)
+
+    # --- Tab 6: فتح الشيت المباشر (ظهر للآدمن فقط) ---
+    with tabs[5]:
+        st.subheader("☁️ شيت Google Sheets السحابي التفاعلي")
+        st.info("البيانات تُحفظ تلقائياً في شيت جوجل بدون أي تدخل يدوي.")
+        st.link_button("🔗 فتح Google Sheets في نافذة جديدة للتعديل المباشر", SHEET_FULL_URL)
