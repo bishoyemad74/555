@@ -4,7 +4,7 @@ import datetime
 import time
 from PIL import Image
 
-# استيراد محرك تحليل الباركود
+# محرك قراءة الباركود
 try:
     from pyzbar.pyzbar import decode
     HAS_PYZBAR = True
@@ -18,6 +18,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# تنسيق الواجهة وإخفاء أشرطة الأدوات
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -56,6 +57,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# إدارة بيانات الجلسة
 if 'members' not in st.session_state or 'اسم الكشاف' not in st.session_state.members.columns:
     st.session_state.members = pd.DataFrame([
         {"كود العضو": 1001, "اسم الكشاف": "مينا سامح", "الفرقة": "فتيان", "تاريخ الانضمام": "2026-01-15"},
@@ -75,10 +77,9 @@ if 'session_start_time' not in st.session_state:
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
 
-GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/"
-
 tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "👥 دليل الكشافة", "☁️ الشيت السحابي (Excel)"])
 
+# --- Tab 1: الحضور والغياب ---
 with tabs[0]:
     st.subheader("⏱️ إدارة جلسة الحضور التنازلي")
     
@@ -131,20 +132,33 @@ with tabs[0]:
     st.subheader("📷 مسح كارت الـ QR")
     
     detected_code = 0
-    img_file = st.camera_input("وجّه الكاميرا إلى كارت الكشاف واضغط التقاط")
+    
+    # اختيار طريقة القراءة (كاميرا أو رفع صورة عالي الجودة)
+    scan_mode = st.radio("اختر طريقة المسح الضوئي:", ["رفع صورة عالية الجودة (أدق وأسرع)", "فتح الكاميرا المباشرة"])
+    
+    img_file = None
+    if scan_mode == "رفع صورة عالية الجودة (أدق وأسرع)":
+        img_file = st.file_uploader("اختر صورة كارت الـ QR من الاستوديو", type=["png", "jpg", "jpeg"])
+    else:
+        img_file = st.camera_input("وجّه الكاميرا إلى الكارت واضغط التقاط")
     
     if img_file is not None and HAS_PYZBAR:
-        img = Image.open(img_file)
-        decoded_objs = decode(img)
-        if decoded_objs:
-            qr_data = decoded_objs[0].data.decode("utf-8")
-            try:
-                detected_code = int(qr_data)
-                st.success(f"تم التعرف على الكود تلقائياً: {detected_code}")
-            except ValueError:
-                st.warning(f"البيانات المقروءة ليست رقماً: {qr_data}")
-        else:
-            st.error("لم يتم العثور على رمز QR واضح في الصورة. حاول تقريب الكارت مجدداً.")
+        try:
+            img = Image.open(img_file)
+            decoded_objs = decode(img)
+            if decoded_objs:
+                qr_data = decoded_objs[0].data.decode("utf-8")
+                # استخراج الأرقام فقط من الرمز المقروء
+                clean_code = "".join(filter(str.isdigit, qr_data))
+                if clean_code:
+                    detected_code = int(clean_code)
+                    st.success(f"🎯 تم استخراج الكود بنجاح: {detected_code}")
+                else:
+                    st.warning(f"الـ QR يكتوي على نص وليس رقماً: {qr_data}")
+            else:
+                st.error("لم يتم التعرف على الرمز. تأكد من وضوح الصورة وتدفق الإضاءة.")
+        except Exception as e:
+            st.error("حدث خطأ أثناء معالجة الصورة.")
 
     manual_code = st.number_input("أو ادخل الكود يدوياً:", step=1, value=detected_code)
     
@@ -169,6 +183,7 @@ with tabs[0]:
             res.append({"كود العضو": c, "اسم الكشاف": name, "وقت التسجيل": t, "الدرجة": s})
         st.dataframe(pd.DataFrame(res), use_container_width=True)
 
+# --- Tab 2: تقييمات النشاط الكشفي ---
 with tabs[1]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
     with st.form("score_form"):
@@ -194,6 +209,7 @@ with tabs[1]:
             else:
                 st.error("الكود غير موجود!")
 
+# --- Tab 3: دليل الكشافة ---
 with tabs[2]:
     st.subheader("👥 إضافة كشاف جديد")
     with st.form("add_member"):
@@ -213,10 +229,18 @@ with tabs[2]:
 
     st.dataframe(st.session_state.members, use_container_width=True)
 
+# --- Tab 4: شيت السحاب المباشر وGoogle Sheets ---
 with tabs[3]:
     st.subheader("☁️ الربط المباشر مع شيت السحاب (Google Sheets / Excel)")
-    st.link_button("🔗 فتح جدول البيانات على Google Drive مباشر", GOOGLE_SHEET_URL)
+    
+    # ضَع رابط شيت Google Sheets الخاص بك هنا بين التنصيص
+    sheet_link = st.text_input("رابط Google Sheets الخاص بك:", value="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID_HERE/edit")
+    
+    if sheet_link:
+        st.link_button("🔗 فتح جدول البيانات السحابي المباشر", sheet_link)
+    
     st.divider()
+    st.subheader("📥 تنزيل وتوليد ملف Excel شامل")
     
     summary_data = []
     for _, m_row in st.session_state.members.iterrows():
@@ -228,10 +252,12 @@ with tabs[3]:
     
     st.dataframe(pd.DataFrame(summary_data), use_container_width=True)
     
-    if st.button("توليد ملف Excel المحدث"):
-        with pd.ExcelWriter("kashaf_am_elnoor.xlsx") as writer:
+    if st.button("📊 إعداد وتنزيل ملف Excel المحدث"):
+        file_path = "kashaf_am_elnoor.xlsx"
+        with pd.ExcelWriter(file_path) as writer:
             pd.DataFrame(summary_data).to_excel(writer, sheet_name="الدرجات الكلية", index=False)
             st.session_state.attendance.to_excel(writer, sheet_name="سجل الحضور", index=False)
             st.session_state.scores.to_excel(writer, sheet_name="سجل التقييمات", index=False)
-        with open("kashaf_am_elnoor.xlsx", "rb") as f:
-            st.download_button("💾 اضغط هنا لتنزيل ملف Excel", f, file_name="kashaf_am_elnoor.xlsx")
+        
+        with open(file_path, "rb") as f:
+            st.download_button("💾 اضغط هنا لتنزيل ملف Excel حقيقي", f, file_name="kashaf_am_elnoor.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
