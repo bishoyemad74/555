@@ -27,23 +27,29 @@ def get_gsheet_client():
         return gspread.authorize(creds)
     return None
 
-# دالة حفظ صف جديد في شيت جوجل فوراً
-# ضع الـ ID الخاص بشيت جوجل هنا
+# ضع الـ ID الحقيقي المستخرج من الرابط هنا
 SPREADSHEET_ID = "1B4Ho5U0x0TDf36bu7KqxXnMZCnvAiVxzfLthX_ga94c"
+
+# رابط الشيت الكامل للفتح المباشر
+SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
 
 def append_to_google_sheet(sheet_name, row_data):
     try:
         client = get_gsheet_client()
         if client:
-            # الفتح عن طريق الـ ID أضمن بكثير من الاسم
             sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
             sheet.append_row(row_data)
             return True
     except Exception as e:
-        # عرض نص الخطأ الحقيقي بدلاً من كائن الاستجابة
         st.error(f"خطأ في المزامنة السحابية ({sheet_name}): {str(e)}")
     return False
-st.set_page_config(
+
+# --- وفي Tab 4 (الشيت السحابي) استبدل زر الفتح بهذا الكود: ---
+with tabs[3]:
+    st.subheader("☁️ شيت Google Sheets السحابي التفاعلي")
+    st.info("البيانات تُحفظ تلقائياً في شيت جوجل بدون أي تدخل يدوي.")
+    
+    st.link_button("🔗 فتح Google Sheets في نافذة جديدة للتعديل المباشر", SHEET_FULL_URL)st.set_page_config(
     page_title="كشافة أم النور",
     page_icon="⚜️",
     layout="centered",
