@@ -230,17 +230,16 @@ with tabs[2]:
     st.dataframe(st.session_state.members, use_container_width=True)
 
 # --- Tab 4: شيت السحاب المباشر وGoogle Sheets ---
+# --- Tab 4: الشيت السحابي وتنزيل البيانات ---
 with tabs[3]:
     st.subheader("☁️ الربط المباشر مع شيت السحاب (Google Sheets / Excel)")
     
-    # ضَع رابط شيت Google Sheets الخاص بك هنا بين التنصيص
     sheet_link = st.text_input("رابط Google Sheets الخاص بك:", value="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID_HERE/edit")
-    
     if sheet_link:
         st.link_button("🔗 فتح جدول البيانات السحابي المباشر", sheet_link)
     
     st.divider()
-    st.subheader("📥 تنزيل وتوليد ملف Excel شامل")
+    st.subheader("📥 تنزيل وتوليد ملف البيانات الشامل")
     
     summary_data = []
     for _, m_row in st.session_state.members.iterrows():
@@ -250,14 +249,26 @@ with tabs[3]:
         tot = u_sc["الدرجة (من 10)"].sum() if not u_sc.empty else 0.0
         summary_data.append({"كود العضو": c, "اسم الكشاف": n, "إجمالي درجات الكشافة": tot})
     
-    st.dataframe(pd.DataFrame(summary_data), use_container_width=True)
+    df_summary = pd.DataFrame(summary_data)
+    st.dataframe(df_summary, use_container_width=True)
     
-    if st.button("📊 إعداد وتنزيل ملف Excel المحدث"):
-        file_path = "kashaf_am_elnoor.xlsx"
-        with pd.ExcelWriter(file_path) as writer:
-            pd.DataFrame(summary_data).to_excel(writer, sheet_name="الدرجات الكلية", index=False)
-            st.session_state.attendance.to_excel(writer, sheet_name="سجل الحضور", index=False)
-            st.session_state.scores.to_excel(writer, sheet_name="سجل التقييمات", index=False)
-        
-        with open(file_path, "rb") as f:
-            st.download_button("💾 اضغط هنا لتنزيل ملف Excel حقيقي", f, file_name="kashaf_am_elnoor.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    col_dl1, col_dl2 = st.columns(2)
+    
+    with col_dl1:
+        # تنزيل كـ Excel
+        try:
+            file_path = "kashaf_am_elnoor.xlsx"
+            with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+                df_summary.to_excel(writer, sheet_name="الدرجات الكلية", index=False)
+                st.session_state.attendance.to_excel(writer, sheet_name="سجل الحضور", index=False)
+                st.session_state.scores.to_excel(writer, sheet_name="سجل التقييمات", index=False)
+            
+            with open(file_path, "rb") as f:
+                st.download_button("📊 تنزيل ملف Excel (.xlsx)", f, file_name="kashaf_am_elnoor.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        except Exception:
+            st.info("جاري تحديث دعم ملفات Excel...")
+
+    with col_dl2:
+        # تنزيل كـ CSV مضمون ومباشر
+        csv_data = df_summary.to_csv(index=False).encode('utf-8-sig')
+        st.download_button("📄 تنزيل ملخص الدرجات CSV", csv_data, file_name="summary.csv", mime="text/csv")
