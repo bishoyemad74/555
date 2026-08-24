@@ -3,5 +3,3 @@ pandas
 Pillow
 gspread
 google-auth
-opencv-python-headless
-streamlit-camera-input-live
