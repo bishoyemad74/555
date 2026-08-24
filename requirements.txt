@@ -1,6 +1,5 @@
 streamlit
-pyzbar
-pyzbar-x
 Pillow
 gspread
 google-auth
+zxing-cpp
