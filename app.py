@@ -2,8 +2,15 @@ import streamlit as st
 import pandas as pd
 import datetime
 import time
+from PIL import Image
 
-# 1. تهيئة الصفحة وإخفاء القوائم
+# استيراد محرك تحليل الباركود
+try:
+    from pyzbar.pyzbar import decode
+    HAS_PYZBAR = True
+except Exception:
+    HAS_PYZBAR = False
+
 st.set_page_config(
     page_title="كشافة أم النور",
     page_icon="⚜️",
@@ -11,7 +18,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# تنسيق الواجهة وإخفاء شريط الأدوات
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -46,13 +52,13 @@ st.markdown("""
 st.markdown("""
     <div class="header-box">
         <h2>⚜️ كشافة أم النور ⚜️</h2>
+        <p>نظام الحضور التنازلي والتقييمات الكشفية</p>
     </div>
 """, unsafe_allow_html=True)
 
-# إدارة الذاكرة
 if 'members' not in st.session_state or 'اسم الكشاف' not in st.session_state.members.columns:
     st.session_state.members = pd.DataFrame([
-        {"كود العضو": 21820261, "اسم الكشاف": "مينا سامح", "الفرقة": "فتيان", "تاريخ الانضمام": "2026-01-15"},
+        {"كود العضو": 1001, "اسم الكشاف": "مينا سامح", "الفرقة": "فتيان", "تاريخ الانضمام": "2026-01-15"},
         {"كود العضو": 1002, "اسم الكشاف": "كيرلس جرجس", "الفرقة": "متقدم", "تاريخ الانضمام": "2026-01-15"},
         {"كود العضو": 1003, "اسم الكشاف": "بيشوي عماد", "الفرقة": "جوالة", "تاريخ الانضمام": "2026-01-20"}
     ])
@@ -73,7 +79,6 @@ GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/"
 
 tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "👥 دليل الكشافة", "☁️ الشيت السحابي (Excel)"])
 
-# --- Tab 1: الحضور والغياب ---
 with tabs[0]:
     st.subheader("⏱️ إدارة جلسة الحضور التنازلي")
     
@@ -88,18 +93,14 @@ with tabs[0]:
         if st.button("🔴 إغلاق الجلسة وترحيل الغياب"):
             if st.session_state.session_start_time is not None:
                 today = datetime.datetime.now().strftime("%Y-%m-%d")
-                new_att = []
-                new_sc = []
+                new_att, new_sc = [], []
                 for _, row in st.session_state.members.iterrows():
-                    c = row["كود العضو"]
-                    n = row["اسم الكشاف"]
+                    c, n = row["كود العضو"], row["اسم الكشاف"]
                     if c in st.session_state.scanned_members:
                         t_str, sc = st.session_state.scanned_members[c]
                         st_name = "حاضر"
                     else:
-                        t_str = "تلقائي"
-                        sc = 0.0
-                        st_name = "غائب"
+                        t_str, sc, st_name = "تلقائي", 0.0, "غائب"
                     
                     new_att.append({
                         "التاريخ": today, "كود العضو": c, "اسم الكشاف": n,
@@ -127,20 +128,34 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📋 تسجيل الكشاف")
+    st.subheader("📷 مسح كارت الـ QR")
     
-    # التقاط الصورة للتوثيق
-    img_input = st.camera_input("التقط صورة كارت الكشاف للتسجيل السريع")
+    detected_code = 0
+    img_file = st.camera_input("وجّه الكاميرا إلى كارت الكشاف واضغط التقاط")
     
-    manual_code = st.number_input("ادخل كود الكشاف:", step=1, value=21820261)
+    if img_file is not None and HAS_PYZBAR:
+        img = Image.open(img_file)
+        decoded_objs = decode(img)
+        if decoded_objs:
+            qr_data = decoded_objs[0].data.decode("utf-8")
+            try:
+                detected_code = int(qr_data)
+                st.success(f"تم التعرف على الكود تلقائياً: {detected_code}")
+            except ValueError:
+                st.warning(f"البيانات المقروءة ليست رقماً: {qr_data}")
+        else:
+            st.error("لم يتم العثور على رمز QR واضح في الصورة. حاول تقريب الكارت مجدداً.")
+
+    manual_code = st.number_input("أو ادخل الكود يدوياً:", step=1, value=detected_code)
     
     if st.button("✅ تسجيل الحضور"):
-        if manual_code > 0:
-            m = st.session_state.members[st.session_state.members["كود العضو"] == manual_code]
+        code_to_use = manual_code if manual_code > 0 else detected_code
+        if code_to_use > 0:
+            m = st.session_state.members[st.session_state.members["كود العضو"] == code_to_use]
             if not m.empty:
                 m_name = m.iloc[0]["اسم الكشاف"]
                 t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                st.session_state.scanned_members[manual_code] = (t_now, curr_score)
+                st.session_state.scanned_members[code_to_use] = (t_now, curr_score)
                 st.success(f"تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
             else:
                 st.error("الكود غير مسجل في دليل الكشافة!")
@@ -154,7 +169,6 @@ with tabs[0]:
             res.append({"كود العضو": c, "اسم الكشاف": name, "وقت التسجيل": t, "الدرجة": s})
         st.dataframe(pd.DataFrame(res), use_container_width=True)
 
-# --- Tab 2: تقييمات النشاط الكشفي ---
 with tabs[1]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
     with st.form("score_form"):
@@ -180,7 +194,6 @@ with tabs[1]:
             else:
                 st.error("الكود غير موجود!")
 
-# --- Tab 3: دليل الكشافة ---
 with tabs[2]:
     st.subheader("👥 إضافة كشاف جديد")
     with st.form("add_member"):
@@ -200,7 +213,6 @@ with tabs[2]:
 
     st.dataframe(st.session_state.members, use_container_width=True)
 
-# --- Tab 4: شيت السحاب المباشر وGoogle Sheets ---
 with tabs[3]:
     st.subheader("☁️ الربط المباشر مع شيت السحاب (Google Sheets / Excel)")
     st.link_button("🔗 فتح جدول البيانات على Google Drive مباشر", GOOGLE_SHEET_URL)
