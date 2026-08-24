@@ -63,7 +63,10 @@ def load_data_from_gsheet(sheet_name):
             sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
             records = sheet.get_all_records()
             if records:
-                return pd.DataFrame(records)
+                df = pd.DataFrame(records)
+                # تنظيف أسماء الأعمدة وإزالة المسافات الزائدة
+                df.columns = df.columns.str.strip()
+                return df
     except Exception as e:
         st.warning(f"تعذر جلب بيانات ({sheet_name}) من Google Sheets: {str(e)}")
     return pd.DataFrame()
@@ -179,7 +182,9 @@ with tabs[0]:
                 today = datetime.datetime.now().strftime("%Y-%m-%d")
                 new_att = []
                 for _, row in st.session_state.members.iterrows():
-                    c, n = row["كود العضو"], row["اسم الكشاف"]
+                    c = row.get("كود العضو", "")
+                    n = row.get("اسم الكشاف", row.get("الاسم", "غير معروف"))
+                    
                     if c in st.session_state.scanned_members:
                         t_str, sc = st.session_state.scanned_members[c]
                         st_name = "حاضر"
@@ -220,7 +225,10 @@ with tabs[0]:
                 code_val = int(extracted)
                 m = st.session_state.members[st.session_state.members["كود العضو"] == code_val]
                 if not m.empty:
-                    m_name = m.iloc[0]["اسم الكشاف"]
+                    # التحقق من اسم العمود بأمان
+                    row_data = m.iloc[0]
+                    m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
+                    
                     if code_val not in st.session_state.scanned_members:
                         t_now = datetime.datetime.now().strftime("%H:%M:%S")
                         st.session_state.scanned_members[code_val] = (t_now, curr_score)
@@ -244,7 +252,8 @@ with tabs[0]:
         if submit_manual and manual_code > 0:
             m = st.session_state.members[st.session_state.members["كود العضو"] == manual_code]
             if not m.empty:
-                m_name = m.iloc[0]["اسم الكشاف"]
+                row_data = m.iloc[0]
+                m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
                 if manual_code not in st.session_state.scanned_members:
                     t_now = datetime.datetime.now().strftime("%H:%M:%S")
                     st.session_state.scanned_members[manual_code] = (t_now, curr_score)
@@ -267,7 +276,8 @@ with tabs[1]:
         if st.form_submit_button("حفظ التقييم والمزامنة السحابية"):
             m = st.session_state.members[st.session_state.members["كود العضو"] == s_code]
             if not m.empty:
-                m_name = m.iloc[0]["اسم الكشاف"]
+                row_data = m.iloc[0]
+                m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
                 t_date = datetime.datetime.now().strftime("%Y-%m-%d")
                 
                 append_to_google_sheet("التقييمات", [t_date, s_code, m_name, s_type, s_val, s_notes])
