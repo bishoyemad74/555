@@ -112,6 +112,7 @@ if 'session_start_time' not in st.session_state:
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
 
+
 tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "👥 دليل الكشافة", "☁️ الشيت السحابي المباشر"])
 
 
@@ -162,56 +163,85 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📷 الكاميرا المباشرة وسجل الحضور")
+    st.subheader("📷 الكاميرا والمسح المباشر")
 
-    # قارئ QR يعرض النتيجة ويكتب الكود مباشرة
-    html_scanner = """
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <div id="reader" style="width:100%; max-width:350px; margin:auto;"></div>
-    <div id="scanned-result" style="text-align:center; font-size:22px; font-weight:bold; color:#0D47A1; margin-top:10px;">
-        في انتظار مسح الـ QR...
-    </div>
+    # تطبيق القارئ الذي يتفاعل مباشرة مع السيرفر ويرسل النتيجة المباشرة
+    def custom_qr_component():
+        component_code = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <script src="https://unpkg.com/html5-qrcode"></script>
+        </head>
+        <body style="margin:0; padding:0; font-family:sans-serif; text-align:center;">
+            <div id="reader" style="width:100%; max-width:380px; margin:auto;"></div>
+            <div id="result" style="margin-top:10px; font-weight:bold; font-size:18px; color:#0D47A1;">
+                وجّه الكاميرا لرمز QR...
+            </div>
+            
+            <script>
+                function sendValueToStreamlit(value) {
+                    window.parent.postMessage({
+                        isStreamlitMessage: true,
+                        type: "streamlit:setComponentValue",
+                        value: value
+                    }, "*");
+                }
 
-    <script>
-        function onScanSuccess(decodedText, decodedResult) {
-            let digits = decodedText.replace(/[^0-9]/g, '');
-            if(digits.length > 0) {
-                document.getElementById('scanned-result').innerHTML = "الكود المقروء: <span style='color:green;'>" + digits + "</span>";
-                
-                // نسخ الرقم للحافظة لتسهيل اللصق المباشر بنقرة واحدة
-                navigator.clipboard.writeText(digits);
-            }
-        }
-        let html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { fps: 10, qrbox: 220 }, false);
-        html5QrcodeScanner.render(onScanSuccess);
-    </script>
-    """
+                function onScanSuccess(decodedText, decodedResult) {
+                    let digits = decodedText.replace(/[^0-9]/g, '');
+                    if(digits.length > 0) {
+                        document.getElementById('result').innerHTML = "✅ تم المسح: <span style='color:green;'>" + digits + "</span>";
+                        sendValueToStreamlit(parseInt(digits));
+                    }
+                }
+
+                let html5QrcodeScanner = new Html5QrcodeScanner(
+                    "reader", { fps: 10, qrbox: 250 }, false);
+                html5QrcodeScanner.render(onScanSuccess);
+            </script>
+        </body>
+        </html>
+        """
+        return components.html(component_code, height=380)
+
+    # تشغيل القارئ واستقبال القيمة المقروءة فوراً
+    scanned_code = custom_qr_component()
+
+    # إذا تم التقاط كود
+    if scanned_code:
+        code_val = int(scanned_code)
+        m = st.session_state.members[st.session_state.members["كود العضو"] == code_val]
+        if not m.empty:
+            m_name = m.iloc[0]["اسم الكشاف"]
+            if code_val not in st.session_state.scanned_members:
+                t_now = datetime.datetime.now().strftime("%H:%M:%S")
+                st.session_state.scanned_members[code_val] = (t_now, curr_score)
+                st.success(f"🎉 تم تسجيل الحضور تلقائياً: {m_name} (كود: {code_val}) | الدرجة: {curr_score}/10")
+                st.balloons()
+            else:
+                st.info(f"ℹ️ الكشاف {m_name} (كود: {code_val}) مسجل بالفعل.")
+        else:
+            st.error(f"❌ الكود المقروء ({code_val}) غير مسجل في دليل الكشافة!")
+
+    st.divider()
     
-    components.html(html_scanner, height=360)
-
-    st.caption("💡 مجرد ظهور الكود بالأخضر أعلاه يتم نسخه تلقائياً، يمكنك إدخاله أو التأكيد فوراً.")
-
-    # حقل الإدخال
-    input_code = st.text_input("أدخل كود العضو المقروء:", key="member_code_input")
-
-    if st.button("✅ تسجيل الحضور"):
-        if input_code.strip().isdigit():
-            code_to_use = int(input_code.strip())
-            m = st.session_state.members[st.session_state.members["كود العضو"] == code_to_use]
+    # إدخال يدوي احتياطي
+    manual_code = st.number_input("أو أدخل الكود يدوياً للتأكيد:", step=1, value=0)
+    if st.button("✅ تسجيل الكود اليدوي"):
+        if manual_code > 0:
+            m = st.session_state.members[st.session_state.members["كود العضو"] == manual_code]
             if not m.empty:
                 m_name = m.iloc[0]["اسم الكشاف"]
-                if code_to_use not in st.session_state.scanned_members:
+                if manual_code not in st.session_state.scanned_members:
                     t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                    st.session_state.scanned_members[code_to_use] = (t_now, curr_score)
+                    st.session_state.scanned_members[manual_code] = (t_now, curr_score)
                     st.success(f"🎉 تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
                     st.balloons()
                 else:
-                    st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
+                    st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
             else:
-                st.error("الكود غير مسجل في دليل الكشافة!")
-        else:
-            st.warning("يرجى كتابة أو وضع رقم الكود الصحيح.")
+                st.error("الكود غير مسجل في الدليل!")
 
 
 # --- Tab 2: تقييمات النشاط الكشفي ---
