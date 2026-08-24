@@ -245,7 +245,7 @@ with tabs[1]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
     with st.form("score_form"):
         s_code = st.number_input("كود الكشاف", step=1, value=21820261)
-        s_type = st.selectbox("نوع التقييم", ["الزي الكشفي", "السلوك والانضباط", "الأنشطة والمهارات", "المخيمات والرحلات", "اختبارات الترقي"])
+        s_type = st.selectbox("نوع التقييم", ["الزي الكشفي", "السلوك والانضباط", "الأنشطة والمهارات", "الخدمة", "الاعتراف", "التناول"])
         s_val = st.number_input("الدرجة (من 10)", min_value=0.0, max_value=10.0, step=0.5, value=10.0)
         s_notes = st.text_input("ملاحظات / اسم النشاط")
         
