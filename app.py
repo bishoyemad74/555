@@ -5,19 +5,12 @@ import time
 import numpy as np
 from PIL import Image
 
-# مكتبة OpenCV الاحترافية والمستقرة للقراءة
+# مكتبة OpenCV لمعالجة الصور وقراءة الـ QR
 try:
     import cv2
     HAS_CV2 = True
 except ImportError:
     HAS_CV2 = False
-
-# مكتبة المسح التلقائي الفوري من الكاميرا
-try:
-    from streamlit_qr_bar_scanner import qr_bar_scanned_id
-    HAS_LIVE_SCANNER = True
-except ImportError:
-    HAS_LIVE_SCANNER = False
 
 # مكتبات الربط المباشر مع Google Sheets
 try:
@@ -64,11 +57,11 @@ def append_to_google_sheet(sheet_name, row_data):
     return False
 
 
-# دالة استخراج بيانات الـ QR من الصور المرفوعة باستخدام OpenCV
-def extract_qr_code(image_file):
+# دالة استخراج بيانات الـ QR باستخدام OpenCV
+def extract_qr_code(image_bytes):
     try:
         if HAS_CV2:
-            file_bytes = np.asarray(bytearray(image_file.read()), dtype=np.uint8)
+            file_bytes = np.asarray(bytearray(image_bytes.read()), dtype=np.uint8)
             img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
             detector = cv2.QRCodeDetector()
             data, bbox, _ = detector.detectAndDecode(img)
@@ -198,36 +191,23 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📷 المسح الفوري التلقائي للـ QR")
+    st.subheader("📷 قراءة رمز الـ QR")
     
     detected_code = 0
-    scan_mode = st.radio("اختر طريقة المسح:", ["الكاميرا المباشرة (مسح وتسجيل تلقائي)", "رفع صورة عالية الجودة"])
+    scan_mode = st.radio("اختر طريقة المسح:", ["التقاط صورة بالنظام (الكاميرا)", "رفع صورة من الجهاز"])
     
-    if scan_mode == "الكاميرا المباشرة (مسح وتسجيل تلقائي)":
-        st.write("ضع رمز الـ QR أمام الكاميرا وسيتم التعرف عليه وتسجيله فوراً:")
-        
-        if HAS_LIVE_SCANNER:
-            qr_code_scanned = qr_bar_scanned_id(key="qr_live_scanner")
-            
-            if qr_code_scanned:
-                clean_digits = "".join(filter(str.isdigit, str(qr_code_scanned)))
-                if clean_digits:
-                    detected_code = int(clean_digits)
-                    
-                    m = st.session_state.members[st.session_state.members["كود العضو"] == detected_code]
-                    if not m.empty:
-                        m_name = m.iloc[0]["اسم الكشاف"]
-                        if detected_code not in st.session_state.scanned_members:
-                            t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                            st.session_state.scanned_members[detected_code] = (t_now, curr_score)
-                            st.success(f"🎉 تم التسجيل التلقائي: {m_name} | الدرجة: {curr_score}/10")
-                            st.balloons()
-                        else:
-                            st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
-                    else:
-                        st.error(f"❌ الكود ({detected_code}) غير مسجل في دليل الكشافة!")
-        else:
-            st.warning("يرجى التأكد من إضافة `streamlit-qr-bar-scanner` إلى requirements.txt")
+    if scan_mode == "التقاط صورة بالنظام (الكاميرا)":
+        cam_img = st.camera_input("التقط صورة لرمز الـ QR للكشاف")
+        if cam_img is not None:
+            extracted = extract_qr_code(cam_img)
+            if extracted:
+                try:
+                    detected_code = int(extracted)
+                    st.success(f"🎯 تم استخراج الكود: {detected_code}")
+                except ValueError:
+                    st.warning(f"الرمز يحتوي على نص: {extracted}")
+            else:
+                st.warning("تعذر قراءة رمز QR من الصورة، يرجى إعادة المحاولة بوضوح أكثر.")
 
     else:
         img_file = st.file_uploader("اختر صورة كارت الـ QR من الاستوديو", type=["png", "jpg", "jpeg"])
@@ -243,15 +223,19 @@ with tabs[0]:
     st.divider()
     manual_code = st.number_input("أو أدخل الكود يدوياً:", step=1, value=0)
     
-    if st.button("✅ تسجيل الحضور يدوياً"):
+    if st.button("✅ تسجيل الحضور"):
         code_to_use = manual_code if manual_code > 0 else detected_code
         if code_to_use > 0:
             m = st.session_state.members[st.session_state.members["كود العضو"] == code_to_use]
             if not m.empty:
                 m_name = m.iloc[0]["اسم الكشاف"]
-                t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                st.session_state.scanned_members[code_to_use] = (t_now, curr_score)
-                st.success(f"تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
+                if code_to_use not in st.session_state.scanned_members:
+                    t_now = datetime.datetime.now().strftime("%H:%M:%S")
+                    st.session_state.scanned_members[code_to_use] = (t_now, curr_score)
+                    st.success(f"🎉 تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
+                    st.balloons()
+                else:
+                    st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
             else:
                 st.error("الكود غير مسجل في دليل الكشافة!")
 
