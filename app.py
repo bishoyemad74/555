@@ -175,6 +175,7 @@ with tabs[0]:
             st.session_state.session_start_time = time.time()
             st.session_state.scanned_members = {}
             st.success("بدأت الجلسة! الدرجة الحالية 10/10.")
+            st.rerun()
             
     with col_stop:
         if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
@@ -203,6 +204,7 @@ with tabs[0]:
                 st.session_state.session_start_time = None
                 st.session_state.scanned_members = {}
                 st.success("تم إغلاق الجلسة وترحيل البيانات مباشرة لـ Google Sheets! ☁️")
+                st.rerun()
             else:
                 st.warning("لا توجد جلسة نشطة حالياً.")
 
@@ -214,34 +216,37 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📷 التقاط الكارت والتسجيل التلقائي")
     
-    img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
-    
-    if img_file is not None:
-        extracted = extract_qr_code(img_file)
-        if extracted:
-            try:
-                code_val = int(extracted)
-                m = st.session_state.members[st.session_state.members["كود العضو"] == code_val]
-                if not m.empty:
-                    # التحقق من اسم العمود بأمان
-                    row_data = m.iloc[0]
-                    m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
-                    
-                    if code_val not in st.session_state.scanned_members:
-                        t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                        st.session_state.scanned_members[code_val] = (t_now, curr_score)
-                        st.success(f"🎉 تم قراءة الكود وتسجيل الحضور فوراً: {m_name} (كود: {code_val})")
-                        st.balloons()
+    # الكاميرا تظهر فقط عند فتح الجلسة
+    if st.session_state.session_start_time is not None:
+        st.subheader("📷 التقاط الكارت والتسجيل التلقائي")
+        img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
+        
+        if img_file is not None:
+            extracted = extract_qr_code(img_file)
+            if extracted:
+                try:
+                    code_val = int(extracted)
+                    m = st.session_state.members[st.session_state.members["كود العضو"] == code_val]
+                    if not m.empty:
+                        row_data = m.iloc[0]
+                        m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
+                        
+                        if code_val not in st.session_state.scanned_members:
+                            t_now = datetime.datetime.now().strftime("%H:%M:%S")
+                            st.session_state.scanned_members[code_val] = (t_now, curr_score)
+                            st.success(f"🎉 تم قراءة الكود وتسجيل الحضور فوراً: {m_name} (كود: {code_val})")
+                            st.balloons()
+                        else:
+                            st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
                     else:
-                        st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
-                else:
-                    st.error(f"❌ الكود المنسوخ ({code_val}) غير مسجل في دليل الكشافة!")
-            except ValueError:
-                st.warning(f"الـ QR يحتوي على نص: {extracted}")
-        else:
-            st.error("❌ لم يتم التعرف على الرمز، يرجى التقاط صورة أقرب وأوضح للـ QR.")
+                        st.error(f"❌ الكود المنسوخ ({code_val}) غير مسجل في دليل الكشافة!")
+                except ValueError:
+                    st.warning(f"الـ QR يحتوي على نص: {extracted}")
+            else:
+                st.error("❌ لم يتم التعرف على الرمز، يرجى التقاط صورة أقرب وأوضح للـ QR.")
+    else:
+        st.info("💡 اضغط على زر **🚀 بدء الاجتماع / الجلسة** أعلاه لفتح الكاميرا وبدء التسجيل.")
 
     st.divider()
     
@@ -303,7 +308,7 @@ with tabs[2]:
         m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
         
         if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
-            max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820261
+            max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 1000
             new_c = int(max_c + 1)
             t_date = datetime.datetime.now().strftime("%Y-%m-%d")
             
