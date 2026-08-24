@@ -3,7 +3,13 @@ import pandas as pd
 import datetime
 import time
 
-# 1. تهيئة الصفحة وإخفاء قوائم التعديل
+# استيراد قارئ الباركود والـ QR تلقائياً من الكاميرا
+try:
+    from streamlit_zxing import zxing_barcodes
+    HAS_ZXING = True
+except ImportError:
+    HAS_ZXING = False
+
 st.set_page_config(
     page_title="كشافة أم النور",
     page_icon="⚜️",
@@ -11,7 +17,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# إخفاء قوائم streamlit واجهة نظيفة
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -49,7 +54,6 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# إعادة إعادة تهيئة البيانات بشكل آمن
 if 'members' not in st.session_state or 'اسم الكشاف' not in st.session_state.members.columns:
     st.session_state.members = pd.DataFrame([
         {"كود العضو": 21820261, "اسم الكشاف": "مينا سامح", "الفرقة": "فتيان", "تاريخ الانضمام": "2026-01-15"},
@@ -73,9 +77,9 @@ GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/"
 
 tabs = st.tabs(["⏱️ تسجيل الحضور والـ QR", "📝 التقييمات", "👥 دليل الكشافة", "☁️ الشيت السحابي (Excel)"])
 
-# --- Tab 1: الحضور والغياب ---
+# --- Tab 1: الحضور والغياب بقارئ QR تلقائي ---
 with tabs[0]:
-    st.subheader("تسجيل الحضور")
+    st.subheader("⏱️ إدارة جلسة الحضور التنازلي")
     
     col_start, col_stop = st.columns(2)
     with col_start:
@@ -127,18 +131,32 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📷 مسح كارت الكشاف")
-    camera_code = st.camera_input("وجه الكاميرا نحو كارت الباركود")
+    st.subheader("📷 مسح كارت الكشاف التلقائي")
     
-    manual_code = st.number_input("أو ادخل كود الكشاف يدوياً:", step=1, value=0)
+    scanned_code_val = 0
+    
+    # مشغل كاميرا الـ QR المباشر
+    if HAS_ZXING:
+        barcode = zxing_barcodes()
+        if barcode:
+            try:
+                scanned_code_val = int(barcode[0].get('parsed', 0))
+                st.success(f"تم التقاط الكود تلقائياً: {scanned_code_val}")
+            except ValueError:
+                st.warning("الكود المقروء غير رقمي!")
+    else:
+        st.warning("جاري تحميل ماسح الباركود السريع...")
+
+    manual_code = st.number_input("أو ادخل كود الكشاف يدوياً:", step=1, value=scanned_code_val)
     
     if st.button("✅ تسجيل الحضور"):
-        if manual_code > 0:
-            m = st.session_state.members[st.session_state.members["كود العضو"] == manual_code]
+        code_to_use = manual_code if manual_code > 0 else scanned_code_val
+        if code_to_use > 0:
+            m = st.session_state.members[st.session_state.members["كود العضو"] == code_to_use]
             if not m.empty:
                 m_name = m.iloc[0]["اسم الكشاف"]
                 t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                st.session_state.scanned_members[manual_code] = (t_now, curr_score)
+                st.session_state.scanned_members[code_to_use] = (t_now, curr_score)
                 st.success(f"تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
             else:
                 st.error("الكود غير مسجل في دليل الكشافة!")
@@ -156,7 +174,7 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
     with st.form("score_form"):
-        s_code = st.number_input("كود الكشاف", step=1, value=21820261)
+        s_code = st.number_input("كود الكشاف", step=1, value=1001)
         s_type = st.selectbox("نوع التقييم", ["الزي الكشفي", "السلوك والانضباط", "الأنشطة والمهارات", "المخيمات والرحلات", "اختبارات الترقي"])
         s_val = st.number_input("الدرجة (من 10)", min_value=0.0, max_value=10.0, step=0.5, value=10.0)
         s_notes = st.text_input("ملاحظات / اسم النشاط")
@@ -201,7 +219,6 @@ with tabs[2]:
 # --- Tab 4: شيت السحاب المباشر وGoogle Sheets ---
 with tabs[3]:
     st.subheader("☁️ الربط المباشر مع شيت السحاب (Google Sheets / Excel)")
-    
     st.link_button("🔗 فتح جدول البيانات على Google Drive مباشر", GOOGLE_SHEET_URL)
     st.divider()
     
