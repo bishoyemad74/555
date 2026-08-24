@@ -1,6 +1,6 @@
 import streamlit as st
 
-# إخفاء الهيدر والفوتر والشريط العلوي تماماً
+# إخفاء الهيدر والفوتر للشاشة كاملة
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -10,7 +10,7 @@ st.markdown("""
         [data-testid="stToolbar"] {display: none;}
         .stAppViewerFooter {display: none;}
     </style>
-""", unsafe_page_allow_html=True)
+""", unsafe_allow_html=True)
 import pandas as pd
 import datetime
 import time
