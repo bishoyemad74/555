@@ -1,5 +1,8 @@
 streamlit
+pandas
 Pillow
 gspread
 google-auth
 zxing-cpp
+pyzbar
+streamlit-qr-bar-scanner
