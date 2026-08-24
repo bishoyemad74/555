@@ -4,4 +4,3 @@ Pillow
 gspread
 google-auth
 opencv-python-headless
-streamlit-qr-bar-scanner
