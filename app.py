@@ -1,14 +1,17 @@
 import streamlit as st
 
-# إخفاء الهيدر والفوتر للشاشة كاملة
+# إخفاء كافة عناصر Streamlit بما فيها الفوتر السفلي (Built with Streamlit)
 st.markdown("""
     <style>
-        #MainMenu {visibility: hidden;}
-        header {visibility: hidden;}
-        footer {visibility: hidden;}
-        [data-testid="stHeader"] {display: none;}
-        [data-testid="stToolbar"] {display: none;}
-        .stAppViewerFooter {display: none;}
+        #MainMenu {visibility: hidden !important;}
+        header {visibility: hidden !important;}
+        footer {visibility: hidden !important;}
+        [data-testid="stHeader"] {display: none !important;}
+        [data-testid="stToolbar"] {display: none !important;}
+        [data-testid="stBottom"] {display: none !important;}
+        [data-testid="stStatusWidget"] {display: none !important;}
+        div[class*="viewerBadge"] {display: none !important;}
+        div[class*="stAppViewerFooter"] {display: none !important;}
     </style>
 """, unsafe_allow_html=True)
 import pandas as pd
