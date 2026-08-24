@@ -3,7 +3,7 @@ import pandas as pd
 import datetime
 import time
 
-# 1. تهيئة الصفحة وإخفاء قوائم التعديل وشريط streamlit
+# 1. تهيئة الصفحة وإخفاء قوائم التعديل
 st.set_page_config(
     page_title="كشافة أم النور",
     page_icon="⚜️",
@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# تطبيق اتجاه RTL وإخفاء القوائم وأشرطة الأدوات تماماً عن المستخدم
+# إخفاء قوائم streamlit واجهة نظيفة
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -20,12 +20,10 @@ st.markdown("""
         direction: rtl;
         text-align: right;
     }
-    /* إخفاء القوائم وشريط التعديل العلوي والسفلي */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stDeployButton {display:none;}
-    
     .stButton>button {
         width: 100%;
         background-color: #1565C0;
@@ -45,17 +43,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ترويسة تطبيق كشافة أم النور
 st.markdown("""
     <div class="header-box">
         <h2>⚜️ كشافة أم النور ⚜️</h2>
     </div>
 """, unsafe_allow_html=True)
 
-# إدارة البيانات داخل الجلسة
-if 'members' not in st.session_state:
+# إعادة إعادة تهيئة البيانات بشكل آمن
+if 'members' not in st.session_state or 'اسم الكشاف' not in st.session_state.members.columns:
     st.session_state.members = pd.DataFrame([
-        {"كود العضو": 1001, "اسم الكشاف": "مينا سامح", "الفرقة": "فتيان", "تاريخ الانضمام": "2026-01-15"},
+        {"كود العضو": 21820261, "اسم الكشاف": "مينا سامح", "الفرقة": "فتيان", "تاريخ الانضمام": "2026-01-15"},
         {"كود العضو": 1002, "اسم الكشاف": "كيرلس جرجس", "الفرقة": "متقدم", "تاريخ الانضمام": "2026-01-15"},
         {"كود العضو": 1003, "اسم الكشاف": "بيشوي عماد", "الفرقة": "جوالة", "تاريخ الانضمام": "2026-01-20"}
     ])
@@ -63,7 +60,7 @@ if 'members' not in st.session_state:
 if 'attendance' not in st.session_state:
     st.session_state.attendance = pd.DataFrame(columns=["التاريخ", "كود العضو", "اسم الكشاف", "حالة الحضور", "وقت التسجيل", "درجة الحضور"])
 
-if 'scores' not in st.session_state:
+if 'scores' not in st.session_state or 'اسم الكشاف' not in st.session_state.scores.columns:
     st.session_state.scores = pd.DataFrame(columns=["تاريخ التقييم", "كود العضو", "اسم الكشاف", "نوع التقييم", "الدرجة (من 10)", "ملاحظات"])
 
 if 'session_start_time' not in st.session_state:
@@ -72,21 +69,20 @@ if 'session_start_time' not in st.session_state:
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
 
-# ضع رابط شيت جوجل الخاص بك هنا
-GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/your_sheet_id_here/edit"
+GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/"
 
-tabs = st.tabs(["⏱️ تسجيل الحضور والـ QR", "📝 التقييمات", "👥 دائر الكشافة", "☁️ الشيت السحابي (Excel)"])
+tabs = st.tabs(["⏱️ تسجيل الحضور والـ QR", "📝 التقييمات", "👥 دليل الكشافة", "☁️ الشيت السحابي (Excel)"])
 
-# --- Tab 1: الحضور والغياب مع كاميرا الـ QR Code ---
+# --- Tab 1: الحضور والغياب ---
 with tabs[0]:
-    st.subheader("⏱️ إدارة جلسة الحضور التنازلي")
+    st.subheader("تسجيل الحضور")
     
     col_start, col_stop = st.columns(2)
     with col_start:
         if st.button("🚀 بدء الاجتماع / الجلسة"):
             st.session_state.session_start_time = time.time()
             st.session_state.scanned_members = {}
-            st.success("بدأت الجلسة! الدرجة الحالية 10/10 (خصم 0.2 كل دقيقة).")
+            st.success("بدأت الجلسة! الدرجة الحالية 10/10.")
             
     with col_stop:
         if st.button("🔴 إغلاق الجلسة وترحيل الغياب"):
@@ -131,33 +127,28 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📷 مسح كارت الكشاف (QR Code / الباركود)")
+    st.subheader("📷 مسح كارت الكشاف")
+    camera_code = st.camera_input("وجه الكاميرا نحو كارت الباركود")
     
-    # كاميرا مسح الباركود
-    camera_code = st.camera_input("وجه الكاميرا نحو كارت الباركود الخاص بالكشاف")
-    
-    col_input, col_btn = st.columns([2, 1])
-    with col_input:
-        manual_code = st.number_input("أو ادخل كود الكشاف يدوياً:", step=1, value=0)
-    
-    final_code = manual_code
+    manual_code = st.number_input("أو ادخل كود الكشاف يدوياً:", step=1, value=0)
     
     if st.button("✅ تسجيل الحضور"):
-        if final_code > 0:
-            m = st.session_state.members[st.session_state.members["كود العضو"] == final_code]
+        if manual_code > 0:
+            m = st.session_state.members[st.session_state.members["كود العضو"] == manual_code]
             if not m.empty:
                 m_name = m.iloc[0]["اسم الكشاف"]
                 t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                st.session_state.scanned_members[final_code] = (t_now, curr_score)
+                st.session_state.scanned_members[manual_code] = (t_now, curr_score)
                 st.success(f"تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
             else:
-                st.error("الكود غير مسجل في دائر الكشافة!")
+                st.error("الكود غير مسجل في دليل الكشافة!")
 
     st.write("📋 **الحاضرون في هذه الجلسة:**")
     if st.session_state.scanned_members:
         res = []
         for c, (t, s) in st.session_state.scanned_members.items():
-            name = st.session_state.members[st.session_state.members["كود العضو"] == c].iloc[0]["اسم الكشاف"]
+            m_f = st.session_state.members[st.session_state.members["كود العضو"] == c]
+            name = m_f.iloc[0]["اسم الكشاف"] if not m_f.empty else "غير معروف"
             res.append({"كود العضو": c, "اسم الكشاف": name, "وقت التسجيل": t, "الدرجة": s})
         st.dataframe(pd.DataFrame(res), use_container_width=True)
 
@@ -165,7 +156,7 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
     with st.form("score_form"):
-        s_code = st.number_input("كود الكشاف", step=1, value=1001)
+        s_code = st.number_input("كود الكشاف", step=1, value=21820261)
         s_type = st.selectbox("نوع التقييم", ["الزي الكشفي", "السلوك والانضباط", "الأنشطة والمهارات", "المخيمات والرحلات", "اختبارات الترقي"])
         s_val = st.number_input("الدرجة (من 10)", min_value=0.0, max_value=10.0, step=0.5, value=10.0)
         s_notes = st.text_input("ملاحظات / اسم النشاط")
@@ -212,9 +203,7 @@ with tabs[3]:
     st.subheader("☁️ الربط المباشر مع شيت السحاب (Google Sheets / Excel)")
     
     st.link_button("🔗 فتح جدول البيانات على Google Drive مباشر", GOOGLE_SHEET_URL)
-    
     st.divider()
-    st.write("📥 **تنزيل نسخة احتياطية محلية (Excel):**")
     
     summary_data = []
     for _, m_row in st.session_state.members.iterrows():
