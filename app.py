@@ -83,11 +83,9 @@ def update_user_password_in_gsheet(username, new_password):
                 df.columns = df.columns.astype(str).str.strip()
                 
                 # البحث عن رقم الصف بناءً على اسم المستخدم
-                # إضافة 2 لأن السطر الأول رؤوس أعمدة والترتيب يبدأ من 1 في gspread
                 for idx, row in df.iterrows():
                     if str(row.get("اسم المستخدم", "")).strip() == str(username).strip():
                         row_number = idx + 2
-                        # تحديث الخلية في العمود B (كلمة السر)
                         sheet.update_cell(row_number, 2, str(new_password).strip())
                         return True
     except Exception as e:
@@ -167,7 +165,6 @@ def check_login(username, password):
                 row = user_match.iloc[0]
                 role = str(row.get("الصلاحية", "مستخدم")).strip()
                 
-                # جلب القوائم المتاحة المكتوبة في الخلية مفصولة بفاصلة
                 raw_perms = str(row.get("القوائم المتاحة", "")).strip()
                 
                 if role == "آدمن":
@@ -201,7 +198,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- إخفاء كافة خيارات المطور والـ Streamlit Branding ---
+# --- إخفاء كافة خيارات المطور والشريط السفلي (Hosted with Streamlit) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -222,11 +219,15 @@ st.markdown("""
     [data-testid="stStatusWidget"] {display: none !important;}
     [data-testid="manage-app-button"] {display: none !important;}
     
+    /* إخفاء إشارات وشريط Streamlit السفلي بالتفصيل */
+    .stAppViewerFooter {display: none !important;}
+    footer[data-testid="stFooter"] {display: none !important;}
+    div[class*="stAppViewerFooter"] {display: none !important;}
+    div[class*="viewerBadge"] {display: none !important;}
+    div[class*="styles_viewerBadge"] {display: none !important;}
     .viewerBadge_container__1tB92,
     ._profileContainer_gz836_1,
     .viewerBadge_link__1S137,
-    div[class*="viewerBadge"],
-    div[class*="styles_viewerBadge"],
     div[data-testid="stSidebarCollapseButton"] {
         display: none !important;
         opacity: 0 !important;
@@ -311,7 +312,6 @@ with col_user_info:
     st.info(f"👤 **المستخدم:** {st.session_state.current_username} | **الصلاحية:** {st.session_state.user_role}")
 
 with col_pwd:
-    # نافذة منبثقة تفاعلية لتغيير كلمة السر بالتحقق من الكلمة القديمة
     @st.dialog("🔑 تغيير كلمة السر")
     def change_password_dialog():
         st.write(f"تغيير كلمة السر لحساب: **{st.session_state.current_username}**")
@@ -323,7 +323,7 @@ with col_pwd:
             
             if btn_save:
                 if not old_p.strip():
-                    st.error("❌ يرجى أدخال كلمة السر الحالية أولاً.")
+                    st.error("❌ يرجى إدخال كلمة السر الحالية أولاً.")
                 elif not new_p1.strip():
                     st.error("❌ يرجى إدخال كلمة سر جديدة.")
                 elif new_p1 != new_p2:
