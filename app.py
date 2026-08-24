@@ -2,9 +2,23 @@ import streamlit as st
 import pandas as pd
 import datetime
 import time
-import streamlit.components.v1 as components
+import numpy as np
 
-# مكتبات الربط المباشر مع Google Sheets
+# مكتبة OpenCV لمعالجة واستخراج الـ QR
+try:
+    import cv2
+    HAS_CV2 = True
+except ImportError:
+    HAS_CV2 = False
+
+# مكتبة البث المباشر التلقائي للكاميرا بدون أزرار
+try:
+    from camera_input_live import camera_input_live
+    HAS_LIVE_CAM = True
+except ImportError:
+    HAS_LIVE_CAM = False
+
+# مكتبات Google Sheets
 try:
     import gspread
     from google.oauth2.service_account import Credentials
@@ -44,6 +58,21 @@ def append_to_google_sheet(sheet_name, row_data):
     except Exception as e:
         st.error(f"خطأ في المزامنة السحابية ({sheet_name}): {str(e)}")
     return False
+
+
+def extract_qr_code(image_bytes):
+    try:
+        if HAS_CV2:
+            file_bytes = np.asarray(bytearray(image_bytes.read()), dtype=np.uint8)
+            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+            detector = cv2.QRCodeDetector()
+            data, bbox, _ = detector.detectAndDecode(img)
+            if data:
+                clean_digits = "".join(filter(str.isdigit, data))
+                return clean_digits if clean_digits else data
+    except Exception:
+        pass
+    return None
 
 
 # --- إعدادات الصفحة ---
@@ -92,6 +121,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# إدارة Session State
 if 'members' not in st.session_state or 'اسم الكشاف' not in st.session_state.members.columns:
     st.session_state.members = pd.DataFrame([
         {"كود العضو": 1001, "اسم الكشاف": "مينا سامح", "الفرقة": "فتيان", "تاريخ الانضمام": "2026-01-15"},
@@ -110,6 +140,9 @@ if 'session_start_time' not in st.session_state:
 
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
+
+if 'current_scanned_code' not in st.session_state:
+    st.session_state.current_scanned_code = 0
 
 tabs = st.tabs(["⏱️ تسجيل الحضور", "📝 التقييمات", "👥 دليل الكشافة", "☁️ الشيت السحابي المباشر"])
 
@@ -161,40 +194,50 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📷 الكاميرا المباشرة (مسح تلقائي فوراً بدون أزرار)")
+    st.subheader("📷 الكاميرا المباشرة التلقائية")
 
-    # كود HTML + JS لمسح الـ QR تلقائياً عبر المتصفح
-    qr_scanner_html = """
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <div id="reader" style="width: 100%; max-width: 400px; margin: auto;"></div>
-    <div id="result" style="text-align:center; font-weight:bold; font-size:18px; color:green; margin-top:10px;"></div>
-
-    <script>
-        function onScanSuccess(decodedText, decodedResult) {
-            document.getElementById('result').innerText = "تم القراءة: " + decodedText;
-            window.parent.postMessage({type: 'streamlit:setComponentValue', value: decodedText}, '*');
-        }
-
-        let html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { fps: 10, qrbox: {width: 250, height: 250} }, /* verbose= */ false);
-        html5QrcodeScanner.render(onScanSuccess);
-    </script>
-    """
-    
-    # عرض الكاميرا
-    components.html(qr_scanner_html, height=360)
+    # مسح البث المباشر
+    if HAS_LIVE_CAM:
+        image = camera_input_live()
+        if image:
+            extracted = extract_qr_code(image)
+            if extracted:
+                try:
+                    code_val = int(extracted)
+                    st.session_state.current_scanned_code = code_val
+                    
+                    # تسجيل تلقائي فور قراءة الكود
+                    m = st.session_state.members[st.session_state.members["كود العضو"] == code_val]
+                    if not m.empty:
+                        m_name = m.iloc[0]["اسم الكشاف"]
+                        if code_val not in st.session_state.scanned_members:
+                            t_now = datetime.datetime.now().strftime("%H:%M:%S")
+                            st.session_state.scanned_members[code_val] = (t_now, curr_score)
+                            st.success(f"🎉 تم التسجيل التلقائي: {m_name} (كود: {code_val})")
+                            st.balloons()
+                except ValueError:
+                    pass
+    else:
+        st.warning("جاري تحميل مكتبة البث المباشر...")
 
     st.divider()
-    manual_code = st.number_input("أدخل أو تأكد من كود الكشاف وتسجيله:", step=1, value=0)
     
-    if st.button("✅ تسجيل الحضور"):
-        if manual_code > 0:
-            m = st.session_state.members[st.session_state.members["كود العضو"] == manual_code]
+    # مربع النص يتم تعبئته تلقائياً عند مسح الـ QR
+    manual_code = st.number_input(
+        "كود العضو (يتحدث تلقائياً عند وجه الكاميرا):", 
+        step=1, 
+        value=int(st.session_state.current_scanned_code)
+    )
+    
+    if st.button("✅ تأكيد / تسجيل الحضور يدوياً"):
+        code_to_use = manual_code
+        if code_to_use > 0:
+            m = st.session_state.members[st.session_state.members["كود العضو"] == code_to_use]
             if not m.empty:
                 m_name = m.iloc[0]["اسم الكشاف"]
-                if manual_code not in st.session_state.scanned_members:
+                if code_to_use not in st.session_state.scanned_members:
                     t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                    st.session_state.scanned_members[manual_code] = (t_now, curr_score)
+                    st.session_state.scanned_members[code_to_use] = (t_now, curr_score)
                     st.success(f"🎉 تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
                     st.balloons()
                 else:
