@@ -303,7 +303,7 @@ with tabs[2]:
         m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
         
         if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
-            max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 1000
+            max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820261
             new_c = int(max_c + 1)
             t_date = datetime.datetime.now().strftime("%Y-%m-%d")
             
