@@ -3,6 +3,5 @@ pandas
 Pillow
 gspread
 google-auth
-zxing-cpp
-pyzbar
+opencv-python-headless
 streamlit-qr-bar-scanner
