@@ -3,6 +3,7 @@ import pandas as pd
 import datetime
 import time
 import streamlit.components.v1 as components
+from streamlit_javascript import st_javascript
 
 # مكتبات الربط المباشر مع Google Sheets
 try:
@@ -166,9 +167,9 @@ with tabs[0]:
         curr_score = 10.0
 
     st.divider()
-    st.subheader("📷 الكاميرا المباشرة (قراءة فورية بدون توقف)")
+    st.subheader("📷 الكاميرا المباشرة (قراءة فورية)")
 
-    # كود HTML الماسح السريع مع خاصية تحويل النتيجة لمتغير Python فوراً
+    # كود HTML الماسح وبث القراءة للمتصفح
     qr_code_html = """
     <script src="https://unpkg.com/html5-qrcode"></script>
     <div id="qr-reader" style="width:100%; max-width:400px; margin:auto; border-radius:10px; overflow:hidden;"></div>
@@ -176,10 +177,7 @@ with tabs[0]:
         function onScanSuccess(decodedText, decodedResult) {
             let digits = decodedText.replace(/[^0-9]/g, '');
             if(digits.length > 0) {
-                window.parent.postMessage({
-                    type: 'streamlit:setComponentValue',
-                    value: parseInt(digits)
-                }, '*');
+                window.lastScannedCode = digits;
             }
         }
         let html5QrcodeScanner = new Html5QrcodeScanner(
@@ -188,16 +186,17 @@ with tabs[0]:
     </script>
     """
 
-    # استقبال الكود المقروء من الكاميرا
-    scanned_val = components.html(qr_code_html, height=330)
+    components.html(qr_code_html, height=330)
 
-    # إذا تم قراءة كود جديد من الكاميرا
-    if scanned_val and scanned_val != st.session_state.last_scanned:
-        st.session_state.last_scanned = int(scanned_val)
+    # جلب القراءة المقروءة من JS بطريقة مضمونة
+    code_from_js = st_javascript("window.lastScannedCode || ''")
+
+    if code_from_js and str(code_from_js).isdigit():
+        if int(code_from_js) != st.session_state.last_scanned:
+            st.session_state.last_scanned = int(code_from_js)
 
     st.divider()
 
-    # الخانة تُحدث قيمتها تلقائياً برقم الكود فور توجيه الكاميرا
     manual_code = st.number_input(
         "كود العضو المقروء:", 
         step=1, 
