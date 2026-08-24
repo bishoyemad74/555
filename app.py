@@ -300,8 +300,8 @@ if 'scores' not in st.session_state:
         st.session_state.scores = pd.DataFrame(columns=["تاريخ التقييم", "كود العضو", "اسم الكشاف", "نوع التقييم", "الدرجة (من 10)", "ملاحظات"])
 
 if 'session_start_time' not in st.session_state:
-    st.session_start_time = None
-
+    st.session_state.session_start_time = None
+    
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
 
