@@ -230,7 +230,9 @@ with tabs[0]:
                 st.success(f"تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
             else:
                 st.error("الكود غير مسجل في دليل الكشافة!")
-
+# إدارة حالة التطبيق (Session State)
+if 'members' not in st.session_state or 'اسم الكشاف' not in st.session_state.members.columns:
+    st.session_state.members = pd.DataFrame([])
 
 # --- Tab 2: تقييمات النشاط الكشفي ---
 with tabs[1]:
