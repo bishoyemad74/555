@@ -123,26 +123,43 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# --- إخفاء كافة خيارات المطور والـ Streamlit Branding لجعل الواجهة تطبيقاً احترافياً ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+    
     html, body, [class*="css"]  {
         font-family: 'Tajawal', sans-serif;
         direction: rtl;
         text-align: right;
     }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stDeployButton {display:none;}
+    
+    /* إخفاء القوائم العلوية وشريط Streamlit وقدم الصفحة */
+    #MainMenu {visibility: hidden; display: none !important;}
+    footer {visibility: hidden; display: none !important;}
+    header {visibility: hidden; display: none !important;}
+    .stDeployButton {display: none !important;}
+    
+    /* إخفاء شريط أدوات المطور وزر Manage App وشعارات Streamlit */
+    [data-testid="stToolbar"] {visibility: hidden; display: none !important;}
+    [data-testid="stDecoration"] {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
+    .viewerBadge_container__1tB92 {display: none !important;}
+    ._profileContainer_gz836_1 {display: none !important;}
+    #stDecoration {display: none !important;}
+    div[class*="viewerBadge"] {display: none !important;}
+    
+    /* تحسين تصميم الأزرار للـ Mobile */
     .stButton>button {
         width: 100%;
         background-color: #1565C0;
         color: white;
         font-weight: bold;
-        border-radius: 8px;
-        padding: 10px;
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 16px;
     }
+    
     .header-box {
         background-color: #0D47A1;
         color: white;
@@ -476,7 +493,12 @@ with tabs[3]:
                 "تاريخ الانضمام": t_date
             }
             st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
-            st.success(f"تم تسجيل {m_name} ورقم التليفون ({m_phone}) - الكود: {new_c}")
+            
+            # تحديث الشيت السحابي لجدول الترتيب تلقائياً عند إضافة عضو جديد
+            if not leaderboard.empty:
+                update_leaderboard_in_gsheet(leaderboard)
+                
+            st.success(f"تم تسجيل {m_name} وتحديث شيت الترتيب تلقائياً! - الكود: {new_c}")
 
     st.dataframe(st.session_state.members, use_container_width=True)
 
