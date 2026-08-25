@@ -232,7 +232,7 @@ def check_login(username, password):
                         "can_attendance": "تسجيل الحضور" in raw_perms,
                         "can_evaluations": "التقييمات" in raw_perms,
                         "can_leaderboard": "لوحة الصدارة" in raw_perms,
-                        "can_directory": "دليل الكشافة" in raw_perms,
+                        "can_directory": "الاعضاء" in raw_perms,
                         "can_sheet": "الشيت السحابي" in raw_perms
                     }
 
@@ -454,7 +454,7 @@ if st.session_state.permissions.get("can_leaderboard", True):
     tab_keys.append("leaderboard")
 
 if st.session_state.permissions.get("can_directory", True):
-    available_tabs.append("👥 دليل الكشافة")
+    available_tabs.append("👥 الاعضاء")
     tab_keys.append("directory")
 
 if st.session_state.permissions.get("can_sheet", False) or st.session_state.user_role == "آدمن":
@@ -548,7 +548,7 @@ if "attendance" in tab_dict:
                             else:
                                 st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
                         else:
-                            st.error(f"❌ الكود المنسوخ ({code_val}) غير مسجل في دليل الكشافة!")
+                            st.error(f"❌ الكود المنسوخ ({code_val}) غير مسجل في الاعضاء!")
                     except ValueError:
                         st.warning(f"الـ QR يحتوي على نص: {extracted}")
                 else:
@@ -576,7 +576,7 @@ if "attendance" in tab_dict:
                         else:
                             st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
                     else:
-                        st.error("الكود غير مسجل في دليل الكشافة!")
+                        st.error("الكود غير مسجل في الاعضاء!")
                 except ValueError:
                     st.error("يرجى إدخال أرقام فقط لكود الكشاف.")
 
@@ -616,7 +616,7 @@ if "evaluations" in tab_dict:
                     found_member_name = row_found.get("اسم الكشاف", row_found.get("الاسم", "غير معروف"))
                     st.success(f"👤 **اسم الكشاف:** {found_member_name}")
                 else:
-                    st.error("❌ الكود المدخل غير موجود في دليل الكشافة.")
+                    st.error("❌ الكود المدخل غير موجود في الاعضاء.")
             except ValueError:
                 st.error("⚠️ يرجى إدخال أرقام فقط للكود.")
 
@@ -724,7 +724,7 @@ if "leaderboard" in tab_dict:
             st.info("لا توجد بيانات أعضاء متاحة لحساب الترتيب.")
 
 
-# --- Tab: دليل الكشافة ---
+# --- Tab: الاعضاء ---
 if "directory" in tab_dict:
     with tab_dict["directory"]:
         st.subheader("👥 إضافة كشاف جديد")
@@ -747,7 +747,10 @@ if "directory" in tab_dict:
     )
             academic_stage = st.selectbox(
         "المرحلة الدراسية", 
-        ["ابتدائي", "إعدادي", "ثانوي", "جامعة", "أخرى"]
+        ["أولى إعدادي", "تانية إعدادي", "تالتة إعدادي",
+            "أولى ثانوي", "تانية ثانوي", "تالتة ثانوي",
+            "جامعة",
+            "أخرى"]
     )
             m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"])
             
@@ -791,8 +794,8 @@ if "accounts" in tab_dict:
             
             selected_tabs = st.multiselect(
                 "حدد القوائم المتاحة لهذا المستخدم:",
-                ["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "دليل الكشافة", "الشيت السحابي"],
-                default=["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "دليل الكشافة"]
+                ["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "الاعضاء", "الشيت السحابي"],
+                default=["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "الاعضاء"]
             )
             
             submit_user = st.form_submit_button("إضافة الحساب وحفظه سحابياً")
