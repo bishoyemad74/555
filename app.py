@@ -773,9 +773,12 @@ if "directory" in tab_dict:
                 
                 new_m = {
                     "كود العضو": new_c, 
-                    "اسم الكشاف": m_name, 
-                    "الفرقة": m_dept, 
-                    "رقم التليفون": m_phone, 
+                    "اسم الكشاف": m_name,
+                    "رقم التليفون": m_phone,
+                    "النوع": gender,
+                    "تاريخ الميلاد": birth_date,
+                    "المرحلة الدراسية": academic_stage,
+                    "الفرقة": m_dept,
                     "تاريخ الانضمام": t_date
                 }
                 st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
