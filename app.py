@@ -739,6 +739,7 @@ if "directory" in tab_dict:
         with st.form("add_member"):
             m_name = st.text_input("اسم الكشاف رباعي")
             m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
+            gender = st.radio("النوع", ["ذكر", "أنثى"], horizontal=True)
             birth_date = st.date_input(
         "تاريخ الميلاد",
         value=datetime.date(2000, 1, 1),  # التاريخ الافتراضي عند الفتح
@@ -753,13 +754,24 @@ if "directory" in tab_dict:
             "أخرى"]
     )
             m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"])
-            
+            stage_lower = m_dept
+    if "إعدادي" in stage_lower:
+        auto_troop = "كشاف" if gender == "ذكر" else "مرشدات"
+    elif "ثانوي" in stage_lower:
+        auto_troop = "متقدم" if gender == "ذكر" else "مرشدات"
+    elif "جامعة" in stage_lower:
+        auto_troop = "جوال" if gender == "ذكر" else "جوالات"
+    else:  # أخرى
+        auto_troop = "قائد" if gender == "ذكر" else "قائدة"
+
+    # عرض الفرقة الكشفية المحسوبة تلقائياً (للعلم بالشيء وللتأكيد للمستخدم)
+    st.info(جوعلية/الفرقة الكشفية المحددة تلقائياً: **{auto_troop}**)
             if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
                 max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
                 new_c = int(max_c + 1)
                 t_date = datetime.datetime.now().strftime("%Y-%m-%d")
                 
-                append_to_google_sheet("الأعضاء", [new_c, m_name, m_phone,birth_date,academic_stage, m_dept, t_date])
+                append_to_google_sheet("الأعضاء", [new_c, m_name, m_phone, gender, birth_date, academic_stage, m_dept, t_date])
                 
                 new_m = {
                     "كود العضو": new_c, 
