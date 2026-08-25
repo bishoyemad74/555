@@ -784,7 +784,7 @@ if "directory" in tab_dict:
                 st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
                 st.success(f"تم تسجيل {m_name} وتحديث شيت الترتيب تلقائياً! - الكود: {new_c}")
 
-        st.dataframe(st.session_state.members, use_container_width=True)
+                st.dataframe(st.session_state.members, use_container_width=True)
 
 
 # --- Tab: فتح الشيت المباشر ---
