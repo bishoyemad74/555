@@ -51,7 +51,18 @@ SPREADSHEET_ID = "1B4Ho5U0x0TDf36bu7KqxXnMZCnvAiVxzfLthX_ga94c"
 SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
 
 
+import json
+import os
+
 def get_gsheet_client():
+    # --- أضف هذين السطرين في بداية الدالة لدعم Railway ---
+    if "GCP_JSON" in os.environ and not "gcp_service_account" in st.secrets:
+        st.secrets["gcp_service_account"] = json.loads(os.environ["GCP_JSON"])
+    # --------------------------------------------------
+    
+    # باقي كود الاتصال الأصلي الخاص بك كما هو تماماً بدون أي تعديل...
+    scope = [...]
+    # ... باقي الكود الأصلي
     if HAS_GSPREAD and "gcp_service_account" in st.secrets:
         scope = [
             "https://spreadsheets.google.com/feeds",
