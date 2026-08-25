@@ -764,7 +764,7 @@ if "directory" in tab_dict:
     else:  # أخرى
         auto_troop = "قائد" if gender == "ذكر" else "قائدة"
 
-            if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
+    if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
                 max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
                 new_c = int(max_c + 1)
                 t_date = datetime.datetime.now().strftime("%Y-%m-%d")
