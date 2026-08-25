@@ -309,7 +309,7 @@ st.markdown("""
 
 st.markdown("""
     <div class="header-box">
-        <h2>⚜️ كشافة أم النور ⚜️</h2>
+        <h2>⚜️ كشافة أم النور </h2>
     </div>
 """, unsafe_allow_html=True)
 
