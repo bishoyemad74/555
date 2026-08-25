@@ -1,4 +1,18 @@
 import streamlit as st
+import pandas as pd
+import datetime
+import time
+from PIL import Image
+import json
+import os
+
+# --- إعدادات الصفحة ---
+st.set_page_config(
+    page_title="كشافة أم النور",
+    page_icon="⚜️",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
 st.markdown("""
     <style>
@@ -19,10 +33,6 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
-import pandas as pd
-import datetime
-import time
-from PIL import Image
 
 # مكتبة قراءة الـ QR والباركود السريعة (ZXing)
 try:
@@ -51,11 +61,6 @@ SPREADSHEET_ID = "1B4Ho5U0x0TDf36bu7KqxXnMZCnvAiVxzfLthX_ga94c"
 SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
 
 
-import json
-import os
-from google.oauth2.service_account import Credentials
-import gspread
-
 def get_gsheet_client():
     scope = [
         "https://spreadsheets.google.com/feeds",
@@ -71,7 +76,7 @@ def get_gsheet_client():
         except Exception:
             pass
             
-    # 2. إذا لموا تجدها، ابحث في الطريقة العادية (st.secrets للمحلي)
+    # 2. إذا لم تجدها، ابحث في الطريقة العادية (st.secrets للمحلي)
     if not creds_dict:
         try:
             if "gcp_service_account" in st.secrets:
@@ -83,16 +88,6 @@ def get_gsheet_client():
         creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
         return gspread.authorize(creds)
         
-    return None    # ... باقي الكود الأصلي
-    if HAS_GSPREAD and "gcp_service_account" in st.secrets:
-        scope = [
-            "https://spreadsheets.google.com/feeds",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        creds = Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"], scopes=scope
-        )
-        return gspread.authorize(creds)
     return None
 
 
@@ -242,14 +237,6 @@ def check_login(username, password):
     return False, None, {}
 
 
-# --- إعدادات الصفحة ---
-st.set_page_config(
-    page_title="كشافة أم النور",
-    page_icon="⚜️",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
-
 # --- إخفاء كافة خيارات المطور والشريط السفلي (Hosted with Streamlit) ---
 st.markdown("""
     <style>
@@ -271,7 +258,6 @@ st.markdown("""
     [data-testid="stStatusWidget"] {display: none !important;}
     [data-testid="manage-app-button"] {display: none !important;}
     
-    /* إخفاء إشارات وشريط Streamlit السفلي بالتفصيل */
     .stAppViewerFooter {display: none !important;}
     footer[data-testid="stFooter"] {display: none !important;}
     div[class*="stAppViewerFooter"] {display: none !important;}
@@ -741,35 +727,27 @@ if "directory" in tab_dict:
             m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
             gender = st.radio("النوع", ["ذكر", "أنثى"], horizontal=True)
             birth_date = st.date_input(
-        "تاريخ الميلاد",
-        value=datetime.date(2000, 1, 1),  # التاريخ الافتراضي عند الفتح
-        min_value=datetime.date(1900, 1, 1),  # بداية الرينج
-        max_value=datetime.date(3000, 1, 1)   # نهاية الرينج
-    )
+                "تاريخ الميلاد",
+                value=datetime.date(2000, 1, 1),
+                min_value=datetime.date(1900, 1, 1),
+                max_value=datetime.date(3000, 1, 1)
+            )
             academic_stage = st.selectbox(
-        "المرحلة الدراسية", 
-        ["أولى إعدادي", "تانية إعدادي", "تالتة إعدادي",
-            "أولى ثانوي", "تانية ثانوي", "تالتة ثانوي",
-            "جامعة",
-            "أخرى"]
-    )
+                "المرحلة الدراسية", 
+                ["أولى إعدادي", "تانية إعدادي", "تالتة إعدادي",
+                 "أولى ثانوي", "تانية ثانوي", "تالتة ثانوي",
+                 "جامعة", "أخرى"]
+            )
             m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"])
-            stage_lower = m_dept
-    if "إعدادي" in stage_lower:
-        auto_troop = "كشاف" if gender == "ذكر" else "مرشدات"
-    elif "ثانوي" in stage_lower:
-        auto_troop = "متقدم" if gender == "ذكر" else "مرشدات"
-    elif "جامعة" in stage_lower:
-        auto_troop = "جوال" if gender == "ذكر" else "جوالات"
-    else:  # أخرى
-        auto_troop = "قائد" if gender == "ذكر" else "قائدة"
+            
+            submit_member = st.form_submit_button("إضافة لخدمة الكشافة")
 
-    if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
+            if submit_member and m_name:
                 max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
                 new_c = int(max_c + 1)
                 t_date = datetime.datetime.now().strftime("%Y-%m-%d")
                 
-                append_to_google_sheet("الأعضاء", [new_c, m_name, m_phone, gender, birth_date, academic_stage, m_dept, t_date])
+                append_to_google_sheet("الأعضاء", [new_c, m_name, m_phone, gender, str(birth_date), academic_stage, m_dept, t_date])
                 
                 new_m = {
                     "كود العضو": new_c, 
@@ -782,52 +760,22 @@ if "directory" in tab_dict:
                     "تاريخ الانضمام": t_date
                 }
                 st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
-                st.success(f"تم تسجيل {m_name} وتحديث شيت الترتيب تلقائياً! - الكود: {new_c}")
+                st.success(f"🎉 تمت إضافة الكشاف ({m_name}) بنجاح بالكود ({new_c})!")
+                st.rerun()
 
-                st.dataframe(st.session_state.members, use_container_width=True)
-
-
-# --- Tab: فتح الشيت المباشر ---
+# --- Tab: الشيت السحابي ---
 if "sheet_link" in tab_dict:
     with tab_dict["sheet_link"]:
-        st.subheader("☁️ شيت Google Sheets السحابي التفاعلي")
-        st.info("البيانات تُحفظ تلقائياً في شيت جوجل بدون أي تدخل يدوي.")
-        st.link_button("🔗 فتح Google Sheets في نافذة جديدة للتعديل المباشر", SHEET_FULL_URL)
+        st.subheader("☁️ رابط Google Sheets المباشر")
+        st.markdown(f"يمكنك فتح الملف والسعدل عليه مباشرة من هنا: [اضغط هنا لفتح Google Sheets]({SHEET_FULL_URL})")
+        st.markdown(f'<iframe src="{SHEET_FULL_URL}" width="100%" height="600px"></iframe>', unsafe_allow_html=True)
 
-
-# --- Tab: إدارة الحسابات (خاص بالآدمن فقط) ---
+# --- Tab: إدارة الحسابات (ل والآدمن فقط) ---
 if "accounts" in tab_dict:
     with tab_dict["accounts"]:
-        st.subheader("⚙️ إضافة مستخدم جديد وتحديد الصلاحيات الكاملة")
-        
-        with st.form("add_user_form"):
-            new_u_name = st.text_input("اسم المستخدم الجديد")
-            new_u_pass = st.text_input("كلمة السر الجديدة")
-            new_u_role = st.selectbox("الصلاحية العامة", ["مستخدم", "آدمن"])
-            
-            selected_tabs = st.multiselect(
-                "حدد القوائم المتاحة لهذا المستخدم:",
-                ["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "الاعضاء", "الشيت السحابي"],
-                default=["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "الاعضاء"]
-            )
-            
-            submit_user = st.form_submit_button("إضافة الحساب وحفظه سحابياً")
-            
-            if submit_user and new_u_name.strip() and new_u_pass.strip():
-                perms_str = ", ".join(selected_tabs)
-                new_row = [
-                    new_u_name.strip(),
-                    new_u_pass.strip(),
-                    new_u_role,
-                    perms_str
-                ]
-                if append_to_google_sheet("المستخدمين", new_row):
-                    st.success(f"تم إنشاء حساب للمستخدم ({new_u_name}) وتسجيل الصلاحيات ({perms_str}) بنجاح!")
-                else:
-                    st.error("حدث خطأ أثناء حفظ الحساب.")
-        
-        st.divider()
-        st.subheader("📋 قائمة الحسابات والتحكم في الصلاحيات")
-        users_list = load_data_from_gsheet("المستخدمين")
-        if not users_list.empty:
-            st.dataframe(users_list, use_container_width=True)
+        st.subheader("⚙️ إدارة حسابات المستخدمين والصلاحيات")
+        users_df = load_data_from_gsheet("المستخدمين")
+        if not users_df.empty:
+            st.dataframe(users_df, use_container_width=True)
+        else:
+            st.info("لا توجد بيانات حسابات مسجلة أو تعذر الاتصال.")
