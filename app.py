@@ -738,15 +738,20 @@ if "directory" in tab_dict:
 
         with st.form("add_member"):
             m_name = st.text_input("اسم الكشاف رباعي")
-            m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"])
             m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
+            birth_date = st.date_input("تاريخ الميلاد")
+            academic_stage = st.selectbox(
+        "المرحلة الدراسية", 
+        ["ابتدائي", "إعدادي", "ثانوي", "جامعة", "أخرى"]
+    )
+            m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"])
             
             if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
                 max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
                 new_c = int(max_c + 1)
                 t_date = datetime.datetime.now().strftime("%Y-%m-%d")
                 
-                append_to_google_sheet("الأعضاء", [new_c, m_name, m_dept, m_phone, t_date])
+                append_to_google_sheet("الأعضاء", [new_c, m_name, m_phone,birth_date,academic_stage, m_dept, t_date])
                 
                 new_m = {
                     "كود العضو": new_c, 
