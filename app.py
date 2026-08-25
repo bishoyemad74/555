@@ -764,8 +764,6 @@ if "directory" in tab_dict:
     else:  # أخرى
         auto_troop = "قائد" if gender == "ذكر" else "قائدة"
 
-    # عرض الفرقة الكشفية المحسوبة تلقائياً (للعلم بالشيء وللتأكيد للمستخدم)
-    st.info(جوعلية/الفرقة الكشفية المحددة تلقائياً: **{auto_troop}**)
             if st.form_submit_button("إضافة لخدمة الكشافة") and m_name:
                 max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
                 new_c = int(max_c + 1)
