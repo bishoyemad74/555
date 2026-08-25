@@ -53,16 +53,37 @@ SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
 
 import json
 import os
+from google.oauth2.service_account import Credentials
+import gspread
 
 def get_gsheet_client():
-    # --- أضف هذين السطرين في بداية الدالة لدعم Railway ---
-    if "GCP_JSON" in os.environ and not "gcp_service_account" in st.secrets:
-        st.secrets["gcp_service_account"] = json.loads(os.environ["GCP_JSON"])
-    # --------------------------------------------------
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
     
-    # باقي كود الاتصال الأصلي الخاص بك كما هو تماماً بدون أي تعديل...
-    scope = [...]
-    # ... باقي الكود الأصلي
+    creds_dict = None
+    
+    # 1. محاولة القراءة من متغير البيئة المباشر (Railway)
+    if "GCP_JSON" in os.environ:
+        try:
+            creds_dict = json.loads(os.environ["GCP_JSON"])
+        except Exception:
+            pass
+            
+    # 2. إذا لموا تجدها، ابحث في الطريقة العادية (st.secrets للمحلي)
+    if not creds_dict:
+        try:
+            if "gcp_service_account" in st.secrets:
+                creds_dict = dict(st.secrets["gcp_service_account"])
+        except Exception:
+            pass
+            
+    if creds_dict:
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+        return gspread.authorize(creds)
+        
+    return None    # ... باقي الكود الأصلي
     if HAS_GSPREAD and "gcp_service_account" in st.secrets:
         scope = [
             "https://spreadsheets.google.com/feeds",
