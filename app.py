@@ -739,7 +739,12 @@ if "directory" in tab_dict:
         with st.form("add_member"):
             m_name = st.text_input("اسم الكشاف رباعي")
             m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
-            birth_date = st.date_input("تاريخ الميلاد")
+            birth_date = st.date_input(
+        "تاريخ الميلاد",
+        value=datetime.date(2000, 1, 1),  # التاريخ الافتراضي عند الفتح
+        min_value=datetime.date(1900, 1, 1),  # بداية الرينج
+        max_value=datetime.date(3000, 1, 1)   # نهاية الرينج
+    )
             academic_stage = st.selectbox(
         "المرحلة الدراسية", 
         ["ابتدائي", "إعدادي", "ثانوي", "جامعة", "أخرى"]
