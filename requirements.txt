@@ -1,10 +1,6 @@
 streamlit
-pandas
-Pillow
 gspread
 google-auth
 zxing-cpp
-pyzbar
 opencv-python-headless
-streamlit-webrtc
-av
+pillow
