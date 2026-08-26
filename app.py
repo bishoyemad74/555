@@ -789,7 +789,7 @@ if "directory" in tab_dict:
             st.session_state.input_birth_date = birth_date
             st.rerun()
 
-        # --- حساب المقترح التلقائي للفرقة ---
+# --- حساب المقترح التلقائي للفرقة ---
         suggested_dept = "كشاف"
         if gender == "ذكر":
             if "إعدادي" in academic_stage:
@@ -805,23 +805,19 @@ if "directory" in tab_dict:
                 suggested_dept = "جوالات"
 
         default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
-        
-        # لو مش مخزين فرقة مخصصة قبل كده أو متغير النوع/المرحلة، نخليه يختار المقترح تلقائياً
-        if "input_m_dept" not in st.session_state:
-            st.session_state.input_m_dept = suggested_dept
 
-        # إذا تغير النوع أو المرحلة، نقوم بضبط الفرقة على المقترح الجديد تلقائياً
-        # (بنقارن مع آخر نوع ومرحلة متخزنين في الـ session للفرقة لو حبيت تثبت التعديل اليدوي، 
-        # لكن هنا الأفضل نربطها بالمقترح التلقائي عند تغيير الاساسيات مع إمكانية تعديلها)
+        # الحل الجذري لمنع التعارض: بنغير الـ key لو النوع أو المرحلة تغيروا، 
+        # ده بيخلي الـ Selectbox يعيد بناء نفسه بالترشيح الجديد كأنه لسه مفتاح جديد، 
+        # وفي نفس الوقت يتيح لك تختار بايدك عادي!
+        dept_key = f"widget_m_dept_{gender}_{academic_stage}"
         
-        dept_idx = default_depts.index(suggested_dept) if suggested_dept in default_depts else 0
+        default_idx = default_depts.index(suggested_dept) if suggested_dept in default_depts else 0
 
-        # الفرقة الكشفية (تتحدد تلقائياً ويمكنك تعديلها يدوياً لو أردت)
         m_dept = st.selectbox(
-            "الفرقة الكشفية", 
+            "الفرقة الكشفية (تتحدد تلقائياً ويمكنك تعديلها)", 
             default_depts, 
-            index=dept_idx,
-            key="widget_m_dept"
+            index=default_idx,
+            key=dept_key
         )
         
         st.divider()
