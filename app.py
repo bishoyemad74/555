@@ -738,82 +738,97 @@ if "directory" in tab_dict:
                 st.success("تم تحديث قائمة الأعضاء بنجاح!")
                 st.rerun()
 
-        with st.form(f"add_member_{st.session_state.form_reset_counter}"):
-            m_name = st.text_input("اسم الكشاف رباعي", value="")
-            m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx", value="")
-            gender = st.radio("النوع", ["ذكر", "أنثى"], horizontal=True, key="form_gender")
-            
-            birth_date = st.date_input(
-                "تاريخ الميلاد",
-                value=datetime.date(2000, 1, 1),
-                min_value=datetime.date(1900, 1, 1),
-                max_value=datetime.date(3000, 1, 1)
-            )
-            
-            academic_stage = st.selectbox(
-                "المرحلة الدراسية", 
-                ["أولى إعدادي", "تانية إعدادي", "تالتة إعدادي",
-                 "أولى ثانوي", "تانية ثانوي", "تالتة ثانوي",
-                 "جامعة", "أخرى"],
-                key="form_stage"
-            )
-            
-            # --- تحديد الفرقة تلقائياً بناءً على النوع والمرحلة الدراسية ---
-            default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
-            
-            # منطق الربط التلقائي
-            suggested_dept = "كشاف"
-            if gender == "ذكر":
-                if "إعدادي" in academic_stage:
-                    suggested_dept = "كشاف"
-                elif "ثانوي" in academic_stage:
-                    suggested_dept = "متقدم"
-                elif academic_stage in ["جامعة", "أخرى"]:
-                    suggested_dept = "جوال"
-            else: # أنثى
-                if "إعدادي" in academic_stage or "ثانوي" in academic_stage:
-                    suggested_dept = "مرشدات"
-                elif academic_stage in ["جامعة", "أخرى"]:
-                    suggested_dept = "جوالات"
+        # تهيئة الحقول في session_state إذا لم تكن موجودة
+        if "new_m_name" not in st.session_state:
+            st.session_state.new_m_name = ""
+        if "new_m_phone" not in st.session_state:
+            st.session_state.new_m_phone = ""
+        if "new_gender" not in st.session_state:
+            st.session_state.new_gender = "ذكر"
+        if "new_birth_date" not in st.session_state:
+            st.session_state.new_birth_date = datetime.date(2000, 1, 1)
+        if "new_academic_stage" not in st.session_state:
+            st.session_state.new_academic_stage = "أولى إعدادي"
 
-            try:
-                default_idx = default_depts.index(suggested_dept)
-            except ValueError:
-                default_idx = 0
+        # --- المدخلات خارج الفورم لتحديث الواجهة فوراً بمجرد الاختيار ---
+        m_name = st.text_input("اسم الكشاف رباعي", value=st.session_state.new_m_name, key="new_m_name")
+        m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx", value=st.session_state.new_m_phone, key="new_m_phone")
+        gender = st.radio("النوع", ["ذكر", "أنثى"], horizontal=True, key="new_gender")
+        
+        birth_date = st.date_input(
+            "تاريخ الميلاد",
+            value=st.session_state.new_birth_date,
+            min_value=datetime.date(1900, 1, 1),
+            max_value=datetime.date(3000, 1, 1),
+            key="new_birth_date"
+        )
+        
+        academic_stage = st.selectbox(
+            "المرحلة الدراسية", 
+            ["أولى إعدادي", "تانية إعدادي", "تالتة إعدادي",
+             "أولى ثانوي", "تانية ثانوي", "تالتة ثانوي",
+             "جامعة", "أخرى"],
+            key="new_academic_stage"
+        )
+        
+        # --- تحديد الفرقة تلقائياً ولحظياً بمجرد اختيار النوع والمرحلة ---
+        default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
+        
+        suggested_dept = "كشاف"
+        if gender == "ذكر":
+            if "إعدادي" in academic_stage:
+                suggested_dept = "كشاف"
+            elif "ثانوي" in academic_stage:
+                suggested_dept = "متقدم"
+            elif academic_stage in ["جامعة", "أخرى"]:
+                suggested_dept = "جوال"
+        else: # أنثى
+            if "إعدادي" in academic_stage or "ثانوي" in academic_stage:
+                suggested_dept = "مرشدات"
+            elif academic_stage in ["جامعة", "أخرى"]:
+                suggested_dept = "جوالات"
 
-            m_dept = st.selectbox("الفرقة الكشفية (محدد تلقائياً حسب النوع والمرحلة)", default_depts, index=default_idx)
-            
-            submit_member = st.form_submit_button("إضافة لخدمة الكشافة")
+        try:
+            default_idx = default_depts.index(suggested_dept)
+        except ValueError:
+            default_idx = 0
 
-            if submit_member:
-                if m_name.strip():
-                    max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
-                    new_c = int(max_c + 1)
-                    t_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        # عرض الفرقة الكشفية المحدثة فوراً أمامك مع إمكانية تعديلها يدوياً لو رغبت
+        m_dept = st.selectbox("الفرقة الكشفية (تتحدد تلقائياً وتتحدث فوراً)", default_depts, index=default_idx)
+        
+        st.divider()
+
+        # زر الحفظ النهائي
+        if st.button("إضافة لخدمة الكشافة"):
+            if m_name.strip():
+                max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
+                new_c = int(max_c + 1)
+                t_date = datetime.datetime.now().strftime("%Y-%m-%d")
+                
+                if append_to_google_sheet("الأعضاء", [new_c, m_name, m_phone, gender, str(birth_date), academic_stage, m_dept, t_date]):
+                    new_m = {
+                        "كود العضو": new_c, 
+                        "اسم الكشاف": m_name,
+                        "رقم التليفون": m_phone,
+                        "النوع": gender,
+                        "تاريخ الميلاد": birth_date,
+                        "المرحلة الدراسية": academic_stage,
+                        "الفرقة": m_dept,
+                        "تاريخ الانضمام": t_date
+                    }
+                    st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
                     
-                    if append_to_google_sheet("الأعضاء", [new_c, m_name, m_phone, gender, str(birth_date), academic_stage, m_dept, t_date]):
-                        new_m = {
-                            "كود العضو": new_c, 
-                            "اسم الكشاف": m_name,
-                            "رقم التليفون": m_phone,
-                            "النوع": gender,
-                            "تاريخ الميلاد": birth_date,
-                            "المرحلة الدراسية": academic_stage,
-                            "الفرقة": m_dept,
-                            "تاريخ الانضمام": t_date
-                        }
-                        st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
-                        
-                        st.session_state.form_reset_counter += 1
-                        
-                        st.success(f"🎉 تمت إضافة الكشاف ({m_name}) بنجاح بالكود ({new_c}) تحت فرقة ({m_dept})!")
-                        time.sleep(1)
-                        st.rerun()
-                    else:
-                        st.error("حدث خطأ في الاتصال بالشبكة أو الرفع لشيت الأعضاء.")
+                    # تصفير الحقول بعد النجاح
+                    st.session_state.new_m_name = ""
+                    st.session_state.new_m_phone = ""
+                    
+                    st.success(f"🎉 تمت إضافة الكشاف ({m_name}) بنجاح بالكود ({new_c}) تحت فرقة ({m_dept})!")
+                    time.sleep(1)
+                    st.rerun()
                 else:
-                    st.warning("⚠️ يرجى إدخال اسم الكشاف على الأقل.")
-
+                    st.error("حدث خطأ في الاتصال بالشبكة أو الرفع لشيت الأعضاء.")
+            else:
+                st.warning("⚠️ يرجى إدخال اسم الكشاف على الأقل.")
 # --- Tab: الشيت السحابي ---
 if "sheet_link" in tab_dict:
     with tab_dict["sheet_link"]:
