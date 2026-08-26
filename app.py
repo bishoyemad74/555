@@ -856,28 +856,30 @@ if "accounts" in tab_dict:
         
         all_possible_tabs = ["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "دليل الكشافة", "الشيت السحابي"]
 
+        # وضع اختيار الدور خارج الـ Form يتيح للواجهة التفاعل والتحديث اللحظي مباشرة فور التغيير
+        new_u_role = st.selectbox("نوع الحساب", ["كابتن", "عضو", "آدمن"], key="user_role_select")
+        
+        # تحديد وتجهيز الصلاحيات المعروضة فوراً قبل التقديم
+        if new_u_role == "آدمن":
+            st.info("ℹ️ حساب (آدمن): يتمتع بكافة الصلاحيات تلقائياً.")
+            selected_tabs = all_possible_tabs
+            
+        elif new_u_role == "عضو":
+            st.info("ℹ️ حساب (عضو): متاح له التصفح فقط لـ [لوحة الصدارة].")
+            selected_tabs = ["لوحة الصدارة"]
+            
+        else:  # كابتن
+            selected_tabs = st.multiselect(
+                "حدد القوائم المتاحة لـ (كابتن):",
+                options=all_possible_tabs,
+                default=["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "دليل الكشافة"],
+                key="captain_perms"
+            )
+
+        # النموذج الخاص ببيانات الحساب
         with st.form("add_user_form", clear_on_submit=True):
-            new_u_name = st.text_input("اسم المستخدم الجديد")
-            new_u_pass = st.text_input("كلمة السر الجديدة", type="password")
-            
-            # تحديد نوع الحساب: كابتن، عضو، آدمن
-            new_u_role = st.selectbox("نوع الحساب", ["كابتن", "عضو", "آدمن"])
-            
-            # تخصيص الصلاحيات بناءً على الدور
-            if new_u_role == "آدمن":
-                st.info("ℹ️ حساب (آدمن): يتمتع بكافة الصلاحيات تلقائياً.")
-                selected_tabs = all_possible_tabs
-                
-            elif new_u_role == "عضو":
-                st.info("ℹ️ حساب (عضو): متاح له التصفح فقط لـ [لوحة الصدارة].")
-                selected_tabs = ["لوحة الصدارة"]
-                
-            else:  # كابتن
-                selected_tabs = st.multiselect(
-                    "حدد القوائم المتاحة لـ (كابتن):",
-                    options=all_possible_tabs,
-                    default=["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "دليل الكشافة"]
-                )
+            new_u_name = st.text_input("اسم المستخدم الجديد", key="input_u_name")
+            new_u_pass = st.text_input("كلمة السر الجديدة", type="password", key="input_u_pass")
             
             submit_user = st.form_submit_button("إضافة الحساب وحفظه سحابياً")
             
@@ -894,6 +896,8 @@ if "accounts" in tab_dict:
                     ]
                     if append_to_google_sheet("المستخدمين", new_row):
                         st.success(f"🎉 تم إنشاء حساب ({new_u_role}) باسم ({new_u_name}) وتسجيل الصلاحيات بنجاح!")
+                        # تفريغ الخانات فوراً وإعادة تحميل الصفحة لتحديث الجدول والواجهة
+                        st.rerun()
                     else:
                         st.error("حدث خطأ أثناء حفظ الحساب في شيت المستخدمين.")
         
