@@ -852,36 +852,55 @@ if "sheet_link" in tab_dict:
 # --- Tab: إدارة الحسابات (للآدمن فقط) ---
 if "accounts" in tab_dict:
     with tab_dict["accounts"]:
-        st.subheader("⚙️ إضافة مستخدم جديد وتحديد الصلاحيات الكاملة")
+        st.subheader("⚙️ إضافة حساب جديد وتحديد الصلاحيات")
         
-        with st.form("add_user_form"):
+        all_possible_tabs = ["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "دليل الكشافة", "الشيت السحابي"]
+
+        with st.form("add_user_form", clear_on_submit=True):
             new_u_name = st.text_input("اسم المستخدم الجديد")
-            new_u_pass = st.text_input("كلمة السر الجديدة")
-            new_u_role = st.selectbox("الصلاحية العامة", ["مستخدم", "آدمن"])
+            new_u_pass = st.text_input("كلمة السر الجديدة", type="password")
             
-            selected_tabs = st.multiselect(
-                "حدد القوائم المتاحة لهذا المستخدم:",
-                ["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "دليل الكشافة", "الشيت السحابي"],
-                default=["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "دليل الكشافة"]
-            )
+            # تحديد نوع الحساب: كابتن، عضو، آدمن
+            new_u_role = st.selectbox("نوع الحساب", ["كابتن", "عضو", "آدمن"])
+            
+            # تخصيص الصلاحيات بناءً على الدور
+            if new_u_role == "آدمن":
+                st.info("ℹ️ حساب (آدمن): يتمتع بكافة الصلاحيات تلقائياً.")
+                selected_tabs = all_possible_tabs
+                
+            elif new_u_role == "عضو":
+                st.info("ℹ️ حساب (عضو): متاح له التصفح فقط لـ [لوحة الصدارة].")
+                selected_tabs = ["لوحة الصدارة"]
+                
+            else:  # كابتن
+                selected_tabs = st.multiselect(
+                    "حدد القوائم المتاحة لـ (كابتن):",
+                    options=all_possible_tabs,
+                    default=["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "دليل الكشافة"]
+                )
             
             submit_user = st.form_submit_button("إضافة الحساب وحفظه سحابياً")
             
-            if submit_user and new_u_name.strip() and new_u_pass.strip():
-                perms_str = ", ".join(selected_tabs)
-                new_row = [
-                    new_u_name.strip(),
-                    new_u_pass.strip(),
-                    new_u_role,
-                    perms_str
-                ]
-                if append_to_google_sheet("المستخدمين", new_row):
-                    st.success(f"تم إنشاء حساب للمستخدم ({new_u_name}) وتسجيل الصلاحيات ({perms_str}) بنجاح!")
+            if submit_user:
+                if not new_u_name.strip() or not new_u_pass.strip():
+                    st.warning("⚠️ يرجى ملء كافة البيانات المطلوبة (الاسم وكلمة السر).")
                 else:
-                    st.error("حدث خطأ أثناء حفظ الحساب.")
+                    perms_str = ", ".join(selected_tabs)
+                    new_row = [
+                        new_u_name.strip(),
+                        new_u_pass.strip(),
+                        new_u_role,
+                        perms_str
+                    ]
+                    if append_to_google_sheet("المستخدمين", new_row):
+                        st.success(f"🎉 تم إنشاء حساب ({new_u_role}) باسم ({new_u_name}) وتسجيل الصلاحيات بنجاح!")
+                    else:
+                        st.error("حدث خطأ أثناء حفظ الحساب في شيت المستخدمين.")
         
         st.divider()
         st.subheader("📋 قائمة الحسابات والتحكم في الصلاحيات")
         users_list = load_data_from_gsheet("المستخدمين")
         if not users_list.empty:
             st.dataframe(users_list, use_container_width=True)
+        else:
+            st.info("لا يوجد مستخدمين مسجلين حالياً.")
