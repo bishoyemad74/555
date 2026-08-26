@@ -750,42 +750,17 @@ if "directory" in tab_dict:
         if "input_academic_stage" not in st.session_state:
             st.session_state.input_academic_stage = "أولى إعدادي"
 
-        # دالة لتحديث الفرقة الكشفية تلقائياً فور حدوث أي تغيير
-        def update_suggested_dept():
-            g = st.session_state.get("widget_gender", "ذكر")
-            s = st.session_state.get("widget_academic_stage", "أولى إعدادي")
-            
-            dept = "كشاف"
-            if g == "ذكر":
-                if "إعدادي" in s:
-                    dept = "كشاف"
-                elif "ثانوي" in s:
-                    dept = "متقدم"
-                elif s in ["جامعة", "أخرى"]:
-                    dept = "جوال"
-            else: # أنثى
-                if "إعدادي" in s or "ثانوي" in s:
-                    dept = "مرشدات"
-                elif s in ["جامعة", "أخرى"]:
-                    dept = "جوالات"
-            
-            st.session_state.input_dept_index = default_depts.index(dept) if dept in default_depts else 0
-
-        default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
-        if "input_dept_index" not in st.session_state:
-            st.session_state.input_dept_index = 0
-
-        # المدخلات مع ربط أحداث التغيير (on_change) لتحديث الشاشة فوراً
+        # المدخلات الأساسية
         m_name = st.text_input("اسم الكشاف رباعي", value=st.session_state.input_m_name, placeholder="أدخل الاسم رباعياً", key="widget_m_name")
         m_phone = st.text_input("رقم التليفون", value=st.session_state.input_m_phone, placeholder="01xxxxxxxxx", key="widget_m_phone")
         
+        # استخدام st.radio مع إجبار الـ rerun فور التغيير لضمان التحديث اللحظي الفوري
         gender = st.radio(
             "النوع", 
             ["ذكر", "أنثى"], 
             index=0 if st.session_state.input_gender == "ذكر" else 1, 
             horizontal=True, 
-            key="widget_gender",
-            on_change=update_suggested_dept
+            key="widget_gender"
         )
         
         birth_date = st.date_input(
@@ -803,28 +778,50 @@ if "directory" in tab_dict:
             "المرحلة الدراسية", 
             stages_list,
             index=default_stage_idx,
-            key="widget_academic_stage",
-            on_change=update_suggested_dept
+            key="widget_academic_stage"
         )
         
-        # حفظ القيم المديولة الحالية
-        st.session_state.input_m_name = m_name
-        st.session_state.input_m_phone = m_phone
-        st.session_state.input_gender = gender
-        st.session_state.input_academic_stage = academic_stage
+        # فحص ما إذا كان هناك تغيير حدث في النوع أو المرحلة لعمل ريرن فوري ومخفي
+        if st.session_state.input_gender != gender or st.session_state.input_academic_stage != academic_stage:
+            st.session_state.input_gender = gender
+            st.session_state.input_academic_stage = academic_stage
+            st.rerun()
 
-        # حساب الفرقة الحالية بناءً على الاختيار الفوري
-        update_suggested_dept()
+        # --- تحديد الفرقة تلقائياً بناءً على القيم الحالية ---
+        default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
+        
+        suggested_dept = "كشاف"
+        if gender == "ذكر":
+            if "إعدادي" in academic_stage:
+                suggested_dept = "كشاف"
+            elif "ثانوي" in academic_stage:
+                suggested_dept = "متقدم"
+            elif academic_stage in ["جامعة", "أخرى"]:
+                suggested_dept = "جوال"
+        else: # أنثى
+            if "إعدادي" in academic_stage or "ثانوي" in academic_stage:
+                suggested_dept = "مرشدات"
+            elif academic_stage in ["جامعة", "أخرى"]:
+                suggested_dept = "جوالات"
 
-        # عرض الفرقة الكشفية (ستتحدث وتتغير أمامك في نفس اللحظة)
+        try:
+            default_idx = default_depts.index(suggested_dept)
+        except ValueError:
+            default_idx = 0
+
+        # عرض الفرقة الكشفية (ستتحدث وتتغير فوراً أمامك)
         m_dept = st.selectbox(
             "الفرقة الكشفية", 
             default_depts, 
-            index=st.session_state.input_dept_index,
+            index=default_idx,
             key="widget_m_dept"
         )
         
         st.divider()
+
+        # حفظ باقي القيم المؤقتة
+        st.session_state.input_m_name = m_name
+        st.session_state.input_m_phone = m_phone
 
         # زر الإضافة النهائي
         if st.button("إضافة لخدمة الكشافة"):
@@ -865,7 +862,6 @@ if "directory" in tab_dict:
                         st.session_state.input_gender = "ذكر"
                         st.session_state.input_birth_date = datetime.date(2000, 1, 1)
                         st.session_state.input_academic_stage = "أولى إعدادي"
-                        st.session_state.input_dept_index = 0
                         
                         st.success(f"🎉 تمت إضافة الكشاف ({cleaned_input_name}) بنجاح بالكود ({new_c}) تحت فرقة ({m_dept})!")
                         time.sleep(1)
