@@ -738,37 +738,23 @@ if "directory" in tab_dict:
                 st.success("تم تحديث قائمة الأعضاء بنجاح!")
                 st.rerun()
 
-        # تهيئة الحقول في session_state إذا لم تكن موجودة
-        if "new_m_name" not in st.session_state:
-            st.session_state.new_m_name = ""
-        if "new_m_phone" not in st.session_state:
-            st.session_state.new_m_phone = ""
-        if "new_gender" not in st.session_state:
-            st.session_state.new_gender = "ذكر"
-        if "new_birth_date" not in st.session_state:
-            st.session_state.new_birth_date = datetime.date(2000, 1, 1)
-        if "new_academic_stage" not in st.session_state:
-            st.session_state.new_academic_stage = "أولى إعدادي"
-
-        # --- المدخلات خارج الفورم لتحديث الواجهة فوراً بمجرد الاختيار ---
-        m_name = st.text_input("اسم الكشاف رباعي", value=st.session_state.new_m_name, key="new_m_name")
-        m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx", value=st.session_state.new_m_phone, key="new_m_phone")
-        gender = st.radio("النوع", ["ذكر", "أنثى"], horizontal=True, key="new_gender")
+        # استخدام مفاتيح مستقلة تماماً لتجنب أي تداخل
+        m_name = st.text_input("اسم الكشاف رباعي", placeholder="أدخل الاسم رباعياً")
+        m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
+        gender = st.radio("النوع", ["ذكر", "أنثى"], horizontal=True)
         
         birth_date = st.date_input(
             "تاريخ الميلاد",
-            value=st.session_state.new_birth_date,
+            value=datetime.date(2000, 1, 1),
             min_value=datetime.date(1900, 1, 1),
-            max_value=datetime.date(3000, 1, 1),
-            key="new_birth_date"
+            max_value=datetime.date(3000, 1, 1)
         )
         
         academic_stage = st.selectbox(
             "المرحلة الدراسية", 
             ["أولى إعدادي", "تانية إعدادي", "تالتة إعدادي",
              "أولى ثانوي", "تانية ثانوي", "تالتة ثانوي",
-             "جامعة", "أخرى"],
-            key="new_academic_stage"
+             "جامعة", "أخرى"]
         )
         
         # --- تحديد الفرقة تلقائياً ولحظياً بمجرد اختيار النوع والمرحلة ---
@@ -793,8 +779,8 @@ if "directory" in tab_dict:
         except ValueError:
             default_idx = 0
 
-        # عرض الفرقة الكشفية المحدثة فوراً أمامك مع إمكانية تعديلها يدوياً لو رغبت
-        m_dept = st.selectbox("الفرقة الكشفية (تتحدد تلقائياً وتتحدث فوراً)", default_depts, index=default_idx)
+        # عرض الفرقة الكشفية وتحديثها فوراً أمامك مع إمكانية تعديلها يدوياً
+        m_dept = st.selectbox("الفرقة الكشفية", default_depts, index=default_idx)
         
         st.divider()
 
@@ -818,10 +804,6 @@ if "directory" in tab_dict:
                     }
                     st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
                     
-                    # تصفير الحقول بعد النجاح
-                    st.session_state.new_m_name = ""
-                    st.session_state.new_m_phone = ""
-                    
                     st.success(f"🎉 تمت إضافة الكشاف ({m_name}) بنجاح بالكود ({new_c}) تحت فرقة ({m_dept})!")
                     time.sleep(1)
                     st.rerun()
@@ -829,6 +811,7 @@ if "directory" in tab_dict:
                     st.error("حدث خطأ في الاتصال بالشبكة أو الرفع لشيت الأعضاء.")
             else:
                 st.warning("⚠️ يرجى إدخال اسم الكشاف على الأقل.")
+                
 # --- Tab: الشيت السحابي ---
 if "sheet_link" in tab_dict:
     with tab_dict["sheet_link"]:
