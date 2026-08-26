@@ -780,7 +780,7 @@ if "directory" in tab_dict:
             key="widget_academic_stage"
         )
 
-        # إذا تغير النوع أو المرحلة، نعمل rerun لتحديث الفرقة تلقائياً
+        # إذا تغير النوع أو المرحلة، نعمل rerun لتحديث القيم
         if st.session_state.input_gender != gender or st.session_state.input_academic_stage != academic_stage:
             st.session_state.input_gender = gender
             st.session_state.input_academic_stage = academic_stage
@@ -789,7 +789,7 @@ if "directory" in tab_dict:
             st.session_state.input_birth_date = birth_date
             st.rerun()
 
-# --- حساب المقترح التلقائي للفرقة ---
+        # --- حساب المقترح التلقائي للفرقة ---
         suggested_dept = "كشاف"
         if gender == "ذكر":
             if "إعدادي" in academic_stage:
@@ -805,12 +805,7 @@ if "directory" in tab_dict:
                 suggested_dept = "جوالات"
 
         default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
-
-        # الحل الجذري لمنع التعارض: بنغير الـ key لو النوع أو المرحلة تغيروا، 
-        # ده بيخلي الـ Selectbox يعيد بناء نفسه بالترشيح الجديد كأنه لسه مفتاح جديد، 
-        # وفي نفس الوقت يتيح لك تختار بايدك عادي!
         dept_key = f"widget_m_dept_{gender}_{academic_stage}"
-        
         default_idx = default_depts.index(suggested_dept) if suggested_dept in default_depts else 0
 
         m_dept = st.selectbox(
@@ -855,12 +850,17 @@ if "directory" in tab_dict:
                         }
                         st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
                         
-                        # --- تفريغ الحقول بالكامل بعد النجاح ---
+                        # --- الحل الجذري لتفريغ الحقول ومفاتيح الـ Widgets نهائياً ---
                         st.session_state.input_m_name = ""
                         st.session_state.input_m_phone = ""
                         st.session_state.input_gender = "ذكر"
                         st.session_state.input_birth_date = datetime.date(2000, 1, 1)
                         st.session_state.input_academic_stage = "أولى إعدادي"
+                        
+                        # مسح مفاتيح الـ widgets الخاصة بالادخال من الذاكرة ليتم إعادة بنائها فارغة تماماً
+                        for k in ["widget_m_name", "widget_m_phone", "widget_gender", "widget_birth_date", "widget_academic_stage", dept_key]:
+                            if k in st.session_state:
+                                del st.session_state[k]
                         
                         st.success(f"🎉 تمت إضافة الكشاف ({cleaned_input_name}) بنجاح بالكود ({new_c}) تحت فرقة ({m_dept})!")
                         time.sleep(1)
