@@ -814,7 +814,7 @@ if "directory" in tab_dict:
         default_idx = default_depts.index(suggested_dept) if suggested_dept in default_depts else 0
 
         m_dept = st.selectbox(
-            "الفرقة الكشفية (تتحدد تلقائياً ويمكنك تعديلها)", 
+            "الفرقة الكشفية", 
             default_depts, 
             index=default_idx,
             key=dept_key
