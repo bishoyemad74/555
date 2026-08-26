@@ -738,80 +738,103 @@ if "directory" in tab_dict:
                 st.success("تم تحديث قائمة الأعضاء بنجاح!")
                 st.rerun()
 
-        # استخدام مفاتيح مستقلة تماماً لتجنب أي تداخل
-        m_name = st.text_input("اسم الكشاف رباعي", placeholder="أدخل الاسم رباعياً")
-        m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx")
-        gender = st.radio("النوع", ["ذكر", "أنثى"], horizontal=True)
-        
-        birth_date = st.date_input(
-            "تاريخ الميلاد",
-            value=datetime.date(2000, 1, 1),
-            min_value=datetime.date(1900, 1, 1),
-            max_value=datetime.date(3000, 1, 1)
-        )
-        
-        academic_stage = st.selectbox(
-            "المرحلة الدراسية", 
-            ["أولى إعدادي", "تانية إعدادي", "تالتة إعدادي",
-             "أولى ثانوي", "تانية ثانوي", "تالتة ثانوي",
-             "جامعة", "أخرى"]
-        )
-        
-        # --- تحديد الفرقة تلقائياً ولحظياً بمجرد اختيار النوع والمرحلة ---
-        default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
-        
-        suggested_dept = "كشاف"
-        if gender == "ذكر":
-            if "إعدادي" in academic_stage:
-                suggested_dept = "كشاف"
-            elif "ثانوي" in academic_stage:
-                suggested_dept = "متقدم"
-            elif academic_stage in ["جامعة", "أخرى"]:
-                suggested_dept = "جوال"
-        else: # أنثى
-            if "إعدادي" in academic_stage or "ثانوي" in academic_stage:
-                suggested_dept = "مرشدات"
-            elif academic_stage in ["جامعة", "أخرى"]:
-                suggested_dept = "جوالات"
+        # تهيئة عداد إعادة تعيين الفورم لتفريغ الحقول عند النجاح
+        if "form_reset_counter" not in st.session_state:
+            st.session_state.form_reset_counter = 0
 
-        try:
-            default_idx = default_depts.index(suggested_dept)
-        except ValueError:
-            default_idx = 0
+        # استخدام st.form مرتبطة بالعداد لضمان تفريغ الحقول بالكامل بعد الإضافة الناجحة
+        with st.form(f"add_member_form_{st.session_state.form_reset_counter}"):
+            m_name = st.text_input("اسم الكشاف رباعي", value="", placeholder="أدخل الاسم رباعياً")
+            m_phone = st.text_input("رقم التليفون", value="", placeholder="01xxxxxxxxx")
+            gender = st.radio("النوع", ["ذكر", "أنثى"], horizontal=True)
+            
+            birth_date = st.date_input(
+                "تاريخ الميلاد",
+                value=datetime.date(2000, 1, 1),
+                min_value=datetime.date(1900, 1, 1),
+                max_value=datetime.date(3000, 1, 1)
+            )
+            
+            academic_stage = st.selectbox(
+                "المرحلة الدراسية", 
+                ["أولى إعدادي", "تانية إعدادي", "تالتة إعدادي",
+                 "أولى ثانوي", "تانية ثانوي", "تالتة ثانوي",
+                 "جامعة", "أخرى"]
+            )
+            
+            # --- تحديد الفرقة تلقائياً ولحظياً بناءً على النوع والمرحلة ---
+            default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
+            
+            suggested_dept = "كشاف"
+            if gender == "ذكر":
+                if "إعدادي" in academic_stage:
+                    suggested_dept = "كشاف"
+                elif "ثانوي" in academic_stage:
+                    suggested_dept = "متقدم"
+                elif academic_stage in ["جامعة", "أخرى"]:
+                    suggested_dept = "جوال"
+            else: # أنثى
+                if "إعدادي" in academic_stage or "ثانوي" in academic_stage:
+                    suggested_dept = "مرشدات"
+                elif academic_stage in ["جامعة", "أخرى"]:
+                    suggested_dept = "جوالات"
 
-        # عرض الفرقة الكشفية وتحديثها فوراً أمامك مع إمكانية تعديلها يدوياً
-        m_dept = st.selectbox("الفرقة الكشفية", default_depts, index=default_idx)
-        
-        st.divider()
+            try:
+                default_idx = default_depts.index(suggested_dept)
+            except ValueError:
+                default_idx = 0
 
-        # زر الحفظ النهائي
-        if st.button("إضافة لخدمة الكشافة"):
-            if m_name.strip():
-                max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
-                new_c = int(max_c + 1)
-                t_date = datetime.datetime.now().strftime("%Y-%m-%d")
-                
-                if append_to_google_sheet("الأعضاء", [new_c, m_name, m_phone, gender, str(birth_date), academic_stage, m_dept, t_date]):
-                    new_m = {
-                        "كود العضو": new_c, 
-                        "اسم الكشاف": m_name,
-                        "رقم التليفون": m_phone,
-                        "النوع": gender,
-                        "تاريخ الميلاد": birth_date,
-                        "المرحلة الدراسية": academic_stage,
-                        "الفرقة": m_dept,
-                        "تاريخ الانضمام": t_date
-                    }
-                    st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
+            m_dept = st.selectbox("الفرقة الكشفية", default_depts, index=default_idx)
+            
+            st.divider()
+
+            # زر الحفظ النهائي داخل الفورم
+            submit_member = st.form_submit_button("إضافة لكشافة ام النور")
+
+            if submit_member:
+                if m_name.strip():
+                    # تنظيف الاسم المدخل واسماء الأعضاء الحاليين للمقارنة بدقة (إزالة المسافات الزائدة)
+                    cleaned_input_name = " ".join(m_name.strip().split())
                     
-                    st.success(f"🎉 تمت إضافة الكشاف ({m_name}) بنجاح بالكود ({new_c}) تحت فرقة ({m_dept})!")
-                    time.sleep(1)
-                    st.rerun()
+                    existing_names = []
+                    if not st.session_state.members.empty:
+                        name_col_candidates = [c for c in st.session_state.members.columns if "اسم" in c or "Name" in c]
+                        if name_col_candidates:
+                            col_to_check = name_col_candidates[0]
+                            existing_names = st.session_state.members[col_to_check].astype(str).apply(lambda x: " ".join(x.strip().split())).tolist()
+
+                    # التحقق مما إذا كان الاسم موجوداً مسبقاً
+                    if cleaned_input_name in existing_names:
+                        st.error(f"❌ عذراً، العضو (**{cleaned_input_name}**) مضاف مسبقاً في السجل!")
+                    else:
+                        max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
+                        new_c = int(max_c + 1)
+                        t_date = datetime.datetime.now().strftime("%Y-%m-%d")
+                        
+                        if append_to_google_sheet("الأعضاء", [new_c, cleaned_input_name, m_phone, gender, str(birth_date), academic_stage, m_dept, t_date]):
+                            new_m = {
+                                "كود العضو": new_c, 
+                                "اسم الكشاف": cleaned_input_name,
+                                "رقم التليفون": m_phone,
+                                "النوع": gender,
+                                "تاريخ الميلاد": birth_date,
+                                "المرحلة الدراسية": academic_stage,
+                                "الفرقة": m_dept,
+                                "تاريخ الانضمام": t_date
+                            }
+                            st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
+                            
+                            # زيادة العداد لتفريغ الحقول بالكامل وجعلها فارغة لإدخال العضو التالي
+                            st.session_state.form_reset_counter += 1
+                            
+                            st.success(f"🎉 تمت إضافة الكشاف ({cleaned_input_name}) بنجاح بالكود ({new_c}) تحت فرقة ({m_dept})!")
+                            time.sleep(1.2)
+                            st.rerun()
+                        else:
+                            st.error("حدث خطأ في الاتصال بالشبكة أو الرفع لشيت الأعضاء.")
                 else:
-                    st.error("حدث خطأ في الاتصال بالشبكة أو الرفع لشيت الأعضاء.")
-            else:
-                st.warning("⚠️ يرجى إدخال اسم الكشاف على الأقل.")
-                
+                    st.warning("⚠️ يرجى إدخال اسم الكشاف على الأقل.")
+                    
 # --- Tab: الشيت السحابي ---
 if "sheet_link" in tab_dict:
     with tab_dict["sheet_link"]:
