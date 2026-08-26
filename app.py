@@ -805,7 +805,7 @@ if "directory" in tab_dict:
                 suggested_dept = "جوالات"
 
         # عرض الفرقة الكشفية المحددة تلقائياً بشكل واضح ومباشر (لتتحدث لحظياً بدون مشاكل الـ Selectbox)
-        st.info(- f"📌 **الفرقة الكشفية المحددة تلقائياً:** {suggested_dept}")
+        st.info(f"📌 **الفرقة الكشفية المحددة تلقائياً:** {suggested_dept}")
         m_dept = suggested_dept  # اعتماد الفرقة المحسوبة تلقائياً مباشرة للإرسال
 
         st.divider()
