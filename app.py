@@ -731,6 +731,10 @@ if "directory" in tab_dict:
     with tab_dict["directory"]:
         st.subheader("👥 إضافة كشاف جديد")
         
+        # إنشاء عداد إصدار للنموذج لتفريغه كلياً عند الحاجة
+        if "form_version" not in st.session_state:
+            st.session_state.form_version = 0
+
         if st.button("🔄 تحديث البيانات من Google Sheets"):
             updated_data = load_data_from_gsheet("الأعضاء")
             if not updated_data.empty:
@@ -738,56 +742,34 @@ if "directory" in tab_dict:
                 st.success("تم تحديث قائمة الأعضاء بنجاح!")
                 st.rerun()
 
-        # --- تهيئة الحقول في session_state ---
-        if "input_m_name" not in st.session_state:
-            st.session_state.input_m_name = ""
-        if "input_m_phone" not in st.session_state:
-            st.session_state.input_m_phone = ""
-        if "input_gender" not in st.session_state:
-            st.session_state.input_gender = "ذكر"
-        if "input_birth_date" not in st.session_state:
-            st.session_state.input_birth_date = datetime.date(2000, 1, 1)
-        if "input_academic_stage" not in st.session_state:
-            st.session_state.input_academic_stage = "أولى إعدادي"
+        v = st.session_state.form_version # مفتاح لتغيير الـ keys الخاصة بالمدخلات لضمان تصفيرها
 
-        # المدخلات الأساسية
-        m_name = st.text_input("اسم الكشاف رباعي", value=st.session_state.input_m_name, placeholder="أدخل الاسم رباعياً", key="widget_m_name")
-        m_phone = st.text_input("رقم التليفون", value=st.session_state.input_m_phone, placeholder="01xxxxxxxxx", key="widget_m_phone")
+        # المدخلات الأساسية مع ربطها بـ version لضمان تفريغها عند التحديث
+        m_name = st.text_input("اسم الكشاف رباعي", placeholder="أدخل الاسم رباعياً", key=f"widget_m_name_{v}")
+        m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx", key=f"widget_m_phone_{v}")
         
         gender = st.radio(
             "النوع", 
             ["ذكر", "أنثى"], 
-            index=0 if st.session_state.input_gender == "ذكر" else 1, 
             horizontal=True, 
-            key="widget_gender"
+            key=f"widget_gender_{v}"
         )
         
         birth_date = st.date_input(
             "تاريخ الميلاد",
-            value=st.session_state.input_birth_date,
+            value=datetime.date(2000, 1, 1),
             min_value=datetime.date(1900, 1, 1),
             max_value=datetime.date(3000, 1, 1),
-            key="widget_birth_date"
+            key=f"widget_birth_date_{v}"
         )
         
         stages_list = ["أولى إعدادي", "تانية إعدادي", "تالتة إعدادي", "أولى ثانوي", "تانية ثانوي", "تالتة ثانوي", "جامعة", "أخرى"]
-        default_stage_idx = stages_list.index(st.session_state.input_academic_stage) if st.session_state.input_academic_stage in stages_list else 0
         
         academic_stage = st.selectbox(
             "المرحلة الدراسية", 
             stages_list,
-            index=default_stage_idx,
-            key="widget_academic_stage"
+            key=f"widget_academic_stage_{v}"
         )
-
-        # إذا تغير النوع أو المرحلة، نعمل rerun لتحديث القيم
-        if st.session_state.input_gender != gender or st.session_state.input_academic_stage != academic_stage:
-            st.session_state.input_gender = gender
-            st.session_state.input_academic_stage = academic_stage
-            st.session_state.input_m_name = m_name
-            st.session_state.input_m_phone = m_phone
-            st.session_state.input_birth_date = birth_date
-            st.rerun()
 
         # --- حساب المقترح التلقائي للفرقة ---
         suggested_dept = "كشاف"
@@ -805,14 +787,13 @@ if "directory" in tab_dict:
                 suggested_dept = "جوالات"
 
         default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
-        dept_key = f"widget_m_dept_{gender}_{academic_stage}"
         default_idx = default_depts.index(suggested_dept) if suggested_dept in default_depts else 0
 
         m_dept = st.selectbox(
             "الفرقة الكشفية", 
             default_depts, 
             index=default_idx,
-            key=dept_key
+            key=f"widget_m_dept_{v}_{gender}_{academic_stage}"
         )
         
         st.divider()
@@ -850,17 +831,8 @@ if "directory" in tab_dict:
                         }
                         st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
                         
-                        # --- الحل الجذري لتفريغ الحقول ومفاتيح الـ Widgets نهائياً ---
-                        st.session_state.input_m_name = ""
-                        st.session_state.input_m_phone = ""
-                        st.session_state.input_gender = "ذكر"
-                        st.session_state.input_birth_date = datetime.date(2000, 1, 1)
-                        st.session_state.input_academic_stage = "أولى إعدادي"
-                        
-                        # مسح مفاتيح الـ widgets الخاصة بالادخال من الذاكرة ليتم إعادة بنائها فارغة تماماً
-                        for k in ["widget_m_name", "widget_m_phone", "widget_gender", "widget_birth_date", "widget_academic_stage", dept_key]:
-                            if k in st.session_state:
-                                del st.session_state[k]
+                        # --- الحل النهائي: تغيير الـ version لتغيير مفاتيح الحقول بالكامل وتفريغها فوراً ---
+                        st.session_state.form_version += 1
                         
                         st.success(f"🎉 تمت إضافة الكشاف ({cleaned_input_name}) بنجاح بالكود ({new_c}) تحت فرقة ({m_dept})!")
                         time.sleep(1)
