@@ -750,7 +750,7 @@ if "directory" in tab_dict:
         if "input_academic_stage" not in st.session_state:
             st.session_state.input_academic_stage = "أولى إعدادي"
 
-        # المدخلات النصية وتاريخ الميلاد
+        # المدخلات الأساسية
         m_name = st.text_input("اسم الكشاف رباعي", value=st.session_state.input_m_name, placeholder="أدخل الاسم رباعياً", key="widget_m_name")
         m_phone = st.text_input("رقم التليفون", value=st.session_state.input_m_phone, placeholder="01xxxxxxxxx", key="widget_m_phone")
         
@@ -780,7 +780,7 @@ if "directory" in tab_dict:
             key="widget_academic_stage"
         )
 
-        # --- الحل الجذري: لو المستخدم غير النوع أو المرحلة، نحفظ القيم ونعمل rerun فوري للصفحة ---
+        # إذا تغير النوع أو المرحلة، نقوم بتحديث الـ Session State وإعادة التحميل فورا
         if st.session_state.input_gender != gender or st.session_state.input_academic_stage != academic_stage:
             st.session_state.input_gender = gender
             st.session_state.input_academic_stage = academic_stage
@@ -789,9 +789,7 @@ if "directory" in tab_dict:
             st.session_state.input_birth_date = birth_date
             st.rerun()
 
-        # --- حساب الفرقة تلقائياً بناءً على الاختيار المحدث ---
-        default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
-        
+        # --- حساب الفرقة تلقائياً بناءً على الاختيار الحالي ---
         suggested_dept = "كشاف"
         if gender == "ذكر":
             if "إعدادي" in academic_stage:
@@ -806,16 +804,10 @@ if "directory" in tab_dict:
             elif academic_stage in ["جامعة", "أخرى"]:
                 suggested_dept = "جوالات"
 
-        dept_idx = default_depts.index(suggested_dept) if suggested_dept in default_depts else 0
+        # عرض الفرقة الكشفية المحددة تلقائياً بشكل واضح ومباشر (لتتحدث لحظياً بدون مشاكل الـ Selectbox)
+        st.info(- f"📌 **الفرقة الكشفية المحددة تلقائياً:** {suggested_dept}")
+        m_dept = suggested_dept  # اعتماد الفرقة المحسوبة تلقائياً مباشرة للإرسال
 
-        # عرض الفرقة الكشفية (ستتحدث وتتغير فوراً أمامك مع الـ rerun)
-        m_dept = st.selectbox(
-            "الفرقة الكشفية (تتحدد تلقائياً)", 
-            default_depts, 
-            index=dept_idx,
-            key="widget_m_dept"
-        )
-        
         st.divider()
 
         # زر الإضافة النهائي
@@ -836,6 +828,7 @@ if "directory" in tab_dict:
                 else:
                     max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
                     new_c = int(max_c + 1)
+                    t_date = datetime.datetime.now().strftime("%Y-%m-00") # أو التاريخ اليومي العادي
                     t_date = datetime.datetime.now().strftime("%Y-%m-%d")
                     
                     if append_to_google_sheet("الأعضاء", [new_c, cleaned_input_name, m_phone, gender, str(birth_date), academic_stage, m_dept, t_date]):
@@ -851,7 +844,7 @@ if "directory" in tab_dict:
                         }
                         st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
                         
-                        # --- تفريغ الحقول تماماً وتصفير القيم بعد النجاح ---
+                        # --- تفريغ الحقول بالكامل بعد النجاح ---
                         st.session_state.input_m_name = ""
                         st.session_state.input_m_phone = ""
                         st.session_state.input_gender = "ذكر"
