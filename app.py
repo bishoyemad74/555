@@ -741,20 +741,47 @@ if "directory" in tab_dict:
         with st.form(f"add_member_{st.session_state.form_reset_counter}"):
             m_name = st.text_input("اسم الكشاف رباعي", value="")
             m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx", value="")
-            gender = st.radio("النوع", ["ذكر", "أنثى"], horizontal=True)
+            gender = st.radio("النوع", ["ذكر", "أنثى"], horizontal=True, key="form_gender")
+            
             birth_date = st.date_input(
                 "تاريخ الميلاد",
                 value=datetime.date(2000, 1, 1),
                 min_value=datetime.date(1900, 1, 1),
                 max_value=datetime.date(3000, 1, 1)
             )
+            
             academic_stage = st.selectbox(
                 "المرحلة الدراسية", 
                 ["أولى إعدادي", "تانية إعدادي", "تالتة إعدادي",
                  "أولى ثانوي", "تانية ثانوي", "تالتة ثانوي",
-                 "جامعة", "أخرى"]
+                 "جامعة", "أخرى"],
+                key="form_stage"
             )
-            m_dept = st.selectbox("الفرقة الكشفية", ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"])
+            
+            # --- تحديد الفرقة تلقائياً بناءً على النوع والمرحلة الدراسية ---
+            default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
+            
+            # منطق الربط التلقائي
+            suggested_dept = "كشاف"
+            if gender == "ذكر":
+                if "إعدادي" in academic_stage:
+                    suggested_dept = "كشاف"
+                elif "ثانوي" in academic_stage:
+                    suggested_dept = "متقدم"
+                elif academic_stage in ["جامعة", "أخرى"]:
+                    suggested_dept = "جوال"
+            else: # أنثى
+                if "إعدادي" in academic_stage or "ثانوي" in academic_stage:
+                    suggested_dept = "مرشدات"
+                elif academic_stage in ["جامعة", "أخرى"]:
+                    suggested_dept = "جوالات"
+
+            try:
+                default_idx = default_depts.index(suggested_dept)
+            except ValueError:
+                default_idx = 0
+
+            m_dept = st.selectbox("الفرقة الكشفية (محدد تلقائياً حسب النوع والمرحلة)", default_depts, index=default_idx)
             
             submit_member = st.form_submit_button("إضافة لخدمة الكشافة")
 
@@ -777,16 +804,15 @@ if "directory" in tab_dict:
                         }
                         st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
                         
-                        # تحديث العداد لتفريغ الحقول تلقائياً وإعادة تحميل الصفحة
                         st.session_state.form_reset_counter += 1
                         
-                        st.success(f"🎉 تمت إضافة الكشاف ({m_name}) بنجاح بالكود ({new_c})!")
+                        st.success(f"🎉 تمت إضافة الكشاف ({m_name}) بنجاح بالكود ({new_c}) تحت فرقة ({m_dept})!")
                         time.sleep(1)
                         st.rerun()
                     else:
-                        st.error("حدث خطأ في الاتصال بالشبكة أو الرفع لشيت الأعضاء. (بقيت الحقول كما هي لمراجعتها)")
+                        st.error("حدث خطأ في الاتصال بالشبكة أو الرفع لشيت الأعضاء.")
                 else:
-                    st.warning("⚠️ يرجى إدخال اسم الكشاف على الأقل. (بقيت الحقول كما هي)")
+                    st.warning("⚠️ يرجى إدخال اسم الكشاف على الأقل.")
 
 # --- Tab: الشيت السحابي ---
 if "sheet_link" in tab_dict:
