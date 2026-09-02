@@ -95,7 +95,12 @@ def append_to_google_sheet(sheet_name, row_data):
     try:
         client = get_gsheet_client()
         if client:
-            sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
+            sh = client.open_by_key(SPREADSHEET_ID)
+            try:
+                sheet = sh.worksheet(sheet_name)
+            except Exception:
+                # إنشاء الشيت إذا لم يكن موجوداً
+                sheet = sh.add_worksheet(title=sheet_name, rows="500", cols="10")
             sheet.append_row(row_data)
             return True
     except Exception as e:
@@ -165,7 +170,11 @@ def load_data_from_gsheet(sheet_name):
     try:
         client = get_gsheet_client()
         if client:
-            sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
+            sh = client.open_by_key(SPREADSHEET_ID)
+            try:
+                sheet = sh.worksheet(sheet_name)
+            except Exception:
+                return pd.DataFrame()
             records = sheet.get_all_records()
             if records:
                 df = pd.DataFrame(records)
@@ -174,6 +183,23 @@ def load_data_from_gsheet(sheet_name):
     except Exception as e:
         st.warning(f"تعذر جلب بيانات ({sheet_name}) من Google Sheets: {str(e)}")
     return pd.DataFrame()
+
+
+def clear_gsheet_tab(sheet_name):
+    """مسح كافة محتويات الشيت لتفريغ المسودة"""
+    try:
+        client = get_gsheet_client()
+        if client:
+            sh = client.open_by_key(SPREADSHEET_ID)
+            try:
+                sheet = sh.worksheet(sheet_name)
+                sheet.clear()
+                return True
+            except Exception:
+                pass
+    except Exception as e:
+        st.error(f"خطأ أثناء تفريغ شيت ({sheet_name}): {e}")
+    return False
 
 
 def extract_qr_code(image_file):
@@ -422,7 +448,7 @@ if 'scores' not in st.session_state:
         st.session_state.scores = pd.DataFrame(columns=["تاريخ التقييم", "كود العضو", "اسم الكشاف", "نوع التقييم", "الدرجة (من 10)", "ملاحظات"])
 
 if 'session_start_time' not in st.session_state:
-    st.session_state.session_start_time = None
+    st.session_start_time = None
 
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
@@ -432,6 +458,28 @@ if 'eval_scanned_code' not in st.session_state:
 
 if 'show_eval_camera' not in st.session_state:
     st.session_state.show_eval_camera = False
+
+
+# --- مزامنة الجلسة السحابية المشتركة (المسودة) ---
+session_info = load_data_from_gsheet("حالة_الجلسة")
+active_session = None
+
+if not session_info.empty:
+    open_rows = session_info[session_info["الحالة"] == "مفتوحة"]
+    if not open_rows.empty:
+        active_session = open_rows.iloc[-1].to_dict()
+        st.session_state.session_start_time = float(active_session.get("Start_Timestamp", time.time()))
+
+# مزامنة المسودة السحابية للحاضرين في الجلسة الحالية
+if active_session:
+    draft_df = load_data_from_gsheet("مسودة_الحضور")
+    if not draft_df.empty:
+        for _, d_row in draft_df.iterrows():
+            c_code = d_row.get("كود العضو", "")
+            t_str = str(d_row.get("وقت التسجيل", ""))
+            sc_val = float(d_row.get("درجة الحضور", 10.0))
+            if c_code:
+                st.session_state.scanned_members[c_code] = (t_str, sc_val)
 
 
 # --- بناء القوائم المتاحة بناءً على الصلاحيات ---
@@ -475,17 +523,27 @@ if "attendance" in tab_dict:
     with tab_dict["attendance"]:
         st.subheader("تسجيل الحضور الفوري")
         
+        if active_session:
+            st.warning(f"⚠️ توجد جلسة مفتوحة بدأها ({active_session.get('المستخدم', 'كابتن')}) بتاريخ {active_session.get('التاريخ', '')}")
+        
         col_start, col_stop = st.columns(2)
         with col_start:
             if st.button("🚀 بدء الاجتماع / الجلسة"):
-                st.session_state.session_start_time = time.time()
+                now_ts = time.time()
+                today_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                st.session_state.session_start_time = now_ts
                 st.session_state.scanned_members = {}
-                st.success("بدأت الجلسة! الدرجة الحالية 10/10.")
+                
+                # رفع حالة الجلسة سحابياً
+                new_sess_row = [today_date, st.session_state.current_username, "مفتوحة", str(now_ts)]
+                append_to_google_sheet("حالة_الجلسة", new_sess_row)
+                
+                st.success("بدأت الجلسة السحابية المشتركة! الدرجة الحالية 10/10.")
                 st.rerun()
                 
         with col_stop:
             if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
-                if st.session_state.session_start_time is not None:
+                if active_session or st.session_state.session_start_time is not None:
                     today = datetime.datetime.now().strftime("%Y-%m-%d")
                     new_att = []
                     for _, row in st.session_state.members.iterrows():
@@ -498,413 +556,4 @@ if "attendance" in tab_dict:
                         else:
                             t_str, sc, st_name = "تلقائي", 0.0, "غائب"
                         
-                        row_data = [today, c, n, st_name, t_str, sc]
-                        append_to_google_sheet("الحضور", row_data)
-                        
-                        new_att.append({
-                            "التاريخ": today, "كود العضو": c, "اسم الكشاف": n,
-                            "حالة الحضور": st_name, "وقت التسجيل": t_str, "درجة الحضور": sc
-                        })
-                    
-                    st.session_state.attendance = pd.concat([st.session_state.attendance, pd.DataFrame(new_att)], ignore_index=True)
-                    st.session_state.session_start_time = None
-                    st.session_state.scanned_members = {}
-                    st.success("تم إغلاق الجلسة وترحيل البيانات مباشرة لـ Google Sheets! ☁️")
-                    st.rerun()
-                else:
-                    st.warning("لا توجد جلسة نشطة حالياً.")
-
-        if st.session_state.session_start_time is not None:
-            elapsed_min = int((time.time() - st.session_state.session_start_time) // 60)
-            curr_score = max(0.0, round(10.0 - (int(elapsed_min // 5) * 1.0), 1))
-            st.info(f"⏱️ زمن الاجتماع: {elapsed_min} دقيقة | درجة الحضور الآن: **{curr_score} / 10**")
-        else:
-            curr_score = 10.0
-
-        st.divider()
-        
-        if st.session_state.session_start_time is not None:
-            st.subheader("📷 التقاط الكارت والتسجيل التلقائي")
-            img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
-            
-            if img_file is not None:
-                extracted = extract_qr_code(img_file)
-                if extracted:
-                    try:
-                        code_val = int(extracted)
-                        m = st.session_state.members[st.session_state.members["كود العضو"] == code_val]
-                        if not m.empty:
-                            row_data = m.iloc[0]
-                            m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
-                            
-                            if code_val not in st.session_state.scanned_members:
-                                t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                                st.session_state.scanned_members[code_val] = (t_now, curr_score)
-                                st.success(f"🎉 تم قراءة الكود وتسجيل الحضور فوراً: {m_name} (كود: {code_val})")
-                                st.balloons()
-                            else:
-                                st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
-                        else:
-                            st.error(f"❌ الكود المنسوخ ({code_val}) غير مسجل في الاعضاء!")
-                    except ValueError:
-                        st.warning(f"الـ QR يحتوي على نص: {extracted}")
-                else:
-                    st.error("❌ لم يتم التعرف على الرمز، يرجى التقاط صورة أقرب وأوضح للـ QR.")
-        else:
-            st.info("💡 اضغط على زر **🚀 بدء الاجتماع / الجلسة** أعلاه لفتح الكاميرا وبدء التسجيل.")
-
-        st.divider()
-        
-        with st.form(f"manual_attendance_form_{st.session_state.manual_reset_counter}"):
-            manual_code_str = st.text_input("أو أدخل الكود يدوياً واضغط تسجيل:", value="")
-            submit_manual = st.form_submit_button("✅ تسجيل يدوي سريع")
-            
-            if submit_manual:
-                if manual_code_str.strip():
-                    try:
-                        manual_code = int(manual_code_str.strip())
-                        m = st.session_state.members[st.session_state.members["كود العضو"] == manual_code]
-                        if not m.empty:
-                            row_data = m.iloc[0]
-                            m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
-                            if manual_code not in st.session_state.scanned_members:
-                                t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                                st.session_state.scanned_members[manual_code] = (t_now, curr_score)
-                                # تفريغ الحقل بتغيير العداد وإعادة التشغيل
-                                st.session_state.manual_reset_counter += 1
-                                st.success(f"🎉 تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
-                                time.sleep(0.8)
-                                st.rerun()
-                            else:
-                                st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
-                        else:
-                            st.error("الكود غير مسجل في الاعضاء! (بقي الحقل كما هو للتعديل)")
-                    except ValueError:
-                        st.error("يرجى إدخال أرقام فقط لكود الكشاف. (بقي الحقل كما هو)")
-                else:
-                    st.warning("يرجى إدخال كود الكشاف أولاً.")
-
-
-# --- Tab: تقييمات النشاط الكشفي ---
-if "evaluations" in tab_dict:
-    with tab_dict["evaluations"]:
-        st.subheader("📝 إضافة تقييم أو نشاط كشفي")
-
-        col_cam_btn, _ = st.columns([1, 1])
-        with col_cam_btn:
-            if st.button("📷 فتح/إغلاق الكاميرا لمسح الكود", key="toggle_eval_cam_btn"):
-                st.session_state.show_eval_camera = not st.session_state.show_eval_camera
-                st.rerun()
-
-        if st.session_state.show_eval_camera:
-            eval_img = st.camera_input("التقط صورة كارت الكشاف للتقييم", key="eval_cam")
-            if eval_img is not None:
-                extracted_eval = extract_qr_code(eval_img)
-                if extracted_eval:
-                    st.session_state.eval_scanned_code = str(extracted_eval)
-                    st.session_state.show_eval_camera = False
-                    st.success(f"تم التقاط الكود: {extracted_eval}")
-                    st.rerun()
-                else:
-                    st.error("لم يتم التعرف على الرمز، يرجى المحاولة مرة أخرى.")
-
-        with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
-            s_code_input = st.text_input("كود الكشاف", value=st.session_state.eval_scanned_code, placeholder="أدخل الكود أو امسحه بالكاميرا")
-            s_type = st.selectbox("نوع التقييم", ["الزي الكشفي", "السلوك والانضباط", "الأنشطة والمهارات", "الخدمة", "الاعتراف", "التناول"])
-            s_val = st.number_input("الدرجة (من 10)", min_value=0.0, max_value=10.0, step=0.5, value=10.0)
-            s_notes = st.text_input("ملاحظات / اسم النشاط", value="")
-            
-            submit_eval = st.form_submit_button("حفظ التقييم والمزامنة السحابية")
-            
-            if submit_eval:
-                if s_code_input.strip():
-                    try:
-                        s_code = int(s_code_input.strip())
-                        matched = st.session_state.members[st.session_state.members["كود العضو"] == s_code]
-                        if not matched.empty:
-                            row_found = matched.iloc[0]
-                            found_member_name = row_found.get("اسم الكشاف", row_found.get("الاسم", "غير معروف"))
-                            t_date = datetime.datetime.now().strftime("%Y-%m-%d")
-                            
-                            if append_to_google_sheet("التقييمات", [t_date, s_code, found_member_name, s_type, s_val, s_notes]):
-                                st.session_state.eval_scanned_code = ""
-                                st.session_state.eval_reset_counter += 1
-                                st.success(f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} وحفظه في Google Sheets بنجاح!")
-                                time.sleep(1)
-                                st.rerun()
-                            else:
-                                st.error("حدث خطأ أثناء الرفع السحابي. (بقي الحقل كما هو)")
-                        else:
-                            st.error("❌ الكود المدخل غير موجود في الاعضاء. (بقي الحقل كما هو)")
-                    except ValueError:
-                        st.error("⚠️ يرجى إدخال أرقام صحيحة للكود. (بقي الحقل كما هو)")
-                else:
-                    st.warning("يرجى إدخال كود الكشاف أولاً. (بقي الحقل كما هو)")
-
-
-# --- Tab: 🏆 لوحة الصدارة والترتيب ---
-if "leaderboard" in tab_dict:
-    with tab_dict["leaderboard"]:
-        st.subheader("🏆 ترتيب الكشافة حسَب إجمالي الدرجات")
-        
-        col_ref, col_sync = st.columns(2)
-        leaderboard = pd.DataFrame()
-
-        if not st.session_state.members.empty:
-            members_df = st.session_state.members.copy()
-            code_col = [c for c in members_df.columns if "كود" in c or "Code" in c]
-            name_col = [c for c in members_df.columns if "اسم" in c or "Name" in c]
-            group_col = [c for c in members_df.columns if "فرقة" in c or "الفرقة" in c or "Group" in c]
-            
-            c_name = code_col[0] if code_col else members_df.columns[0]
-            n_name = name_col[0] if name_col else members_df.columns[1] if len(members_df.columns) > 1 else c_name
-            g_name = group_col[0] if group_col else None
-            
-            cols_to_use = [c_name, n_name]
-            if g_name:
-                cols_to_use.append(g_name)
-                
-            leaderboard = members_df[cols_to_use].copy()
-            
-            att_df = st.session_state.attendance
-            if not att_df.empty:
-                att_code_col = [c for c in att_df.columns if "كود" in c or "Code" in c]
-                att_score_col = [c for c in att_df.columns if "درجة" in c or "Score" in c]
-                
-                if att_code_col and att_score_col:
-                    ac = att_code_col[0]
-                    asc = att_score_col[0]
-                    att_df[asc] = pd.to_numeric(att_df[asc], errors="coerce").fillna(0)
-                    att_sum = att_df.groupby(ac)[asc].sum().reset_index()
-                    att_sum.columns = [c_name, "نقاط الحضور"]
-                else:
-                    att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
-            else:
-                att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
-
-            sc_df = st.session_state.scores
-            if not sc_df.empty:
-                sc_code_col = [c for c in sc_df.columns if "كود" in c or "Code" in c]
-                sc_val_col = [c for c in sc_df.columns if "الدرجة" in c or "درجة" in c or "Score" in c]
-                
-                if sc_code_col and sc_val_col:
-                    scc = sc_code_col[0]
-                    scv = sc_val_col[0]
-                    sc_df[scv] = pd.to_numeric(sc_df[scv], errors="coerce").fillna(0)
-                    sc_sum = sc_df.groupby(scc)[scv].sum().reset_index()
-                    sc_sum.columns = [c_name, "نقاط التقييمات"]
-                else:
-                    sc_sum = pd.DataFrame(columns=[c_name, "نقاط التقييمات"])
-            else:
-                sc_sum = pd.DataFrame(columns=[c_name, "نقاط التقييمات"])
-
-            leaderboard = leaderboard.merge(att_sum, on=c_name, how="left").fillna(0)
-            leaderboard = leaderboard.merge(sc_sum, on=c_name, how="left").fillna(0)
-            
-            leaderboard["المجموع الكلي"] = leaderboard["نقاط الحضور"] + leaderboard["نقاط التقييمات"]
-            leaderboard = leaderboard.sort_values(by="المجموع الكلي", ascending=False).reset_index(drop=True)
-            leaderboard.index = leaderboard.index + 1
-
-        with col_ref:
-            if st.button("🔄 تحديث البيانات"):
-                st.session_state.attendance = load_data_from_gsheet("الحضور")
-                st.session_state.scores = load_data_from_gsheet("التقييمات")
-                st.session_state.members = load_data_from_gsheet("الأعضاء")
-                st.rerun()
-
-        with col_sync:
-            if st.button("☁️ رفع ترتيب الأعضاء إلى Google Sheets"):
-                if not leaderboard.empty:
-                    if update_leaderboard_in_gsheet(leaderboard):
-                        st.success("تم تحديث ورقة 'ترتيب الأعضاء' داخل Google Sheets بنجاح! 🎉")
-                else:
-                    st.warning("لا توجد بيانات لرفعها.")
-
-        if not leaderboard.empty:
-            st.dataframe(leaderboard, use_container_width=True)
-        else:
-            st.info("لا توجد بيانات أعضاء متاحة لحساب الترتيب.")
-
-
-# --- Tab: الاعضاء ---
-if "directory" in tab_dict:
-    with tab_dict["directory"]:
-        st.subheader("👥 إضافة كشاف جديد")
-        
-        # إنشاء عداد إصدار للنموذج لتفريغه كلياً عند الحاجة
-        if "form_version" not in st.session_state:
-            st.session_state.form_version = 0
-
-        if st.button("🔄 تحديث البيانات من Google Sheets"):
-            updated_data = load_data_from_gsheet("الأعضاء")
-            if not updated_data.empty:
-                st.session_state.members = updated_data
-                st.success("تم تحديث قائمة الأعضاء بنجاح!")
-                st.rerun()
-
-        v = st.session_state.form_version # مفتاح لتغيير الـ keys الخاصة بالمدخلات لضمان تصفيرها
-
-        # المدخلات الأساسية مع ربطها بـ version لضمان تفريغها عند التحديث
-        m_name = st.text_input("اسم الكشاف رباعي", placeholder="أدخل الاسم رباعياً", key=f"widget_m_name_{v}")
-        m_phone = st.text_input("رقم التليفون", placeholder="01xxxxxxxxx", key=f"widget_m_phone_{v}")
-        
-        gender = st.radio(
-            "النوع", 
-            ["ذكر", "أنثى"], 
-            horizontal=True, 
-            key=f"widget_gender_{v}"
-        )
-        
-        birth_date = st.date_input(
-            "تاريخ الميلاد",
-            value=datetime.date(2000, 1, 1),
-            min_value=datetime.date(1900, 1, 1),
-            max_value=datetime.date(3000, 1, 1),
-            key=f"widget_birth_date_{v}"
-        )
-        
-        stages_list = ["أولى إعدادي", "تانية إعدادي", "تالتة إعدادي", "أولى ثانوي", "تانية ثانوي", "تالتة ثانوي", "جامعة", "أخرى"]
-        
-        academic_stage = st.selectbox(
-            "المرحلة الدراسية", 
-            stages_list,
-            key=f"widget_academic_stage_{v}"
-        )
-
-        # --- حساب المقترح التلقائي للفرقة ---
-        suggested_dept = "كشاف"
-        if gender == "ذكر":
-            if "إعدادي" in academic_stage:
-                suggested_dept = "كشاف"
-            elif "ثانوي" in academic_stage:
-                suggested_dept = "متقدم"
-            elif academic_stage in ["جامعة", "أخرى"]:
-                suggested_dept = "جوال"
-        else: # أنثى
-            if "إعدادي" in academic_stage or "ثانوي" in academic_stage:
-                suggested_dept = "مرشدات"
-            elif academic_stage in ["جامعة", "أخرى"]:
-                suggested_dept = "جوالات"
-
-        default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
-        default_idx = default_depts.index(suggested_dept) if suggested_dept in default_depts else 0
-
-        m_dept = st.selectbox(
-            "الفرقة الكشفية", 
-            default_depts, 
-            index=default_idx,
-            key=f"widget_m_dept_{v}_{gender}_{academic_stage}"
-        )
-        
-        st.divider()
-
-        # زر الإضافة النهائي
-        if st.button("إضافة لخدمة الكشافة"):
-            if m_name.strip():
-                cleaned_input_name = " ".join(m_name.strip().split())
-                
-                # --- التحقق من عدم التكرار ---
-                existing_names = []
-                if not st.session_state.members.empty:
-                    name_col_candidates = [c for c in st.session_state.members.columns if "اسم" in c or "Name" in c]
-                    if name_col_candidates:
-                        col_to_check = name_col_candidates[0]
-                        existing_names = st.session_state.members[col_to_check].astype(str).apply(lambda x: " ".join(x.strip().split())).tolist()
-
-                if cleaned_input_name in existing_names:
-                    st.error(f"❌ عذراً، العضو (**{cleaned_input_name}**) مضاف مسبقاً في السجل!")
-                else:
-                    max_c = st.session_state.members["كود العضو"].max() if not st.session_state.members.empty else 21820260
-                    new_c = int(max_c + 1)
-                    t_date = datetime.datetime.now().strftime("%Y-%m-%d")
-                    
-                    if append_to_google_sheet("الأعضاء", [new_c, cleaned_input_name, m_phone, gender, str(birth_date), academic_stage, m_dept, t_date]):
-                        new_m = {
-                            "كود العضو": new_c, 
-                            "اسم الكشاف": cleaned_input_name,
-                            "رقم التليفون": m_phone,
-                            "النوع": gender,
-                            "تاريخ الميلاد": birth_date,
-                            "المرحلة الدراسية": academic_stage,
-                            "الفرقة": m_dept,
-                            "تاريخ الانضمام": t_date
-                        }
-                        st.session_state.members = pd.concat([st.session_state.members, pd.DataFrame([new_m])], ignore_index=True)
-                        
-                        # --- الحل النهائي: تغيير الـ version لتغيير مفاتيح الحقول بالكامل وتفريغها فوراً ---
-                        st.session_state.form_version += 1
-                        
-                        st.success(f"🎉 تمت إضافة الكشاف ({cleaned_input_name}) بنجاح بالكود ({new_c}) تحت فرقة ({m_dept})!")
-                        time.sleep(1)
-                        st.rerun()
-                    else:
-                        st.error("حدث خطأ في الاتصال بالشبكة أو الرفع لشيت الأعضاء.")
-            else:
-                st.warning("⚠️ يرجى إدخال اسم الكشاف على الأقل.")
-                
-# --- Tab: الشيت السحابي ---
-if "sheet_link" in tab_dict:
-    with tab_dict["sheet_link"]:
-        st.subheader("☁️ رابط Google Sheets المباشر")
-        st.markdown(f"يمكنك فتح الملف والتعديل عليه مباشرة من هنا: [اضغط هنا لفتح Google Sheets]({SHEET_FULL_URL})")
-        st.markdown(f'<iframe src="{SHEET_FULL_URL}" width="100%" height="600px"></iframe>', unsafe_allow_html=True)
-
-# --- Tab: إدارة الحسابات (للآدمن فقط) ---
-if "accounts" in tab_dict:
-    with tab_dict["accounts"]:
-        st.subheader("⚙️ إضافة حساب جديد وتحديد الصلاحيات")
-        
-        all_possible_tabs = ["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "دليل الكشافة", "الشيت السحابي"]
-
-        # وضع اختيار الدور خارج الـ Form يتيح للواجهة التفاعل والتحديث اللحظي مباشرة فور التغيير
-        new_u_role = st.selectbox("نوع الحساب", ["كابتن", "عضو", "آدمن"], key="user_role_select")
-        
-        # تحديد وتجهيز الصلاحيات المعروضة فوراً قبل التقديم
-        if new_u_role == "آدمن":
-            st.info("ℹ️ حساب (آدمن): يتمتع بكافة الصلاحيات تلقائياً.")
-            selected_tabs = all_possible_tabs
-            
-        elif new_u_role == "عضو":
-            st.info("ℹ️ حساب (عضو): متاح له التصفح فقط لـ [لوحة الصدارة].")
-            selected_tabs = ["لوحة الصدارة"]
-            
-        else:  # كابتن
-            selected_tabs = st.multiselect(
-                "حدد القوائم المتاحة لـ (كابتن):",
-                options=all_possible_tabs,
-                default=["تسجيل الحضور", "التقييمات", "لوحة الصدارة", "دليل الكشافة"],
-                key="captain_perms"
-            )
-
-        # النموذج الخاص ببيانات الحساب
-        with st.form("add_user_form", clear_on_submit=True):
-            new_u_name = st.text_input("اسم المستخدم الجديد", key="input_u_name")
-            new_u_pass = st.text_input("كلمة السر الجديدة", type="password", key="input_u_pass")
-            
-            submit_user = st.form_submit_button("إضافة الحساب وحفظه سحابياً")
-            
-            if submit_user:
-                if not new_u_name.strip() or not new_u_pass.strip():
-                    st.warning("⚠️ يرجى ملء كافة البيانات المطلوبة (الاسم وكلمة السر).")
-                else:
-                    perms_str = ", ".join(selected_tabs)
-                    new_row = [
-                        new_u_name.strip(),
-                        new_u_pass.strip(),
-                        new_u_role,
-                        perms_str
-                    ]
-                    if append_to_google_sheet("المستخدمين", new_row):
-                        st.success(f"🎉 تم إنشاء حساب ({new_u_role}) باسم ({new_u_name}) وتسجيل الصلاحيات بنجاح!")
-                        # تفريغ الخانات فوراً وإعادة تحميل الصفحة لتحديث الجدول والواجهة
-                        st.rerun()
-                    else:
-                        st.error("حدث خطأ أثناء حفظ الحساب في شيت المستخدمين.")
-        
-        st.divider()
-        st.subheader("📋 قائمة الحسابات والتحكم في الصلاحيات")
-        users_list = load_data_from_gsheet("المستخدمين")
-        if not users_list.empty:
-            st.dataframe(users_list, use_container_width=True)
-        else:
-            st.info("لا يوجد مستخدمين مسجلين حالياً.")
+                        row_data = [today, c, n, st
