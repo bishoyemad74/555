@@ -516,7 +516,7 @@ if "attendance" in tab_dict:
 
         if st.session_state.session_start_time is not None:
             elapsed_min = int((time.time() - st.session_state.session_start_time) // 60)
-            curr_score = max(0.0, round(10.0 - (elapsed_min * 1), 5))
+            curr_score = max(0.0, round(10.0 - (int(elapsed_min // 5) * 1.0), 1))
             st.info(f"⏱️ زمن الاجتماع: {elapsed_min} دقيقة | درجة الحضور الآن: **{curr_score} / 10**")
         else:
             curr_score = 10.0
