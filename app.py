@@ -16,13 +16,11 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-        /* إخفاء الهيدر والفوتر والقوائم */
         #MainMenu, header, footer, [data-testid="stHeader"], [data-testid="stToolbar"] {
             display: none !important;
             visibility: hidden !important;
         }
 
-        /* تمديد مساحة التطبيق لتغطي أسفل الشاشة وتخفي أي شريط خارجي */
         .main .block-container {
             padding-bottom: 0rem !important;
             margin-bottom: -50px !important;
@@ -66,17 +64,14 @@ def get_gsheet_client():
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive"
     ]
-    
     creds_dict = None
     
-    # 1. محاولة القراءة من متغير البيئة المباشر (Railway)
     if "GCP_JSON" in os.environ:
         try:
             creds_dict = json.loads(os.environ["GCP_JSON"])
         except Exception:
             pass
             
-    # 2. إذا لم تجدها، ابحث في الطريقة العادية (st.secrets للمحلي)
     if not creds_dict:
         try:
             if "gcp_service_account" in st.secrets:
@@ -99,7 +94,6 @@ def append_to_google_sheet(sheet_name, row_data):
             try:
                 sheet = sh.worksheet(sheet_name)
             except Exception:
-                # إنشاء الشيت إذا لم يكن موجوداً
                 sheet = sh.add_worksheet(title=sheet_name, rows="500", cols="10")
             sheet.append_row(row_data)
             return True
@@ -109,10 +103,9 @@ def append_to_google_sheet(sheet_name, row_data):
 
 
 def verify_current_password(username, current_password):
-    """التحقق من صحة كلمة السر الحالية للمستخدم"""
     try:
         users_df = load_data_from_gsheet("المستخدمين")
-        if not users_df.empty:
+        if not users_df.empty and "اسم المستخدم" in users_df.columns and "كلمة السر" in users_df.columns:
             match = users_df[
                 (users_df["اسم المستخدم"].astype(str).str.strip() == str(username).strip()) & 
                 (users_df["كلمة السر"].astype(str).str.strip() == str(current_password).strip())
@@ -124,7 +117,6 @@ def verify_current_password(username, current_password):
 
 
 def update_user_password_in_gsheet(username, new_password):
-    """تحديث كلمة السر لمستخدم معين في ورقة المستخدمين سحابياً"""
     try:
         client = get_gsheet_client()
         if client:
@@ -134,7 +126,6 @@ def update_user_password_in_gsheet(username, new_password):
                 df = pd.DataFrame(records)
                 df.columns = df.columns.astype(str).str.strip()
                 
-                # البحث عن رقم الصف بناءً على اسم المستخدم
                 for idx, row in df.iterrows():
                     if str(row.get("اسم المستخدم", "")).strip() == str(username).strip():
                         row_number = idx + 2
@@ -146,7 +137,6 @@ def update_user_password_in_gsheet(username, new_password):
 
 
 def update_leaderboard_in_gsheet(df_leaderboard):
-    """تحديث شيت لوحة الصدارة في Google Sheets بالكامل"""
     try:
         client = get_gsheet_client()
         if client:
@@ -186,7 +176,6 @@ def load_data_from_gsheet(sheet_name):
 
 
 def clear_gsheet_tab(sheet_name):
-    """مسح كافة محتويات الشيت لتفريغ المسودة"""
     try:
         client = get_gsheet_client()
         if client:
@@ -226,10 +215,9 @@ def extract_qr_code(image_file):
 
 
 def check_login(username, password):
-    """التحقق من الدخول وجلب الصلاحيات التفصيلية من النص المدمج بالخلية"""
     try:
         users_df = load_data_from_gsheet("المستخدمين")
-        if not users_df.empty:
+        if not users_df.empty and "اسم المستخدم" in users_df.columns and "كلمة السر" in users_df.columns:
             user_match = users_df[
                 (users_df["اسم المستخدم"].astype(str).str.strip() == str(username).strip()) & 
                 (users_df["كلمة السر"].astype(str).str.strip() == str(password).strip())
@@ -237,7 +225,6 @@ def check_login(username, password):
             if not user_match.empty:
                 row = user_match.iloc[0]
                 role = str(row.get("الصلاحية", "مستخدم")).strip()
-                
                 raw_perms = str(row.get("القوائم المتاحة", "")).strip()
                 
                 if role == "آدمن":
@@ -263,7 +250,7 @@ def check_login(username, password):
     return False, None, {}
 
 
-# --- إخفاء كافة خيارات المطور والشريط السفلي (Hosted with Streamlit) ---
+# --- إخفاء عناصر التحكم واستايل الصفحة ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -274,30 +261,8 @@ st.markdown("""
         text-align: right;
     }
     
-    #MainMenu {visibility: hidden !important; display: none !important;}
-    footer {visibility: hidden !important; display: none !important;}
-    header {visibility: hidden !important; display: none !important;}
-    .stDeployButton {display: none !important;}
+    #MainMenu, footer, header, .stDeployButton, [data-testid="stToolbar"] {display: none !important;}
     
-    [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
-    [data-testid="stDecoration"] {display: none !important;}
-    [data-testid="stStatusWidget"] {display: none !important;}
-    [data-testid="manage-app-button"] {display: none !important;}
-    
-    .stAppViewerFooter {display: none !important;}
-    footer[data-testid="stFooter"] {display: none !important;}
-    div[class*="stAppViewerFooter"] {display: none !important;}
-    div[class*="viewerBadge"] {display: none !important;}
-    div[class*="styles_viewerBadge"] {display: none !important;}
-    .viewerBadge_container__1tB92,
-    ._profileContainer_gz836_1,
-    .viewerBadge_link__1S137,
-    div[data-testid="stSidebarCollapseButton"] {
-        display: none !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-    }
-
     .stButton>button {
         width: 100%;
         background-color: #1565C0;
@@ -370,7 +335,7 @@ if not st.session_state.logged_in:
     st.stop()
 
 
-# --- شريط معلومات الحساب وتسجيل الخروج وتغيير كلمة السر ---
+# --- شريط معلومات الحساب وتسجيل الخروج ---
 col_user_info, col_pwd, col_logout = st.columns([2.5, 1.2, 1])
 with col_user_info:
     st.info(f"👤 **المستخدم:** {st.session_state.current_username} | **الصلاحية:** {st.session_state.user_role}")
@@ -418,18 +383,14 @@ with col_logout:
 st.divider()
 
 
-# --- تهيئة عداد إعادة تعيين الفورم لتفريغ الحقول عند النجاح ---
 if "form_reset_counter" not in st.session_state:
     st.session_state.form_reset_counter = 0
 
 if "eval_reset_counter" not in st.session_state:
     st.session_state.eval_reset_counter = 0
 
-if "manual_reset_counter" not in st.session_state:
-    st.session_state.manual_reset_counter = 0
 
-
-# --- تهيئة البيانات (Session State) ---
+# --- تهيئة البيانات الجداول والتأكد من الأعمدة ---
 if 'members' not in st.session_state or st.session_state.members.empty:
     fetched_members = load_data_from_gsheet("الأعضاء")
     if not fetched_members.empty:
@@ -439,16 +400,29 @@ if 'members' not in st.session_state or st.session_state.members.empty:
 
 if 'attendance' not in st.session_state:
     st.session_state.attendance = load_data_from_gsheet("الحضور")
-    if st.session_state.attendance.empty:
-        st.session_state.attendance = pd.DataFrame(columns=["التاريخ", "كود العضو", "اسم الكشاف", "حالة الحضور", "وقت التسجيل", "درجة الحضور"])
+
+# التحقق والتأكد من وجود جميع أعمدة جدول الحضور
+expected_att_cols = ["التاريخ", "كود العضو", "اسم الكشاف", "حالة الحضور", "وقت التسجيل", "درجة الحضور"]
+if st.session_state.attendance.empty:
+    st.session_state.attendance = pd.DataFrame(columns=expected_att_cols)
+else:
+    for col in expected_att_cols:
+        if col not in st.session_state.attendance.columns:
+            st.session_state.attendance[col] = 0.0 if col == "درجة الحضور" else ""
 
 if 'scores' not in st.session_state:
     st.session_state.scores = load_data_from_gsheet("التقييمات")
-    if st.session_state.scores.empty:
-        st.session_state.scores = pd.DataFrame(columns=["تاريخ التقييم", "كود العضو", "اسم الكشاف", "نوع التقييم", "الدرجة (من 10)", "ملاحظات"])
+
+expected_score_cols = ["تاريخ التقييم", "كود العضو", "اسم الكشاف", "نوع التقييم", "الدرجة (من 10)", "ملاحظات"]
+if st.session_state.scores.empty:
+    st.session_state.scores = pd.DataFrame(columns=expected_score_cols)
+else:
+    for col in expected_score_cols:
+        if col not in st.session_state.scores.columns:
+            st.session_state.scores[col] = 0.0 if col == "الدرجة (من 10)" else ""
 
 if 'session_start_time' not in st.session_state:
-    st.session_state.session_start_time = None
+    st.session_start_time = None
 
 if 'scanned_members' not in st.session_state:
     st.session_state.scanned_members = {}
@@ -465,15 +439,14 @@ session_info = load_data_from_gsheet("حالة_الجلسة")
 active_session = None
 
 if not session_info.empty:
-    open_rows = session_info[session_info["الحالة"] == "مفتوحة"]
+    open_rows = session_info[session_info.get("الحالة", "") == "مفتوحة"]
     if not open_rows.empty:
         active_session = open_rows.iloc[-1].to_dict()
         st.session_state.session_start_time = float(active_session.get("Start_Timestamp", time.time()))
 
-# مزامنة المسودة السحابية للحاضرين في الجلسة الحالية
 if active_session:
     draft_df = load_data_from_gsheet("مسودة_الحضور")
-    if not draft_df.empty:
+    if not draft_df.empty and "كود العضو" in draft_df.columns:
         for _, d_row in draft_df.iterrows():
             c_code = d_row.get("كود العضو", "")
             t_str = str(d_row.get("وقت التسجيل", ""))
@@ -482,7 +455,7 @@ if active_session:
                 st.session_state.scanned_members[c_code] = (t_str, sc_val)
 
 
-# --- بناء القوائم المتاحة بناءً على الصلاحيات ---
+# --- القوائم والتنقل ---
 available_tabs = []
 tab_keys = []
 
@@ -534,7 +507,6 @@ if "attendance" in tab_dict:
                 st.session_state.session_start_time = now_ts
                 st.session_state.scanned_members = {}
                 
-                # رفع حالة الجلسة سحابياً
                 new_sess_row = [today_date, st.session_state.current_username, "مفتوحة", str(now_ts)]
                 append_to_google_sheet("حالة_الجلسة", new_sess_row)
                 
@@ -568,7 +540,6 @@ if "attendance" in tab_dict:
                     st.session_state.session_start_time = None
                     st.session_state.scanned_members = {}
                     
-                    # إغلاق الجلسة وتفريغ المسودة سحابياً
                     clear_gsheet_tab("حالة_الجلسة")
                     clear_gsheet_tab("مسودة_الحضور")
                     
@@ -604,7 +575,6 @@ if "attendance" in tab_dict:
                                 t_now = datetime.datetime.now().strftime("%H:%M:%S")
                                 st.session_state.scanned_members[code_val] = (t_now, curr_score)
                                 
-                                # حفظ فوري في المسودة السحابية
                                 draft_row = [code_val, m_name, t_now, curr_score, st.session_state.current_username]
                                 append_to_google_sheet("مسودة_الحضور", draft_row)
                                 
@@ -618,7 +588,6 @@ if "attendance" in tab_dict:
 
             st.divider()
             
-            # --- تصفح واستعراض الجلسة الحالية والحضور والغياب ---
             st.subheader("📊 استعراض ومتابعة الجلسة المفتوحة حالياً")
             
             all_members_list = st.session_state.members["كود العضو"].tolist() if not st.session_state.members.empty else []
@@ -676,7 +645,6 @@ if "evaluations" in tab_dict:
     with tab_dict["evaluations"]:
         st.subheader("رصد وتقييم الأعضاء")
         
-        # خيار المسح للكارت لوضع الكود تلقائياً
         col_btn_cam, col_reset_cam = st.columns([2, 1])
         with col_btn_cam:
             if st.button("📷 مسح كارت التقييم بـ الكاميرا"):
@@ -695,7 +663,6 @@ if "evaluations" in tab_dict:
         with st.form(f"eval_form_{st.session_state.eval_reset_counter}"):
             eval_date = st.date_input("تاريخ التقييم", datetime.date.today())
             
-            # تحديد العضو الافتراضي بناءً على المسح
             member_list = st.session_state.members["اسم الكشاف"].tolist() if "اسم الكشاف" in st.session_state.members.columns else st.session_state.members["الاسم"].tolist() if not st.session_state.members.empty else []
             
             selected_idx = 0
@@ -740,7 +707,7 @@ if "evaluations" in tab_dict:
                     st.error("يرجى اختيار عضو أوالتأكد من وجود أعضاء بالقائمة.")
 
 
-# --- Tab: لوحة الصدارة ---
+# --- Tab: لوحة الصدارة (المعدل بالكامل لتفادي الخطأ) ---
 if "leaderboard" in tab_dict:
     with tab_dict["leaderboard"]:
         st.subheader("🏆 لوحة صدارة وترتيب الأعضاء")
@@ -748,33 +715,42 @@ if "leaderboard" in tab_dict:
         if not st.session_state.members.empty:
             df_board = st.session_state.members.copy()
             
-            # حساب مجموع درجات الحضور
-            if not st.session_state.attendance.empty:
-                att_sum = st.session_state.attendance.groupby("كود العضو")["درجة الحضور"].sum().reset_index()
+            # معالجة درجات الحضور بشكل آمن
+            att_df = st.session_state.attendance.copy()
+            if not att_df.empty and "كود العضو" in att_df.columns and "درجة الحضور" in att_df.columns:
+                att_df["درجة الحضور"] = pd.to_numeric(att_df["درجة الحضور"], errors="coerce").fillna(0)
+                att_sum = att_df.groupby("كود العضو")["درجة الحضور"].sum().reset_index()
                 att_sum.rename(columns={"درجة الحضور": "مجموع الحضور"}, inplace=True)
             else:
                 att_sum = pd.DataFrame(columns=["كود العضو", "مجموع الحضور"])
                 
-            # حساب مجموع درجات التقييمات
-            if not st.session_state.scores.empty:
-                score_sum = st.session_state.scores.groupby("كود العضو")["الدرجة (من 10)"].sum().reset_index()
+            # معالجة درجات التقييمات بشكل آمن
+            scores_df = st.session_state.scores.copy()
+            if not scores_df.empty and "كود العضو" in scores_df.columns and "الدرجة (من 10)" in scores_df.columns:
+                scores_df["الدرجة (من 10)"] = pd.to_numeric(scores_df["الدرجة (من 10)"], errors="coerce").fillna(0)
+                score_sum = scores_df.groupby("كود العضو")["الدرجة (من 10)"].sum().reset_index()
                 score_sum.rename(columns={"الدرجة (من 10)": "مجموع التقييمات"}, inplace=True)
             else:
                 score_sum = pd.DataFrame(columns=["كود العضو", "مجموع التقييمات"])
                 
-            # دمج الجداول
+            # دمج الجداول مع جدول الأعضاء الأساسي
             df_board = pd.merge(df_board, att_sum, on="كود العضو", how="left").fillna(0)
             df_board = pd.merge(df_board, score_sum, on="كود العضو", how="left").fillna(0)
+            
+            df_board["مجموع الحضور"] = pd.to_numeric(df_board["مجموع الحضور"], errors="coerce").fillna(0)
+            df_board["مجموع التقييمات"] = pd.to_numeric(df_board["مجموع التقييمات"], errors="coerce").fillna(0)
             
             df_board["المجموع الكلي"] = df_board["مجموع الحضور"] + df_board["مجموع التقييمات"]
             df_board = df_board.sort_values(by="المجموع الكلي", ascending=False).reset_index(drop=True)
             df_board.index += 1
             
-            st.dataframe(df_board[["كود العضو", "اسم الكشاف", "الفرقة", "مجموع الحضور", "مجموع التقييمات", "المجموع الكلي"]], use_container_width=True)
+            # استعراض الحقول المتاحة فقط لمنع أي KeyError
+            cols_to_show = [c for c in ["كود العضو", "اسم الكشاف", "الفرقة", "مجموع الحضور", "مجموع التقييمات", "المجموع الكلي"] if c in df_board.columns]
+            st.dataframe(df_board[cols_to_show], use_container_width=True)
             
             if st.session_state.user_role == "آدمن":
                 if st.button("☁️ تحديث ورقة ترتيب الأعضاء سحابياً"):
-                    if update_leaderboard_in_gsheet(df_board[["كود العضو", "اسم الكشاف", "الفرقة", "مجموع الحضور", "مجموع التقييمات", "المجموع الكلي"]]):
+                    if update_leaderboard_in_gsheet(df_board[cols_to_show]):
                         st.success("تم تحديث شيت لوحة الصدارة بنجاح!")
         else:
             st.info("لا يوجد أعضاء لعرض لوحة الصدارة.")
@@ -824,7 +800,7 @@ if "sheet_link" in tab_dict:
         st.markdown(f"يمكنك الانتقال المباشر وتعديل البيانات في Google Sheets من الرابط التالي:\n\n 🔗 [{SHEET_FULL_URL}]({SHEET_FULL_URL})")
 
 
-# --- Tab: إدارة الحسابات (للآدمن فقط) ---
+# --- Tab: إدارة الحسابات ---
 if "accounts" in tab_dict:
     with tab_dict["accounts"]:
         st.subheader("⚙️ إدارة حسابات المستخدمين والصلاحيات")
