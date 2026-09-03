@@ -872,16 +872,25 @@ if "leaderboard" in tab_dict:
       leaderboard = members_df[[c_name, n_name, t_name]].copy()
 
       att_df = st.session_state.attendance
-      if not att_df.empty and "كود العضو" in att_df.columns:
-      if "درجة الحضور" in att_df.columns:
-    att_df["درجة الحضور"] = pd.to_numeric(att_df["درجة الحضور"], errors="coerce").fillna(0)
-        att_sum = (
-            att_df.groupby("كود العضو")["درجة الحضور"].sum().reset_index()
-        )
-        att_sum.columns = [c_name, "نقاط الحضور"]
-      else:
-        att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
-
+            if not att_df.empty:
+                # التحقق الآمن من وجود العمود قبل تحويله لمنع KeyError
+                if "درجة الحضور" in att_df.columns:
+                    att_df["درجة الحضور"] = pd.to_numeric(att_df["درجة الحضور"], errors="coerce").fillna(0)
+                
+                # جلب أسماء الأعمدة ديناميكياً
+                att_code_col = [c for c in att_df.columns if "كود" in c or "Code" in c]
+                att_score_col = [c for c in att_df.columns if "درجة" in c or "Score" in c or "حضور" in c]
+                
+                if att_code_col and att_score_col:
+                    ac = att_code_col[0]
+                    asc = att_score_col[0]
+                    att_df[asc] = pd.to_numeric(att_df[asc], errors="coerce").fillna(0)
+                    att_sum = att_df.groupby(ac)[asc].sum().reset_index()
+                    att_sum.columns = [c_name, "نقاط الحضور"]
+                else:
+                    att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
+            else:
+                att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
       sc_df = st.session_state.scores
       if not sc_df.empty and "كود العضو" in sc_df.columns:
         sc_col = [
