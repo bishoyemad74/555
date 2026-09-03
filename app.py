@@ -86,7 +86,8 @@ def get_gsheet_client():
   return None
 
 
-@st.cache_data(ttl=30)
+# إلغاء الكاش لضمان القراءة المباشرة واللحظية بين الأجهزة المختلفة
+@st.cache_data(ttl=0)
 def load_data_from_gsheet(sheet_name):
   try:
     client = get_gsheet_client()
@@ -458,14 +459,15 @@ if "attendance" in tab_dict:
   with tab_dict["attendance"]:
     st.subheader("تسجيل الحضور الفوري")
 
-    # زر تحديث حالة الجلسات
+    # زر تحديث حالة الجلسات يدوي عند الحاجة
     if st.button("🔄 تحديث حالة الجلسات من السحاب"):
       st.cache_data.clear()
       st.session_state.active_teams = {}
       st.rerun()
 
-    # فحص الجلسات المفتوحة
+    # فحص الجلسات المفتوحة مباشرة من شيت حالة_الجلسة
     session_info = load_data_from_gsheet("حالة_الجلسة")
+    st.session_state.active_teams = {}
 
     if not session_info.empty and "الحالة" in session_info.columns:
       open_rows = session_info[session_info["الحالة"] == "مفتوحة"]
@@ -545,15 +547,7 @@ if "attendance" in tab_dict:
               str(now_ts),
           ]
 
-          # تحديث الحصيلة المحلية فوراً
-          st.session_state.active_teams[selected_team] = {
-              "التاريخ": today_date,
-              "المستخدم": st.session_state.current_username,
-              "الحالة": "مفتوحة",
-              "الفريق": selected_team,
-              "Start_Timestamp": str(now_ts),
-          }
-
+          # إرسال البيانات للسحابة ومسح الكاش
           append_to_google_sheet("حالة_الجلسة", new_sess_row)
           st.cache_data.clear()
 
