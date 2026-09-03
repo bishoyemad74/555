@@ -510,11 +510,14 @@ if "attendance" in tab_dict:
 
     col_start, col_stop = st.columns(2)
 
-    with col_start:
+with col_start:
       if st.button("🚀 بدء الاجتماع / الجلسة"):
-        st.cache_data.clear()  # مسح الكاش قبل الفحص
+        st.cache_data.clear()
+
+        # 1. التحقق من السحابة أولاً
         latest_check = load_data_from_gsheet("حالة_الجلسة")
         already_open = False
+
         if not latest_check.empty and "الحالة" in latest_check.columns:
           existing = latest_check[
               (latest_check["الحالة"] == "مفتوحة")
@@ -543,12 +546,23 @@ if "attendance" in tab_dict:
               selected_team,
               str(now_ts),
           ]
-          if append_to_google_sheet("حالة_الجلسة", new_sess_row):
-            st.cache_data.clear()  # تفريغ الكاش فوراً بعد إضافة البيانات
-            st.success(f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح!")
-            time.sleep(0.5)
-            st.rerun()
 
+          # 2. تحديث الحالة في الذاكرة المحلية فوراً لضمان ظهور الكاميرا فوراً
+          st.session_state.active_teams[selected_team] = {
+              "التاريخ": today_date,
+              "المستخدم": st.session_state.current_username,
+              "الحالة": "مفتوحة",
+              "الفريق": selected_team,
+              "Start_Timestamp": str(now_ts),
+          }
+
+          # 3. إرسال البيانات للسحابة ومسح الكاش
+          append_to_google_sheet("حالة_الجلسة", new_sess_row)
+          st.cache_data.clear()
+
+          st.success(f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح!")
+          time.sleep(0.3)
+          st.rerun()
     with col_stop:
       if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
         if active_session:
