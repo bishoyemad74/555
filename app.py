@@ -86,9 +86,7 @@ def get_gsheet_client():
   return None
 
 
-# --- جلب البيانات مع Caching لتجنب البطء ---
-@st.cache_data(ttl=2)  # تقليل الوقت لـ 2 ثانية لسرعة المزامنة بين الأجهزة
-def load_data_from_gsheet(sheet_name):
+def load_data_from_gsheet(sheet_name, bypass_cache=False):
   try:
     client = get_gsheet_client()
     if client:
@@ -98,7 +96,7 @@ def load_data_from_gsheet(sheet_name):
         df = pd.DataFrame(records)
         df.columns = df.columns.astype(str).str.strip()
         return df
-  except Exception as e:
+  except Exception:
     pass
   return pd.DataFrame()
 
@@ -414,8 +412,8 @@ if "scores" not in st.session_state:
         "ملاحظات",
     ])
 
-if "session_start_time" not in st.session_state:
-  st.session_state.session_start_time = None
+if "active_teams" not in st.session_state:
+  st.session_state.active_teams = {}
 if "scanned_members" not in st.session_state:
   st.session_state.scanned_members = {}
 if "eval_scanned_code" not in st.session_state:
@@ -465,7 +463,7 @@ if "attendance" in tab_dict:
         horizontal=True,
     )
 
-    # فحص سحابي مباشر للحصول على أحدث حالة جلسة للفريق المختار
+    # التحقق المباشر من الشيت والجلسة الحالية
     session_info = load_data_from_gsheet("حالة_الجلسة")
     active_session = None
 
@@ -476,15 +474,16 @@ if "attendance" in tab_dict:
       ]
       if not open_rows.empty:
         active_session = open_rows.iloc[-1].to_dict()
-        st.session_state.session_start_time = float(
-            active_session.get("Start_Timestamp", time.time())
-        )
 
-    # جلب مسودة المسجلين لجلسة هذا الفريق
+    # إذا كانت الجلسة مسجلة في الجلسة المحلية أيضاً
+    if selected_team in st.session_state.active_teams:
+      active_session = st.session_state.active_teams[selected_team]
+
     if active_session:
+      start_ts = float(active_session.get("Start_Timestamp", time.time()))
       st.success(
-          f"🟢 **توجد جلسة مفتوحة بالفعل لـ ({selected_team})**\n\n"
-          f"👤 **القائد:** {active_session.get('المستخدم', 'غير معروف')} | 📅"
+          f"🟢 **توجد جلسة مفتوحة حالياً لـ ({selected_team})**\n\n"
+          f"👤 **القائد:** {active_session.get('المستخدم', st.session_state.current_username)} | 📅"
           f" **بدأت:** {active_session.get('التاريخ', '')}"
       )
       draft_df = load_data_from_gsheet("مسودة_الحضور")
@@ -508,7 +507,6 @@ if "attendance" in tab_dict:
 
     with col_start:
       if st.button("🚀 بدء الاجتماع / الجلسة"):
-        # إعاده الفحص عند الضغط لمنع التعارض بين أجهزة متعددة بنفس الوقت
         latest_check = load_data_from_gsheet("حالة_الجلسة")
         already_open = False
         if not latest_check.empty and "الحالة" in latest_check.columns:
@@ -522,15 +520,21 @@ if "attendance" in tab_dict:
             m_time = existing.iloc[-1].get("التاريخ", "")
             st.error(
                 f"❌ عذراً! توجد جلسة مفتوحة بالفعل لـ ({selected_team}) قام"
-                f" بفتحها القائد ({m_user}) في ({m_time}). لا يمكن فتح أكثر من"
-                " جلسة لنفس الفريق في نفس الوقت!"
+                f" بفتحها القائد ({m_user}) في ({m_time})."
             )
 
         if not already_open:
           now_ts = time.time()
           today_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-          st.session_state.session_start_time = now_ts
-          st.session_state.scanned_members = {}
+          session_payload = {
+              "التاريخ": today_date,
+              "المستخدم": st.session_state.current_username,
+              "الحالة": "مفتوحة",
+              "الفريق": selected_team,
+              "Start_Timestamp": str(now_ts),
+          }
+
+          st.session_state.active_teams[selected_team] = session_payload
 
           new_sess_row = [
               today_date,
@@ -541,15 +545,14 @@ if "attendance" in tab_dict:
           ]
           append_to_google_sheet("حالة_الجلسة", new_sess_row)
 
-          st.success(
-              f"🎉 تم بدء الجلسة السحابية المشتركة لـ ({selected_team}) بنجاح!"
-          )
-          time.sleep(0.8)
+          st.success(f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح!")
+          st.cache_data.clear()
+          time.sleep(0.5)
           st.rerun()
 
     with col_stop:
       if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
-        if active_session or st.session_state.session_start_time is not None:
+        if active_session:
           today = datetime.datetime.now().strftime("%Y-%m-%d")
           new_att = []
 
@@ -594,7 +597,10 @@ if "attendance" in tab_dict:
               [st.session_state.attendance, pd.DataFrame(new_att)],
               ignore_index=True,
           )
-          st.session_state.session_start_time = None
+
+          if selected_team in st.session_state.active_teams:
+            del st.session_state.active_teams[selected_team]
+
           st.session_state.scanned_members = {}
 
           clear_gsheet_tab("حالة_الجلسة")
@@ -606,10 +612,9 @@ if "attendance" in tab_dict:
         else:
           st.warning("لا توجد جلسة نشطة لهذا الفريق حالياً.")
 
-    if active_session and st.session_state.session_start_time is not None:
-      elapsed_min = int(
-          (time.time() - st.session_state.session_start_time) // 60
-      )
+    if active_session:
+      start_ts = float(active_session.get("Start_Timestamp", time.time()))
+      elapsed_min = int((time.time() - start_ts) // 60)
       curr_score = max(0.0, round(10.0 - (int(elapsed_min // 5) * 1.0), 1))
       st.info(
           f"⏱️ زمن الاجتماع: {elapsed_min} دقيقة | درجة الحضور الآن:"
@@ -747,7 +752,7 @@ if "attendance" in tab_dict:
           else:
             st.warning("يرجى إدخال كود الكشاف أولاً.")
 
-# --- باقي القوائم والصفحات تفضل كما هي متوافقة تماماً ---
+# --- باقي القوائم ---
 if "evaluations" in tab_dict:
   with tab_dict["evaluations"]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
