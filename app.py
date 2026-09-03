@@ -86,9 +86,8 @@ def get_gsheet_client():
   return None
 
 
-# كاش لمدة 10 ثوانٍ لحماية الـ API ومعالجة أخطاء الـ Quota 429
-@st.cache_data(ttl=10, show_spinner=False)
-def load_data_from_gsheet(sheet_name):
+# قراءة سريعة ومباشرة وبدون كاش (تُستخدم للجلسات الحية بين الأجهزة)
+def load_data_from_gsheet_uncached(sheet_name):
   try:
     client = get_gsheet_client()
     if client:
@@ -98,10 +97,15 @@ def load_data_from_gsheet(sheet_name):
         df = pd.DataFrame(records)
         df.columns = df.columns.astype(str).str.strip()
         return df
-  except Exception as e:
-    if "429" in str(e):
-      st.warning("⚠️ ضغط مؤقت على السيرفر، جاري تحديث البيانات خلال لحظات...")
+  except Exception:
+    pass
   return pd.DataFrame()
+
+
+# كاش لمدة 10 ثوانٍ للبيانات العامة لتخفيف الضغط على السيرفر
+@st.cache_data(ttl=10, show_spinner=False)
+def load_data_from_gsheet(sheet_name):
+  return load_data_from_gsheet_uncached(sheet_name)
 
 
 def append_to_google_sheet(sheet_name, row_data):
@@ -463,19 +467,21 @@ if "attendance" in tab_dict:
   with tab_dict["attendance"]:
     st.subheader("تسجيل الحضور الفوري")
 
-    if st.button("🔄 تحديث حالة الجلسات من السحاب"):
-      st.cache_data.clear()
-      st.session_state.active_teams = {}
-      st.rerun()
+    col_btn_refresh, _ = st.columns([1, 1])
+    with col_btn_refresh:
+      if st.button("🔄 مزامنة الجلسات الحية فوراً"):
+        st.cache_data.clear()
+        st.rerun()
 
-    # جلب حالة الجلسات إذا لم تكن مسجلة محلياً
-    session_info = load_data_from_gsheet("حالة_الجلسة")
+    # قراءة حية ومباشرة بدون كاش لمعرفة الجلسات المفتوحة على الأجهزة الأُخرى
+    session_info = load_data_from_gsheet_uncached("حالة_الجلسة")
+    st.session_state.active_teams = {}
 
     if not session_info.empty and "الحالة" in session_info.columns:
       open_rows = session_info[session_info["الحالة"] == "مفتوحة"]
       for _, r in open_rows.iterrows():
         t_name = str(r.get("الفريق", "")).strip()
-        if t_name and t_name not in st.session_state.active_teams:
+        if t_name:
           st.session_state.active_teams[t_name] = r.to_dict()
 
     if st.session_state.active_teams:
@@ -498,8 +504,9 @@ if "attendance" in tab_dict:
 
     active_session = st.session_state.active_teams.get(selected_team, None)
 
+    # جلب المسودة الحية بأسلوب مباشر لضمان التزامن المتبادل بين الجهازين
     if active_session:
-      draft_df = load_data_from_gsheet("مسودة_الحضور")
+      draft_df = load_data_from_gsheet_uncached("مسودة_الحضور")
       if not draft_df.empty and "كود العضو" in draft_df.columns:
         for _, d_row in draft_df.iterrows():
           c_code = d_row.get("كود العضو", "")
@@ -517,7 +524,7 @@ if "attendance" in tab_dict:
       if st.button("🚀 بدء الاجتماع / الجلسة"):
         st.cache_data.clear()
 
-        latest_check = load_data_from_gsheet("حالة_الجلسة")
+        latest_check = load_data_from_gsheet_uncached("حالة_الجلسة")
         already_open = False
 
         if not latest_check.empty and "الحالة" in latest_check.columns:
@@ -549,10 +556,8 @@ if "attendance" in tab_dict:
               str(now_ts),
           ]
 
-          # 1. تحديث جوجل شيت
           append_to_google_sheet("حالة_الجلسة", new_sess_row)
 
-          # 2. التحديث الفوري في الـ State لمنع مشاكل الكاش
           st.session_state.active_teams[selected_team] = {
               "التاريخ": today_date,
               "المستخدم": st.session_state.current_username,
