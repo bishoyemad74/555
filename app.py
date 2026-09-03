@@ -873,7 +873,7 @@ if "leaderboard" in tab_dict:
 
       att_df = st.session_state.attendance
       if not att_df.empty and "كود العضو" in att_df.columns:
-        if "درجة الحضور" in att_df.columns:
+      if "درجة الحضور" in att_df.columns:
     att_df["درجة الحضور"] = pd.to_numeric(att_df["درجة الحضور"], errors="coerce").fillna(0)
         att_sum = (
             att_df.groupby("كود العضو")["درجة الحضور"].sum().reset_index()
