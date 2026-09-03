@@ -457,40 +457,45 @@ if "attendance" in tab_dict:
   with tab_dict["attendance"]:
     st.subheader("تسجيل الحضور الفوري")
 
+    # زر تحديث حالة الجلسات بين الأجهزة
+    if st.button("🔄 تحديث حالة الجلسات من السحاب"):
+      st.cache_data.clear()
+      st.session_state.active_teams = {}
+      st.rerun()
+
+    # --- فحص شامل وعام لجميع الجلسات المفتوحة في Google Sheets مباشرة ---
+    session_info = load_data_from_gsheet("حالة_الجلسة", bypass_cache=True)
+    st.session_state.active_teams = {}
+
+    if not session_info.empty and "الحالة" in session_info.columns:
+      open_rows = session_info[session_info["الحالة"] == "مفتوحة"]
+      for _, r in open_rows.iterrows():
+        t_name = str(r.get("الفريق", "")).strip()
+        if t_name:
+          st.session_state.active_teams[t_name] = r.to_dict()
+
+    # تنبيه عام ثابت بأي جلسة مفتوحة في التطبيق
+    if st.session_state.active_teams:
+      for team_k, sess_v in st.session_state.active_teams.items():
+        st.success(
+            f"🟢 **جلسة نشطة حالياً لـ ({team_k})** | 👤 **القائد:**"
+            f" {sess_v.get('المستخدم', '')} | 📅 **بدأت:**"
+            f" {sess_v.get('التاريخ', '')}"
+        )
+    else:
+      st.info("ℹ️ لا توجد أي جلسات مفتوحة حالياً في أي فريق.")
+
+    st.divider()
+
     selected_team = st.radio(
-        "اختر الفريق لتسجيل الجلسة:",
+        "اختر الفريق للعمل عليه:",
         ["الفريق الأول", "الفريق الثاني"],
         horizontal=True,
     )
 
-    # زر تحديث حالة الجلسات بين الأجهزة
-    if st.button("🔄 تحديث حالة الجلسات من السحاب"):
-      st.cache_data.clear()
-      st.rerun()
-
-    # التحقق المباشر بدون كاش من الشيت والجلسة الحالية
-    session_info = load_data_from_gsheet("حالة_الجلسة", bypass_cache=True)
-    active_session = None
-
-    if not session_info.empty and "الحالة" in session_info.columns:
-      open_rows = session_info[
-          (session_info["الحالة"] == "مفتوحة")
-          & (session_info["الفريق"] == selected_team)
-      ]
-      if not open_rows.empty:
-        active_session = open_rows.iloc[-1].to_dict()
-        st.session_state.active_teams[selected_team] = active_session
-
-    if selected_team in st.session_state.active_teams:
-      active_session = st.session_state.active_teams[selected_team]
+    active_session = st.session_state.active_teams.get(selected_team, None)
 
     if active_session:
-      start_ts = float(active_session.get("Start_Timestamp", time.time()))
-      st.success(
-          f"🟢 **توجد جلسة مفتوحة حالياً لـ ({selected_team})**\n\n"
-          f"👤 **القائد:** {active_session.get('المستخدم', st.session_state.current_username)} | 📅"
-          f" **بدأت:** {active_session.get('التاريخ', '')}"
-      )
       draft_df = load_data_from_gsheet("مسودة_الحضور", bypass_cache=True)
       if not draft_df.empty and "كود العضو" in draft_df.columns:
         for _, d_row in draft_df.iterrows():
@@ -502,23 +507,22 @@ if "attendance" in tab_dict:
               st.session_state.scanned_members[int(c_code)] = (t_str, sc_val)
             except ValueError:
               st.session_state.scanned_members[c_code] = (t_str, sc_val)
-    else:
-      st.info(
-          f"ℹ️ لا توجد جلسة مفتوحة حالياً لـ (**{selected_team}**). يمكنك بدء"
-          " جلسة جديدة."
-      )
 
     col_start, col_stop = st.columns(2)
 
     with col_start:
       if st.button("🚀 بدء الاجتماع / الجلسة"):
-        # جلب البيانات مباشرة بدون كاش للتحقق من الأجهزة الأخرى
+        # جلب البيانات مباشرة بدون كاش للتأكد في نفس اللحظة
+        st.cache_data.clear()
         latest_check = load_data_from_gsheet("حالة_الجلسة", bypass_cache=True)
         already_open = False
         if not latest_check.empty and "الحالة" in latest_check.columns:
           existing = latest_check[
               (latest_check["الحالة"] == "مفتوحة")
-              & (latest_check["الفريق"] == selected_team)
+              & (
+                  latest_check["الفريق"].astype(str).str.strip()
+                  == selected_team
+              )
           ]
           if not existing.empty:
             already_open = True
@@ -532,15 +536,6 @@ if "attendance" in tab_dict:
         if not already_open:
           now_ts = time.time()
           today_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-          session_payload = {
-              "التاريخ": today_date,
-              "المستخدم": st.session_state.current_username,
-              "الحالة": "مفتوحة",
-              "الفريق": selected_team,
-              "Start_Timestamp": str(now_ts),
-          }
-
-          st.session_state.active_teams[selected_team] = session_payload
 
           new_sess_row = [
               today_date,
@@ -549,12 +544,11 @@ if "attendance" in tab_dict:
               selected_team,
               str(now_ts),
           ]
-          append_to_google_sheet("حالة_الجلسة", new_sess_row)
-
-          st.success(f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح!")
-          st.cache_data.clear()
-          time.sleep(0.5)
-          st.rerun()
+          if append_to_google_sheet("حالة_الجلسة", new_sess_row):
+            st.success(f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح!")
+            st.cache_data.clear()
+            time.sleep(0.5)
+            st.rerun()
 
     with col_stop:
       if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
@@ -690,8 +684,8 @@ if "attendance" in tab_dict:
           st.error("❌ لم يتم التعرف على الرمز.")
     else:
       st.info(
-          "💡 لا توجد جلسة مفتوحة. قم باختيار الفريق ثم اضغط **🚀 بدء الاجتماع"
-          " / الجلسة**."
+          "💡 لا توجد جلسة مفتوحة لهذا الفريق. قم باختيار الفريق ثم اضغط **🚀"
+          " بدء الاجتماع / الجلسة**."
       )
 
     st.divider()
