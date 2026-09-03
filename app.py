@@ -86,7 +86,7 @@ def get_gsheet_client():
   return None
 
 
-# كاش ذكي لمدة 10 ثوانٍ لمنع تجاوز كوتا جوجل للطلبات (Error 429)
+# كاش لمدة 10 ثوانٍ لحماية الـ API ومعالجة أخطاء الـ Quota 429
 @st.cache_data(ttl=10, show_spinner=False)
 def load_data_from_gsheet(sheet_name):
   try:
@@ -468,14 +468,14 @@ if "attendance" in tab_dict:
       st.session_state.active_teams = {}
       st.rerun()
 
+    # جلب حالة الجلسات إذا لم تكن مسجلة محلياً
     session_info = load_data_from_gsheet("حالة_الجلسة")
-    st.session_state.active_teams = {}
 
     if not session_info.empty and "الحالة" in session_info.columns:
       open_rows = session_info[session_info["الحالة"] == "مفتوحة"]
       for _, r in open_rows.iterrows():
         t_name = str(r.get("الفريق", "")).strip()
-        if t_name:
+        if t_name and t_name not in st.session_state.active_teams:
           st.session_state.active_teams[t_name] = r.to_dict()
 
     if st.session_state.active_teams:
@@ -549,9 +549,19 @@ if "attendance" in tab_dict:
               str(now_ts),
           ]
 
+          # 1. تحديث جوجل شيت
           append_to_google_sheet("حالة_الجلسة", new_sess_row)
-          st.cache_data.clear()
 
+          # 2. التحديث الفوري في الـ State لمنع مشاكل الكاش
+          st.session_state.active_teams[selected_team] = {
+              "التاريخ": today_date,
+              "المستخدم": st.session_state.current_username,
+              "الحالة": "مفتوحة",
+              "الفريق": selected_team,
+              "Start_Timestamp": str(now_ts),
+          }
+
+          st.cache_data.clear()
           st.success(f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح!")
           time.sleep(0.3)
           st.rerun()
