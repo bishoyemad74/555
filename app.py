@@ -86,8 +86,8 @@ def get_gsheet_client():
   return None
 
 
-# إلغاء الكاش لضمان القراءة المباشرة واللحظية بين الأجهزة المختلفة
-@st.cache_data(ttl=0)
+# كاش ذكي لمدة 10 ثوانٍ لمنع تجاوز كوتا جوجل للطلبات (Error 429)
+@st.cache_data(ttl=10, show_spinner=False)
 def load_data_from_gsheet(sheet_name):
   try:
     client = get_gsheet_client()
@@ -98,8 +98,9 @@ def load_data_from_gsheet(sheet_name):
         df = pd.DataFrame(records)
         df.columns = df.columns.astype(str).str.strip()
         return df
-  except Exception:
-    pass
+  except Exception as e:
+    if "429" in str(e):
+      st.warning("⚠️ ضغط مؤقت على السيرفر، جاري تحديث البيانات خلال لحظات...")
   return pd.DataFrame()
 
 
@@ -112,7 +113,10 @@ def append_to_google_sheet(sheet_name, row_data):
       st.cache_data.clear()
       return True
   except Exception as e:
-    st.error(f"خطأ في المزامنة السحابية ({sheet_name}): {str(e)}")
+    if "429" in str(e):
+      st.error("⚠️ تجاوز حد الطلبات من جوجل، انتظر 10 ثوانٍ وحاول مجدداً.")
+    else:
+      st.error(f"خطأ في المزامنة السحابية ({sheet_name}): {str(e)}")
   return False
 
 
@@ -459,13 +463,11 @@ if "attendance" in tab_dict:
   with tab_dict["attendance"]:
     st.subheader("تسجيل الحضور الفوري")
 
-    # زر تحديث حالة الجلسات يدوي عند الحاجة
     if st.button("🔄 تحديث حالة الجلسات من السحاب"):
       st.cache_data.clear()
       st.session_state.active_teams = {}
       st.rerun()
 
-    # فحص الجلسات المفتوحة مباشرة من شيت حالة_الجلسة
     session_info = load_data_from_gsheet("حالة_الجلسة")
     st.session_state.active_teams = {}
 
@@ -547,7 +549,6 @@ if "attendance" in tab_dict:
               str(now_ts),
           ]
 
-          # إرسال البيانات للسحابة ومسح الكاش
           append_to_google_sheet("حالة_الجلسة", new_sess_row)
           st.cache_data.clear()
 
