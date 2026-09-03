@@ -86,7 +86,9 @@ def get_gsheet_client():
   return None
 
 
-def load_data_from_gsheet(sheet_name, bypass_cache=False):
+# استخدام الكاش لحماية الـ API Quota وحفظ البيانات لمدة 30 ثانية
+@st.cache_data(ttl=30)
+def load_data_from_gsheet(sheet_name):
   try:
     client = get_gsheet_client()
     if client:
@@ -107,7 +109,7 @@ def append_to_google_sheet(sheet_name, row_data):
     if client:
       sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
       sheet.append_row(row_data)
-      st.cache_data.clear()
+      st.cache_data.clear()  # تفريغ الكاش بعد إضافة بيانات جديدة
       return True
   except Exception as e:
     st.error(f"خطأ في المزامنة السحابية ({sheet_name}): {str(e)}")
@@ -122,7 +124,7 @@ def clear_gsheet_tab(sheet_name):
       try:
         sheet = sh.worksheet(sheet_name)
         sheet.clear()
-        st.cache_data.clear()
+        st.cache_data.clear()  # تفريغ الكاش عند التنظيف
         return True
       except Exception:
         pass
@@ -463,8 +465,8 @@ if "attendance" in tab_dict:
       st.session_state.active_teams = {}
       st.rerun()
 
-    # --- فحص شامل وعام لجميع الجلسات المفتوحة في Google Sheets مباشرة ---
-    session_info = load_data_from_gsheet("حالة_الجلسة", bypass_cache=True)
+    # فحص الجلسات المفتوحة مع الاعتماد على التخزين المؤقت
+    session_info = load_data_from_gsheet("حالة_الجلسة")
     st.session_state.active_teams = {}
 
     if not session_info.empty and "الحالة" in session_info.columns:
@@ -496,7 +498,7 @@ if "attendance" in tab_dict:
     active_session = st.session_state.active_teams.get(selected_team, None)
 
     if active_session:
-      draft_df = load_data_from_gsheet("مسودة_الحضور", bypass_cache=True)
+      draft_df = load_data_from_gsheet("مسودة_الحضور")
       if not draft_df.empty and "كود العضو" in draft_df.columns:
         for _, d_row in draft_df.iterrows():
           c_code = d_row.get("كود العضو", "")
@@ -512,9 +514,8 @@ if "attendance" in tab_dict:
 
     with col_start:
       if st.button("🚀 بدء الاجتماع / الجلسة"):
-        # جلب البيانات مباشرة بدون كاش للتأكد في نفس اللحظة
         st.cache_data.clear()
-        latest_check = load_data_from_gsheet("حالة_الجلسة", bypass_cache=True)
+        latest_check = load_data_from_gsheet("حالة_الجلسة")
         already_open = False
         if not latest_check.empty and "الحالة" in latest_check.columns:
           existing = latest_check[
@@ -546,7 +547,6 @@ if "attendance" in tab_dict:
           ]
           if append_to_google_sheet("حالة_الجلسة", new_sess_row):
             st.success(f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح!")
-            st.cache_data.clear()
             time.sleep(0.5)
             st.rerun()
 
@@ -913,6 +913,7 @@ if "leaderboard" in tab_dict:
 
     with col_ref:
       if st.button("🔄 تحديث البيانات"):
+        st.cache_data.clear()
         st.session_state.attendance = load_data_from_gsheet("الحضور")
         st.session_state.scores = load_data_from_gsheet("التقييمات")
         st.session_state.members = load_data_from_gsheet("الأعضاء")
