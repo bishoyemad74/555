@@ -86,7 +86,6 @@ def get_gsheet_client():
   return None
 
 
-# استخدام الكاش لحماية الـ API Quota وحفظ البيانات لمدة 30 ثانية
 @st.cache_data(ttl=30)
 def load_data_from_gsheet(sheet_name):
   try:
@@ -109,7 +108,7 @@ def append_to_google_sheet(sheet_name, row_data):
     if client:
       sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
       sheet.append_row(row_data)
-      st.cache_data.clear()  # تفريغ الكاش بعد إضافة بيانات جديدة
+      st.cache_data.clear()
       return True
   except Exception as e:
     st.error(f"خطأ في المزامنة السحابية ({sheet_name}): {str(e)}")
@@ -124,7 +123,7 @@ def clear_gsheet_tab(sheet_name):
       try:
         sheet = sh.worksheet(sheet_name)
         sheet.clear()
-        st.cache_data.clear()  # تفريغ الكاش عند التنظيف
+        st.cache_data.clear()
         return True
       except Exception:
         pass
@@ -459,13 +458,13 @@ if "attendance" in tab_dict:
   with tab_dict["attendance"]:
     st.subheader("تسجيل الحضور الفوري")
 
-    # زر تحديث حالة الجلسات بين الأجهزة
+    # زر تحديث حالة الجلسات
     if st.button("🔄 تحديث حالة الجلسات من السحاب"):
       st.cache_data.clear()
       st.session_state.active_teams = {}
       st.rerun()
 
-    # فحص الجلسات المفتوحة مع الاعتماد على التخزين المؤقت
+    # فحص الجلسات المفتوحة
     session_info = load_data_from_gsheet("حالة_الجلسة")
     st.session_state.active_teams = {}
 
@@ -476,7 +475,6 @@ if "attendance" in tab_dict:
         if t_name:
           st.session_state.active_teams[t_name] = r.to_dict()
 
-    # تنبيه عام ثابت بأي جلسة مفتوحة في التطبيق
     if st.session_state.active_teams:
       for team_k, sess_v in st.session_state.active_teams.items():
         st.success(
@@ -514,7 +512,7 @@ if "attendance" in tab_dict:
 
     with col_start:
       if st.button("🚀 بدء الاجتماع / الجلسة"):
-        st.cache_data.clear()
+        st.cache_data.clear()  # مسح الكاش قبل الفحص
         latest_check = load_data_from_gsheet("حالة_الجلسة")
         already_open = False
         if not latest_check.empty and "الحالة" in latest_check.columns:
@@ -546,6 +544,7 @@ if "attendance" in tab_dict:
               str(now_ts),
           ]
           if append_to_google_sheet("حالة_الجلسة", new_sess_row):
+            st.cache_data.clear()  # تفريغ الكاش فوراً بعد إضافة البيانات
             st.success(f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح!")
             time.sleep(0.5)
             st.rerun()
@@ -605,6 +604,7 @@ if "attendance" in tab_dict:
 
           clear_gsheet_tab("حالة_الجلسة")
           clear_gsheet_tab("مسودة_الحضور")
+          st.cache_data.clear()
 
           st.success("تم إغلاق الجلسة وترحيل البيانات سحابياً! ☁️")
           time.sleep(1)
@@ -752,7 +752,7 @@ if "attendance" in tab_dict:
           else:
             st.warning("يرجى إدخال كود الكشاف أولاً.")
 
-# --- باقي القوائم ---
+# --- Tab: التقييمات ---
 if "evaluations" in tab_dict:
   with tab_dict["evaluations"]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
@@ -850,6 +850,7 @@ if "evaluations" in tab_dict:
         else:
           st.warning("يرجى إدخال كود الكشاف أولاً.")
 
+# --- Tab: لوحة الصدارة ---
 if "leaderboard" in tab_dict:
   with tab_dict["leaderboard"]:
     st.subheader("🏆 ترتيب الكشافة حسَب إجمالي الدرجات")
@@ -942,6 +943,7 @@ if "leaderboard" in tab_dict:
       with sub_all:
         st.dataframe(leaderboard, use_container_width=True)
 
+# --- Tab: الأعضاء ---
 if "directory" in tab_dict:
   with tab_dict["directory"]:
     st.subheader("👥 إضافة كشاف جديد")
@@ -1056,6 +1058,7 @@ if "directory" in tab_dict:
           time.sleep(1)
           st.rerun()
 
+# --- Tab: الشيت السحابي ---
 if "sheet_link" in tab_dict:
   with tab_dict["sheet_link"]:
     st.subheader("☁️ رابط Google Sheets المباشر")
@@ -1067,6 +1070,7 @@ if "sheet_link" in tab_dict:
         unsafe_allow_html=True,
     )
 
+# --- Tab: إدارة الحسابات ---
 if "accounts" in tab_dict:
   with tab_dict["accounts"]:
     st.subheader("⚙️ إضافة حساب جديد وتحديد الصلاحيات")
