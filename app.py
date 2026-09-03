@@ -92,7 +92,7 @@ def load_data_from_gsheet(sheet_name, bypass_cache=False):
   return _fetch_gsheet_uncached(sheet_name)
 
 
-@st.cache_data(ttl=10)  # مدة التخزين 10 ثوانٍ فقط للسرعة
+@st.cache_data(ttl=10)
 def _load_data_cached(sheet_name):
   return _fetch_gsheet_uncached(sheet_name)
 
@@ -421,7 +421,6 @@ if "attendance" in tab_dict:
         horizontal=True,
     )
 
-    # 🔄 القراءة الفورية المباشرة بدون Cache لتزامن الأجهزة
     session_info = load_data_from_gsheet("حالة_الجلسة", bypass_cache=True)
     members_df = load_data_from_gsheet("الأعضاء", bypass_cache=True)
 
@@ -442,7 +441,6 @@ if "attendance" in tab_dict:
           f" {active_session.get('التاريخ', '')}"
       )
 
-      # مزامنة مسودة الحضور الحالية من Google Sheets
       draft_df = load_data_from_gsheet("مسودة_الحضور", bypass_cache=True)
       if not draft_df.empty and "كود العضو" in draft_df.columns:
         for _, d_row in draft_df.iterrows():
@@ -767,29 +765,43 @@ if "leaderboard" in tab_dict:
 
       leaderboard = members_lead[[c_name, n_name, t_name]].copy()
 
+      # معالجة آمنة لجدول الحضور لحماية الكود من KeyError
       if not att_lead.empty and "كود العضو" in att_lead.columns:
-        att_lead["درجة الحضور"] = pd.to_numeric(
-            att_lead["درجة الحضور"], errors="coerce"
-        ).fillna(0)
-        att_sum = (
-            att_lead.groupby("كود العضو")["درجة الحضور"].sum().reset_index()
-        )
-        att_sum.columns = [c_name, "نقاط الحضور"]
+        att_score_col = [
+            c
+            for c in att_lead.columns
+            if "درجة" in c or "الحضور" in c or "Score" in c
+        ]
+        if att_score_col:
+          target_col = att_score_col[0]
+          att_lead[target_col] = pd.to_numeric(
+              att_lead[target_col], errors="coerce"
+          ).fillna(0)
+          att_sum = (
+              att_lead.groupby("كود العضو")[target_col].sum().reset_index()
+          )
+          att_sum.columns = [c_name, "نقاط الحضور"]
+        else:
+          att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
       else:
         att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
 
+      # معالجة آمنة لجدول التقييمات
       if not scores_lead.empty and "كود العضو" in scores_lead.columns:
         sc_col = [
             c
             for c in scores_lead.columns
             if "الدرجة" in c or "درجة" in c or "Score" in c
         ]
-        sc_v = sc_col[0] if sc_col else scores_lead.columns[-1]
-        scores_lead[sc_v] = pd.to_numeric(
-            scores_lead[sc_v], errors="coerce"
-        ).fillna(0)
-        sc_sum = scores_lead.groupby("كود العضو")[sc_v].sum().reset_index()
-        sc_sum.columns = [c_name, "نقاط التقييمات"]
+        if sc_col:
+          sc_v = sc_col[0]
+          scores_lead[sc_v] = pd.to_numeric(
+              scores_lead[sc_v], errors="coerce"
+          ).fillna(0)
+          sc_sum = scores_lead.groupby("كود العضو")[sc_v].sum().reset_index()
+          sc_sum.columns = [c_name, "نقاط التقييمات"]
+        else:
+          sc_sum = pd.DataFrame(columns=[c_name, "نقاط التقييمات"])
       else:
         sc_sum = pd.DataFrame(columns=[c_name, "نقاط التقييمات"])
 
