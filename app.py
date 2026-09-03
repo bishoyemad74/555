@@ -563,7 +563,7 @@ with col_start:
           st.success(f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح!")
           time.sleep(0.3)
           st.rerun()
-    with col_stop:
+            with col_stop:
       if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
         if active_session:
           today = datetime.datetime.now().strftime("%Y-%m-%d")
