@@ -76,14 +76,12 @@ def get_gsheet_client():
 
   creds_dict = None
 
-  # 1. محاولة القراءة من متغير البيئة المباشر (Railway)
   if "GCP_JSON" in os.environ:
     try:
       creds_dict = json.loads(os.environ["GCP_JSON"])
     except Exception:
       pass
 
-  # 2. إذا لم تجدها، ابحث في الطريقة العادية (st.secrets للمحلي)
   if not creds_dict:
     try:
       if "gcp_service_account" in st.secrets:
@@ -98,7 +96,7 @@ def get_gsheet_client():
   return None
 
 
-# --- حل مشكلة 429 Quota Exceeded بإنشاء Caching ذكي لقراءة الشيتات ---
+# --- جلب البيانات مع Caching للحماية من Quota 429 ---
 @st.cache_data(ttl=5)
 def load_data_from_gsheet(sheet_name):
   try:
@@ -121,7 +119,7 @@ def append_to_google_sheet(sheet_name, row_data):
     if client:
       sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
       sheet.append_row(row_data)
-      st.cache_data.clear()  # تحديث الـ Cache عند الكتابة
+      st.cache_data.clear()
       return True
   except Exception as e:
     st.error(f"خطأ في المزامنة السحابية ({sheet_name}): {str(e)}")
@@ -129,7 +127,6 @@ def append_to_google_sheet(sheet_name, row_data):
 
 
 def clear_gsheet_tab(sheet_name):
-  """تفريغ شيت معين سحابياً عند إغلاق الجلسة"""
   try:
     client = get_gsheet_client()
     if client:
@@ -147,7 +144,6 @@ def clear_gsheet_tab(sheet_name):
 
 
 def verify_current_password(username, current_password):
-  """التحقق من صحة كلمة السر الحالية للمستخدم"""
   try:
     users_df = load_data_from_gsheet("المستخدمين")
     if not users_df.empty:
@@ -168,7 +164,6 @@ def verify_current_password(username, current_password):
 
 
 def update_user_password_in_gsheet(username, new_password):
-  """تحديث كلمة السر لمستخدم معين في ورقة المستخدمين سحابياً"""
   try:
     client = get_gsheet_client()
     if client:
@@ -178,7 +173,6 @@ def update_user_password_in_gsheet(username, new_password):
         df = pd.DataFrame(records)
         df.columns = df.columns.astype(str).str.strip()
 
-        # البحث عن رقم الصف بناءً على اسم المستخدم
         for idx, row in df.iterrows():
           if str(row.get("اسم المستخدم", "")).strip() == str(username).strip():
             row_number = idx + 2
@@ -191,7 +185,6 @@ def update_user_password_in_gsheet(username, new_password):
 
 
 def update_leaderboard_in_gsheet(df_leaderboard):
-  """تحديث شيت لوحة الصدارة في Google Sheets بالكامل"""
   try:
     client = get_gsheet_client()
     if client:
@@ -238,7 +231,6 @@ def extract_qr_code(image_file):
 
 
 def check_login(username, password):
-  """التحقق من الدخول وجلب الصلاحيات التفصيلية من النص المدمج بالخلية"""
   try:
     users_df = load_data_from_gsheet("المستخدمين")
     if not users_df.empty:
@@ -255,7 +247,6 @@ def check_login(username, password):
       if not user_match.empty:
         row = user_match.iloc[0]
         role = str(row.get("الصلاحية", "مستخدم")).strip()
-
         raw_perms = str(row.get("القوائم المتاحة", "")).strip()
 
         if role == "آدمن":
@@ -281,7 +272,6 @@ def check_login(username, password):
   return False, None, {}
 
 
-# --- إخفاء كافة خيارات المطور والتصميم ---
 st.markdown(
     """
     <style>
@@ -349,7 +339,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- تهيئة حالة الجلسة والتسجيل ---
 if "logged_in" not in st.session_state:
   st.session_state.logged_in = False
 if "user_role" not in st.session_state:
@@ -391,7 +380,6 @@ if not st.session_state.logged_in:
 
   st.stop()
 
-# --- شريط معلومات الحساب وتسجيل الخروج وتغيير كلمة السر ---
 col_user_info, col_pwd, col_logout = st.columns([2.5, 1.2, 1])
 with col_user_info:
   st.info(
@@ -450,7 +438,6 @@ with col_logout:
 
 st.divider()
 
-# --- تهيئة عداد إعادة تعيين الفورم لتفريغ الحقول عند النجاح ---
 if "form_reset_counter" not in st.session_state:
   st.session_state.form_reset_counter = 0
 
@@ -460,12 +447,10 @@ if "eval_reset_counter" not in st.session_state:
 if "manual_reset_counter" not in st.session_state:
   st.session_state.manual_reset_counter = 0
 
-# --- تهيئة البيانات (Session State) ---
+# --- تهيئة البيانات الجداول والتحقق من عمود "الفريق" ---
 if "members" not in st.session_state or st.session_state.members.empty:
   fetched_members = load_data_from_gsheet("الأعضاء")
   if not fetched_members.empty:
-    if "الفريق" not in fetched_members.columns:
-      fetched_members["الفريق"] = "الفريق الأول"
     st.session_state.members = fetched_members
   else:
     st.session_state.members = pd.DataFrame(columns=[
@@ -476,6 +461,13 @@ if "members" not in st.session_state or st.session_state.members.empty:
         "رقم التليفون",
         "تاريخ الانضمام",
     ])
+
+# حماية شاملة: التأكد التام من وجود عمود 'الفريق' في جدول الأعضاء
+if (
+    not st.session_state.members.empty
+    and "الفريق" not in st.session_state.members.columns
+):
+  st.session_state.members["الفريق"] = "الفريق الأول"
 
 if "attendance" not in st.session_state:
   st.session_state.attendance = load_data_from_gsheet("الحضور")
@@ -515,7 +507,7 @@ if "eval_scanned_code" not in st.session_state:
 if "show_eval_camera" not in st.session_state:
   st.session_state.show_eval_camera = False
 
-# --- مزامنة الجلسة السحابية المشتركة ونظام الفريقين من Google Sheets ---
+# مزامنة حالة الجلسة
 session_info = load_data_from_gsheet("حالة_الجلسة")
 active_session = None
 active_team = "الفريق الأول"
@@ -542,7 +534,6 @@ if active_session:
         except ValueError:
           st.session_state.scanned_members[c_code] = (t_str, sc_val)
 
-# --- بناء القوائم المتاحة بناءً على الصلاحيات ---
 available_tabs = []
 tab_keys = []
 
@@ -628,10 +619,20 @@ if "attendance" in tab_dict:
           today = datetime.datetime.now().strftime("%Y-%m-%d")
           new_att = []
 
-          # تصفية أعضاء الفريق المختار فقط
-          team_members = st.session_state.members[
-              st.session_state.members["الفريق"] == selected_team
-          ]
+          # التأكد الوقائي من وجود عمود 'الفريق'
+          if (
+              not st.session_state.members.empty
+              and "الفريق" not in st.session_state.members.columns
+          ):
+            st.session_state.members["الفريق"] = "الفريق الأول"
+
+          if "الفريق" in st.session_state.members.columns:
+            team_members = st.session_state.members[
+                st.session_state.members["الفريق"] == selected_team
+            ]
+          else:
+            team_members = st.session_state.members
+
           if team_members.empty:
             team_members = st.session_state.members
 
@@ -698,10 +699,18 @@ if "attendance" in tab_dict:
         if extracted:
           try:
             code_val = int(extracted)
-            m = st.session_state.members[
-                (st.session_state.members["كود العضو"] == code_val)
-                & (st.session_state.members["الفريق"] == selected_team)
-            ]
+
+            # فحص آمن لمنع KeyError
+            if "الفريق" in st.session_state.members.columns:
+              m = st.session_state.members[
+                  (st.session_state.members["كود العضو"] == code_val)
+                  & (st.session_state.members["الفريق"] == selected_team)
+              ]
+            else:
+              m = st.session_state.members[
+                  st.session_state.members["كود العضو"] == code_val
+              ]
+
             if not m.empty:
               row_data = m.iloc[0]
               m_name = row_data.get(
@@ -761,10 +770,24 @@ if "attendance" in tab_dict:
         if manual_code_str.strip():
           try:
             manual_code = int(manual_code_str.strip())
-            m = st.session_state.members[
-                (st.session_state.members["كود العضو"] == manual_code)
-                & (st.session_state.members["الفريق"] == selected_team)
-            ]
+
+            # فحص آمن لمنع KeyError في التسجيل اليدوي
+            if (
+                not st.session_state.members.empty
+                and "الفريق" not in st.session_state.members.columns
+            ):
+              st.session_state.members["الفريق"] = "الفريق الأول"
+
+            if "الفريق" in st.session_state.members.columns:
+              m = st.session_state.members[
+                  (st.session_state.members["كود العضو"] == manual_code)
+                  & (st.session_state.members["الفريق"] == selected_team)
+              ]
+            else:
+              m = st.session_state.members[
+                  st.session_state.members["كود العضو"] == manual_code
+              ]
+
             if not m.empty:
               row_data = m.iloc[0]
               m_name = row_data.get(
