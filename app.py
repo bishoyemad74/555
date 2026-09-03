@@ -17,18 +17,14 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        /* إخفاء الهيدر والفوتر والقوائم */
         #MainMenu, header, footer, [data-testid="stHeader"], [data-testid="stToolbar"] {
             display: none !important;
             visibility: hidden !important;
         }
-
-        /* تمديد مساحة التطبيق لتغطي أسفل الشاشة وتخفي أي شريط خارجي */
         .main .block-container {
             padding-bottom: 0rem !important;
             margin-bottom: -50px !important;
         }
-        
         body, .stApp {
             margin-bottom: -50px !important;
         }
@@ -37,7 +33,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# مكتبة قراءة الـ QR والباركود السريعة (ZXing)
+# مكتبات الباركود
 try:
   import zxingcpp
 
@@ -45,7 +41,6 @@ try:
 except ImportError:
   HAS_ZXING = False
 
-# مكتبة fallback ثانوية لقراءة الباركود
 try:
   from pyzbar.pyzbar import decode
 
@@ -73,31 +68,26 @@ def get_gsheet_client():
       "https://spreadsheets.google.com/feeds",
       "https://www.googleapis.com/auth/drive",
   ]
-
   creds_dict = None
-
   if "GCP_JSON" in os.environ:
     try:
       creds_dict = json.loads(os.environ["GCP_JSON"])
     except Exception:
       pass
-
   if not creds_dict:
     try:
       if "gcp_service_account" in st.secrets:
         creds_dict = dict(st.secrets["gcp_service_account"])
     except Exception:
       pass
-
   if creds_dict:
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     return gspread.authorize(creds)
-
   return None
 
 
-# --- جلب البيانات مع Caching للحماية من Quota 429 ---
-@st.cache_data(ttl=5)
+# --- جلب البيانات مع Caching لتجنب البطء ---
+@st.cache_data(ttl=2)  # تقليل الوقت لـ 2 ثانية لسرعة المزامنة بين الأجهزة
 def load_data_from_gsheet(sheet_name):
   try:
     client = get_gsheet_client()
@@ -109,7 +99,7 @@ def load_data_from_gsheet(sheet_name):
         df.columns = df.columns.astype(str).str.strip()
         return df
   except Exception as e:
-    st.warning(f"تعذر جلب بيانات ({sheet_name}) من Google Sheets: {str(e)}")
+    pass
   return pd.DataFrame()
 
 
@@ -158,8 +148,8 @@ def verify_current_password(username, current_password):
           )
       ]
       return not match.empty
-  except Exception as e:
-    st.error(f"خطأ أثناء التحقق من كلمة السر الحالية: {e}")
+  except Exception:
+    pass
   return False
 
 
@@ -172,15 +162,13 @@ def update_user_password_in_gsheet(username, new_password):
       if records:
         df = pd.DataFrame(records)
         df.columns = df.columns.astype(str).str.strip()
-
         for idx, row in df.iterrows():
           if str(row.get("اسم المستخدم", "")).strip() == str(username).strip():
-            row_number = idx + 2
-            sheet.update_cell(row_number, 2, str(new_password).strip())
+            sheet.update_cell(idx + 2, 2, str(new_password).strip())
             st.cache_data.clear()
             return True
   except Exception as e:
-    st.error(f"خطأ أثناء تحديث كلمة السر سحابياً: {str(e)}")
+    st.error(f"خطأ في تحديث كلمة السر: {e}")
   return False
 
 
@@ -195,7 +183,6 @@ def update_leaderboard_in_gsheet(df_leaderboard):
         sheet = sh.add_worksheet(
             title="ترتيب الأعضاء", rows="100", cols="10"
         )
-
       sheet.clear()
       headers = df_leaderboard.columns.tolist()
       data = df_leaderboard.astype(str).values.tolist()
@@ -203,30 +190,27 @@ def update_leaderboard_in_gsheet(df_leaderboard):
       st.cache_data.clear()
       return True
   except Exception as e:
-    st.error(f"خطأ في تحديث شيت الترتيب السحابي: {str(e)}")
+    st.error(f"خطأ في ترتيب الأعضاء: {e}")
   return False
 
 
 def extract_qr_code(image_file):
   try:
     img = Image.open(image_file)
-
     if HAS_ZXING:
       results = zxingcpp.read_barcodes(img)
       if results:
         raw_text = results[0].text
         clean_digits = "".join(filter(str.isdigit, raw_text))
         return clean_digits if clean_digits else raw_text
-
     if HAS_PYZBAR:
       decoded = decode(img)
       if decoded:
         raw_text = decoded[0].data.decode("utf-8")
         clean_digits = "".join(filter(str.isdigit, raw_text))
         return clean_digits if clean_digits else raw_text
-
-  except Exception as e:
-    st.error(f"خطأ أثناء معالجة الصورة: {e}")
+  except Exception:
+    pass
   return None
 
 
@@ -265,10 +249,9 @@ def check_login(username, password):
               "can_directory": "الاعضاء" in raw_perms,
               "can_sheet": "الشيت السحابي" in raw_perms,
           }
-
         return True, role, permissions
-  except Exception as e:
-    st.error(f"خطأ أثناء التحقق من بيانات الدخول: {e}")
+  except Exception:
+    pass
   return False, None, {}
 
 
@@ -276,66 +259,17 @@ st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
-    
-    html, body, [class*="css"]  {
-        font-family: 'Tajawal', sans-serif;
-        direction: rtl;
-        text-align: right;
-    }
-    
-    #MainMenu {visibility: hidden !important; display: none !important;}
-    footer {visibility: hidden !important; display: none !important;}
-    header {visibility: hidden !important; display: none !important;}
-    .stDeployButton {display: none !important;}
-    
-    [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
-    [data-testid="stDecoration"] {display: none !important;}
-    [data-testid="stStatusWidget"] {display: none !important;}
-    [data-testid="manage-app-button"] {display: none !important;}
-    
-    .stAppViewerFooter {display: none !important;}
-    footer[data-testid="stFooter"] {display: none !important;}
-    div[class*="stAppViewerFooter"] {display: none !important;}
-    div[class*="viewerBadge"] {display: none !important;}
-    div[class*="styles_viewerBadge"] {display: none !important;}
-    .viewerBadge_container__1tB92,
-    ._profileContainer_gz836_1,
-    .viewerBadge_link__1S137,
-    div[data-testid="stSidebarCollapseButton"] {
-        display: none !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-    }
-
-    .stButton>button {
-        width: 100%;
-        background-color: #1565C0;
-        color: white;
-        font-weight: bold;
-        border-radius: 10px;
-        padding: 12px;
-        font-size: 16px;
-    }
-    
-    .header-box {
-        background-color: #0D47A1;
-        color: white;
-        padding: 15px;
-        border-radius: 10px;
-        text-align: center;
-        margin-bottom: 20px;
-    }
+    html, body, [class*="css"] { font-family: 'Tajawal', sans-serif; direction: rtl; text-align: right; }
+    #MainMenu, footer, header, .stDeployButton, [data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
+    .stButton>button { width: 100%; background-color: #1565C0; color: white; font-weight: bold; border-radius: 10px; padding: 12px; font-size: 16px; }
+    .header-box { background-color: #0D47A1; color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px; }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
 st.markdown(
-    """
-    <div class="header-box">
-        <h2> كشافة أم النور ⚜️ </h2>
-    </div>
-""",
+    '<div class="header-box"><h2> كشافة أم النور ⚜️ </h2></div>',
     unsafe_allow_html=True,
 )
 
@@ -357,12 +291,10 @@ if "permissions" not in st.session_state:
 # --- 🔐 شاشة تسجيل الدخول ---
 if not st.session_state.logged_in:
   st.subheader("🔐 تسجيل الدخول للبرنامج")
-
   with st.form("login_form"):
     u_name = st.text_input("اسم المستخدم")
     u_pass = st.text_input("كلمة السر", type="password")
     btn_login = st.form_submit_button("دخول")
-
     if btn_login:
       if u_name.strip() and u_pass.strip():
         is_valid, role, perms = check_login(u_name, u_pass)
@@ -377,7 +309,6 @@ if not st.session_state.logged_in:
           st.error("❌ اسم المستخدم أو كلمة السر غير صحيحة.")
       else:
         st.warning("يرجى كتابة اسم المستخدم وكلمة السر.")
-
   st.stop()
 
 col_user_info, col_pwd, col_logout = st.columns([2.5, 1.2, 1])
@@ -399,31 +330,21 @@ with col_pwd:
       new_p1 = st.text_input("كلمة السر الجديدة", type="password")
       new_p2 = st.text_input("تأكيد كلمة السر الجديدة", type="password")
       btn_save = st.form_submit_button("تحديث كلمة السر")
-
       if btn_save:
-        if not old_p.strip():
-          st.error("❌ يرجى إدخال كلمة السر الحالية أولاً.")
-        elif not new_p1.strip():
-          st.error("❌ يرجى إدخال كلمة سر جديدة.")
+        if not old_p.strip() or not new_p1.strip():
+          st.error("❌ يرجى إدخال البيانات كاملة.")
         elif new_p1 != new_p2:
-          st.error("❌ كلمة السر الجديدة وتأكيدها غير متطابقتين!")
+          st.error("❌ كلمتا السر غير متطابقتين!")
         else:
-          with st.spinner("جاري التحقق من كلمة السر الحالية..."):
-            if verify_current_password(
-                st.session_state.current_username, old_p
+          if verify_current_password(st.session_state.current_username, old_p):
+            if update_user_password_in_gsheet(
+                st.session_state.current_username, new_p1
             ):
-              if update_user_password_in_gsheet(
-                  st.session_state.current_username, new_p1
-              ):
-                st.success(
-                    "🎉 تم تغيير كلمة السر بنجاح ورُفعت للشيت السحابي!"
-                )
-                time.sleep(1.5)
-                st.rerun()
-              else:
-                st.error("حدث خطأ أثناء الاتصال بـ Google Sheets.")
-            else:
-              st.error("❌ كلمة السر الحالية غير صحيحة!")
+              st.success("🎉 تم التحديث بنجاح!")
+              time.sleep(1)
+              st.rerun()
+          else:
+            st.error("❌ كلمة السر الحالية غير صحيحة!")
 
   if st.button("🔑 كلمة السر"):
     change_password_dialog()
@@ -440,29 +361,27 @@ st.divider()
 
 if "form_reset_counter" not in st.session_state:
   st.session_state.form_reset_counter = 0
-
 if "eval_reset_counter" not in st.session_state:
   st.session_state.eval_reset_counter = 0
-
 if "manual_reset_counter" not in st.session_state:
   st.session_state.manual_reset_counter = 0
 
-# --- تهيئة البيانات الجداول والتحقق من عمود "الفريق" ---
+# --- تهيئة البيانات ---
 if "members" not in st.session_state or st.session_state.members.empty:
   fetched_members = load_data_from_gsheet("الأعضاء")
-  if not fetched_members.empty:
-    st.session_state.members = fetched_members
-  else:
-    st.session_state.members = pd.DataFrame(columns=[
-        "كود العضو",
-        "اسم الكشاف",
-        "الفرقة",
-        "الفريق",
-        "رقم التليفون",
-        "تاريخ الانضمام",
-    ])
+  st.session_state.members = (
+      fetched_members
+      if not fetched_members.empty
+      else pd.DataFrame(columns=[
+          "كود العضو",
+          "اسم الكشاف",
+          "الفرقة",
+          "الفريق",
+          "رقم التليفون",
+          "تاريخ الانضمام",
+      ])
+  )
 
-# حماية شاملة: التأكد التام من وجود عمود 'الفريق' في جدول الأعضاء
 if (
     not st.session_state.members.empty
     and "الفريق" not in st.session_state.members.columns
@@ -497,75 +416,39 @@ if "scores" not in st.session_state:
 
 if "session_start_time" not in st.session_state:
   st.session_state.session_start_time = None
-
 if "scanned_members" not in st.session_state:
   st.session_state.scanned_members = {}
-
 if "eval_scanned_code" not in st.session_state:
   st.session_state.eval_scanned_code = ""
-
 if "show_eval_camera" not in st.session_state:
   st.session_state.show_eval_camera = False
 
-# مزامنة حالة الجلسة
-session_info = load_data_from_gsheet("حالة_الجلسة")
-active_session = None
-active_team = "الفريق الأول"
-
-if not session_info.empty and "الحالة" in session_info.columns:
-  open_rows = session_info[session_info["الحالة"] == "مفتوحة"]
-  if not open_rows.empty:
-    active_session = open_rows.iloc[-1].to_dict()
-    st.session_state.session_start_time = float(
-        active_session.get("Start_Timestamp", time.time())
-    )
-    active_team = active_session.get("الفريق", "الفريق الأول")
-
-if active_session:
-  draft_df = load_data_from_gsheet("مسودة_الحضور")
-  if not draft_df.empty and "كود العضو" in draft_df.columns:
-    for _, d_row in draft_df.iterrows():
-      c_code = d_row.get("كود العضو", "")
-      t_str = str(d_row.get("وقت التسجيل", ""))
-      sc_val = float(d_row.get("درجة الحضور", 10.0))
-      if c_code:
-        try:
-          st.session_state.scanned_members[int(c_code)] = (t_str, sc_val)
-        except ValueError:
-          st.session_state.scanned_members[c_code] = (t_str, sc_val)
-
 available_tabs = []
 tab_keys = []
-
 if st.session_state.permissions.get("can_attendance", True):
   available_tabs.append("⏱️ تسجيل الحضور")
   tab_keys.append("attendance")
-
 if st.session_state.permissions.get("can_evaluations", True):
   available_tabs.append("📝 التقييمات")
   tab_keys.append("evaluations")
-
 if st.session_state.permissions.get("can_leaderboard", True):
   available_tabs.append("🏆 لوحة الصدارة")
   tab_keys.append("leaderboard")
-
 if st.session_state.permissions.get("can_directory", True):
   available_tabs.append("👥 الاعضاء")
   tab_keys.append("directory")
-
 if (
     st.session_state.permissions.get("can_sheet", False)
     or st.session_state.user_role == "آدمن"
 ):
   available_tabs.append("☁️ الشيت السحابي")
   tab_keys.append("sheet_link")
-
 if st.session_state.user_role == "آدمن":
   available_tabs.append("⚙️ إدارة الحسابات")
   tab_keys.append("accounts")
 
 if not available_tabs:
-  st.warning("⚠️ لا توجد صلاحيات لعرض أي قوائم. يرجى المراجعة مع مسؤول النظام.")
+  st.warning("⚠️ لا توجد صلاحيات لعرض أي قوائم.")
   st.stop()
 
 tabs = st.tabs(available_tabs)
@@ -576,42 +459,93 @@ if "attendance" in tab_dict:
   with tab_dict["attendance"]:
     st.subheader("تسجيل الحضور الفوري")
 
-    if active_session:
-      st.success(
-          f"🟢 **الجلسة مفتوحة حالياً لـ ({active_team})** | بدأها القائد"
-          f" ({active_session.get('المستخدم', 'غير معروف')}) بتاريخ"
-          f" {active_session.get('التاريخ', '')}"
-      )
-
     selected_team = st.radio(
         "اختر الفريق لتسجيل الجلسة:",
         ["الفريق الأول", "الفريق الثاني"],
         horizontal=True,
-        index=0 if active_team == "الفريق الأول" else 1,
     )
 
+    # فحص سحابي مباشر للحصول على أحدث حالة جلسة للفريق المختار
+    session_info = load_data_from_gsheet("حالة_الجلسة")
+    active_session = None
+
+    if not session_info.empty and "الحالة" in session_info.columns:
+      open_rows = session_info[
+          (session_info["الحالة"] == "مفتوحة")
+          & (session_info["الفريق"] == selected_team)
+      ]
+      if not open_rows.empty:
+        active_session = open_rows.iloc[-1].to_dict()
+        st.session_state.session_start_time = float(
+            active_session.get("Start_Timestamp", time.time())
+        )
+
+    # جلب مسودة المسجلين لجلسة هذا الفريق
+    if active_session:
+      st.success(
+          f"🟢 **توجد جلسة مفتوحة بالفعل لـ ({selected_team})**\n\n"
+          f"👤 **القائد:** {active_session.get('المستخدم', 'غير معروف')} | 📅"
+          f" **بدأت:** {active_session.get('التاريخ', '')}"
+      )
+      draft_df = load_data_from_gsheet("مسودة_الحضور")
+      if not draft_df.empty and "كود العضو" in draft_df.columns:
+        for _, d_row in draft_df.iterrows():
+          c_code = d_row.get("كود العضو", "")
+          t_str = str(d_row.get("وقت التسجيل", ""))
+          sc_val = float(d_row.get("درجة الحضور", 10.0))
+          if c_code:
+            try:
+              st.session_state.scanned_members[int(c_code)] = (t_str, sc_val)
+            except ValueError:
+              st.session_state.scanned_members[c_code] = (t_str, sc_val)
+    else:
+      st.info(
+          f"ℹ️ لا توجد جلسة مفتوحة حالياً لـ (**{selected_team}**). يمكنك بدء"
+          " جلسة جديدة."
+      )
+
     col_start, col_stop = st.columns(2)
+
     with col_start:
       if st.button("🚀 بدء الاجتماع / الجلسة"):
-        now_ts = time.time()
-        today_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        st.session_state.session_start_time = now_ts
-        st.session_state.scanned_members = {}
+        # إعاده الفحص عند الضغط لمنع التعارض بين أجهزة متعددة بنفس الوقت
+        latest_check = load_data_from_gsheet("حالة_الجلسة")
+        already_open = False
+        if not latest_check.empty and "الحالة" in latest_check.columns:
+          existing = latest_check[
+              (latest_check["الحالة"] == "مفتوحة")
+              & (latest_check["الفريق"] == selected_team)
+          ]
+          if not existing.empty:
+            already_open = True
+            m_user = existing.iloc[-1].get("المستخدم", "قائد آخر")
+            m_time = existing.iloc[-1].get("التاريخ", "")
+            st.error(
+                f"❌ عذراً! توجد جلسة مفتوحة بالفعل لـ ({selected_team}) قام"
+                f" بفتحها القائد ({m_user}) في ({m_time}). لا يمكن فتح أكثر من"
+                " جلسة لنفس الفريق في نفس الوقت!"
+            )
 
-        new_sess_row = [
-            today_date,
-            st.session_state.current_username,
-            "مفتوحة",
-            selected_team,
-            str(now_ts),
-        ]
-        append_to_google_sheet("حالة_الجلسة", new_sess_row)
+        if not already_open:
+          now_ts = time.time()
+          today_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+          st.session_state.session_start_time = now_ts
+          st.session_state.scanned_members = {}
 
-        st.success(
-            f"بدأت الجلسة السحابية المشتركة لـ ({selected_team})! الدرجة الحالية"
-            " 10/10."
-        )
-        st.rerun()
+          new_sess_row = [
+              today_date,
+              st.session_state.current_username,
+              "مفتوحة",
+              selected_team,
+              str(now_ts),
+          ]
+          append_to_google_sheet("حالة_الجلسة", new_sess_row)
+
+          st.success(
+              f"🎉 تم بدء الجلسة السحابية المشتركة لـ ({selected_team}) بنجاح!"
+          )
+          time.sleep(0.8)
+          st.rerun()
 
     with col_stop:
       if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
@@ -619,22 +553,19 @@ if "attendance" in tab_dict:
           today = datetime.datetime.now().strftime("%Y-%m-%d")
           new_att = []
 
-          # التأكد الوقائي من وجود عمود 'الفريق'
           if (
               not st.session_state.members.empty
               and "الفريق" not in st.session_state.members.columns
           ):
             st.session_state.members["الفريق"] = "الفريق الأول"
 
-          if "الفريق" in st.session_state.members.columns:
-            team_members = st.session_state.members[
-                st.session_state.members["الفريق"] == selected_team
-            ]
-          else:
-            team_members = st.session_state.members
-
-          if team_members.empty:
-            team_members = st.session_state.members
+          team_members = (
+              st.session_state.members[
+                  st.session_state.members["الفريق"] == selected_team
+              ]
+              if "الفريق" in st.session_state.members.columns
+              else st.session_state.members
+          )
 
           for _, row in team_members.iterrows():
             c = row.get("كود العضو", "")
@@ -669,14 +600,13 @@ if "attendance" in tab_dict:
           clear_gsheet_tab("حالة_الجلسة")
           clear_gsheet_tab("مسودة_الحضور")
 
-          st.success(
-              "تم إغلاق الجلسة وترحيل البيانات مباشرة لـ Google Sheets! ☁️"
-          )
+          st.success("تم إغلاق الجلسة وترحيل البيانات سحابياً! ☁️")
+          time.sleep(1)
           st.rerun()
         else:
-          st.warning("لا توجد جلسة نشطة حالياً.")
+          st.warning("لا توجد جلسة نشطة لهذا الفريق حالياً.")
 
-    if st.session_state.session_start_time is not None:
+    if active_session and st.session_state.session_start_time is not None:
       elapsed_min = int(
           (time.time() - st.session_state.session_start_time) // 60
       )
@@ -690,7 +620,7 @@ if "attendance" in tab_dict:
 
     st.divider()
 
-    if st.session_state.session_start_time is not None:
+    if active_session:
       st.subheader(f"📷 التقاط الكارت والتسجيل التلقائي ({selected_team})")
       img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
 
@@ -699,17 +629,16 @@ if "attendance" in tab_dict:
         if extracted:
           try:
             code_val = int(extracted)
-
-            # فحص آمن لمنع KeyError
-            if "الفريق" in st.session_state.members.columns:
-              m = st.session_state.members[
-                  (st.session_state.members["كود العضو"] == code_val)
-                  & (st.session_state.members["الفريق"] == selected_team)
-              ]
-            else:
-              m = st.session_state.members[
-                  st.session_state.members["كود العضو"] == code_val
-              ]
+            m = (
+                st.session_state.members[
+                    (st.session_state.members["كود العضو"] == code_val)
+                    & (st.session_state.members["الفريق"] == selected_team)
+                ]
+                if "الفريق" in st.session_state.members.columns
+                else st.session_state.members[
+                    st.session_state.members["كود العضو"] == code_val
+                ]
+            )
 
             if not m.empty:
               row_data = m.iloc[0]
@@ -747,95 +676,81 @@ if "attendance" in tab_dict:
           except ValueError:
             st.warning(f"الـ QR يحتوي على نص: {extracted}")
         else:
-          st.error(
-              "❌ لم يتم التعرف على الرمز، يرجى التقاط صورة أقرب وأوضح للـ QR."
-          )
+          st.error("❌ لم يتم التعرف على الرمز.")
     else:
       st.info(
-          "💡 اضغط على زر **🚀 بدء الاجتماع / الجلسة** أعلاه لفتح الكاميرا وبدء"
-          " التسجيل."
+          "💡 لا توجد جلسة مفتوحة. قم باختيار الفريق ثم اضغط **🚀 بدء الاجتماع"
+          " / الجلسة**."
       )
 
     st.divider()
 
-    with st.form(
-        f"manual_attendance_form_{st.session_state.manual_reset_counter}"
-    ):
-      manual_code_str = st.text_input(
-          "أو أدخل الكود يدوياً واضغط تسجيل:", value=""
-      )
-      submit_manual = st.form_submit_button("✅ تسجيل يدوي سريع")
+    if active_session:
+      with st.form(
+          f"manual_attendance_form_{st.session_state.manual_reset_counter}"
+      ):
+        manual_code_str = st.text_input(
+            "أو أدخل الكود يدوياً واضغط تسجيل:", value=""
+        )
+        submit_manual = st.form_submit_button("✅ تسجيل يدوي سريع")
 
-      if submit_manual:
-        if manual_code_str.strip():
-          try:
-            manual_code = int(manual_code_str.strip())
-
-            # فحص آمن لمنع KeyError في التسجيل اليدوي
-            if (
-                not st.session_state.members.empty
-                and "الفريق" not in st.session_state.members.columns
-            ):
-              st.session_state.members["الفريق"] = "الفريق الأول"
-
-            if "الفريق" in st.session_state.members.columns:
-              m = st.session_state.members[
-                  (st.session_state.members["كود العضو"] == manual_code)
-                  & (st.session_state.members["الفريق"] == selected_team)
-              ]
-            else:
-              m = st.session_state.members[
-                  st.session_state.members["كود العضو"] == manual_code
-              ]
-
-            if not m.empty:
-              row_data = m.iloc[0]
-              m_name = row_data.get(
-                  "اسم الكشاف", row_data.get("الاسم", "كشاف")
+        if submit_manual:
+          if manual_code_str.strip():
+            try:
+              manual_code = int(manual_code_str.strip())
+              m = (
+                  st.session_state.members[
+                      (st.session_state.members["كود العضو"] == manual_code)
+                      & (st.session_state.members["الفريق"] == selected_team)
+                  ]
+                  if "الفريق" in st.session_state.members.columns
+                  else st.session_state.members[
+                      st.session_state.members["كود العضو"] == manual_code
+                  ]
               )
-              if manual_code not in st.session_state.scanned_members:
-                t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                st.session_state.scanned_members[manual_code] = (
-                    t_now,
-                    curr_score,
-                )
 
-                draft_row = [
-                    manual_code,
-                    m_name,
-                    selected_team,
-                    t_now,
-                    curr_score,
-                    st.session_state.current_username,
-                ]
-                append_to_google_sheet("مسودة_الحضور", draft_row)
-
-                st.session_state.manual_reset_counter += 1
-                st.success(
-                    f"🎉 تم تسجيل: {m_name} ({selected_team}) | الدرجة:"
-                    f" {curr_score}/10"
+              if not m.empty:
+                row_data = m.iloc[0]
+                m_name = row_data.get(
+                    "اسم الكشاف", row_data.get("الاسم", "كشاف")
                 )
-                time.sleep(0.8)
-                st.rerun()
+                if manual_code not in st.session_state.scanned_members:
+                  t_now = datetime.datetime.now().strftime("%H:%M:%S")
+                  st.session_state.scanned_members[manual_code] = (
+                      t_now,
+                      curr_score,
+                  )
+
+                  draft_row = [
+                      manual_code,
+                      m_name,
+                      selected_team,
+                      t_now,
+                      curr_score,
+                      st.session_state.current_username,
+                  ]
+                  append_to_google_sheet("مسودة_الحضور", draft_row)
+
+                  st.session_state.manual_reset_counter += 1
+                  st.success(
+                      f"🎉 تم تسجيل: {m_name} ({selected_team}) | الدرجة:"
+                      f" {curr_score}/10"
+                  )
+                  time.sleep(0.8)
+                  st.rerun()
+                else:
+                  st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
               else:
-                st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
-            else:
-              st.error(
-                  f"الكود غير مسجل في {selected_team}! (بقي الحقل كما هو"
-                  " للتعديل)"
-              )
-          except ValueError:
-            st.error(
-                "يرجى إدخال أرقام فقط لكود الكشاف. (بقي الحقل كما هو)"
-            )
-        else:
-          st.warning("يرجى إدخال كود الكشاف أولاً.")
+                st.error(f"الكود غير مسجل في {selected_team}!")
+            except ValueError:
+              st.error("يرجى إدخال أرقام فقط لكود الكشاف.")
+          else:
+            st.warning("يرجى إدخال كود الكشاف أولاً.")
 
-# --- Tab: تقييمات النشاط الكشفي ---
+# --- باقي القوائم والصفحات تفضل كما هي متوافقة تماماً ---
 if "evaluations" in tab_dict:
   with tab_dict["evaluations"]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
-
     col_cam_btn, _ = st.columns([1, 1])
     with col_cam_btn:
       if st.button(
@@ -858,7 +773,7 @@ if "evaluations" in tab_dict:
           st.success(f"تم التقاط الكود: {extracted_eval}")
           st.rerun()
         else:
-          st.error("لم يتم التعرف على الرمز، يرجى المحاولة مرة أخرى.")
+          st.error("لم يتم التعرف على الرمز.")
 
     with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
       eval_team = st.selectbox(
@@ -917,92 +832,68 @@ if "evaluations" in tab_dict:
                 st.session_state.eval_scanned_code = ""
                 st.session_state.eval_reset_counter += 1
                 st.success(
-                    f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} ({eval_team}) وحفظه بنجاح!"
+                    f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} ({eval_team}) بنجاح!"
                 )
                 time.sleep(1)
                 st.rerun()
               else:
-                st.error("حدث خطأ أثناء الرفع السحابي. (بقي الحقل كما هو)")
+                st.error("حدث خطأ أثناء الرفع السحابي.")
             else:
-              st.error(
-                  "❌ الكود المدخل غير موجود في الاعضاء. (بقي الحقل كما هو)"
-              )
+              st.error("❌ الكود المدخل غير موجود في الأعضاء.")
           except ValueError:
-            st.error(
-                "⚠️ يرجى إدخال أرقام صحيحة للكود. (بقي الحقل كما هو)"
-            )
+            st.error("⚠️ يرجى إدخال أرقام صحيحة للكود.")
         else:
-          st.warning("يرجى إدخال كود الكشاف أولاً. (بقي الحقل كما هو)")
+          st.warning("يرجى إدخال كود الكشاف أولاً.")
 
-# --- Tab: 🏆 لوحة الصدارة والترتيب ---
 if "leaderboard" in tab_dict:
   with tab_dict["leaderboard"]:
     st.subheader("🏆 ترتيب الكشافة حسَب إجمالي الدرجات")
-
     col_ref, col_sync = st.columns(2)
     leaderboard = pd.DataFrame()
 
     if not st.session_state.members.empty:
       members_df = st.session_state.members.copy()
-      code_col = [c for c in members_df.columns if "كود" in c or "Code" in c]
-      name_col = [c for c in members_df.columns if "اسم" in c or "Name" in c]
-      team_col = [c for c in members_df.columns if "فريق" in c or "Team" in c]
-
-      c_name = code_col[0] if code_col else members_df.columns[0]
+      c_name = "كود العضو" if "كود العضو" in members_df.columns else members_df.columns[0]
       n_name = (
-          name_col[0]
-          if name_col
-          else members_df.columns[1] if len(members_df.columns) > 1 else c_name
+          "اسم الكشاف"
+          if "اسم الكشاف" in members_df.columns
+          else members_df.columns[1]
       )
-      t_name = team_col[0] if team_col else "الفريق"
+      t_name = "الفريق" if "الفريق" in members_df.columns else "الفريق"
 
       if t_name not in members_df.columns:
         members_df[t_name] = "الفريق الأول"
 
-      cols_to_use = [c_name, n_name, t_name]
-      leaderboard = members_df[cols_to_use].copy()
+      leaderboard = members_df[[c_name, n_name, t_name]].copy()
 
       att_df = st.session_state.attendance
-      if not att_df.empty:
-        att_code_col = [c for c in att_df.columns if "كود" in c or "Code" in c]
-        att_score_col = [
-            c for c in att_df.columns if "درجة" in c or "Score" in c
-        ]
-
-        if att_code_col and att_score_col:
-          ac = att_code_col[0]
-          asc = att_score_col[0]
-          att_df[asc] = pd.to_numeric(att_df[asc], errors="coerce").fillna(0)
-          att_sum = att_df.groupby(ac)[asc].sum().reset_index()
-          att_sum.columns = [c_name, "نقاط الحضور"]
-        else:
-          att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
+      if not att_df.empty and "كود العضو" in att_df.columns:
+        att_df["درجة الحضور"] = pd.to_numeric(
+            att_df["درجة الحضور"], errors="coerce"
+        ).fillna(0)
+        att_sum = (
+            att_df.groupby("كود العضو")["درجة الحضور"].sum().reset_index()
+        )
+        att_sum.columns = [c_name, "نقاط الحضور"]
       else:
         att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
 
       sc_df = st.session_state.scores
-      if not sc_df.empty:
-        sc_code_col = [c for c in sc_df.columns if "كود" in c or "Code" in c]
-        sc_val_col = [
+      if not sc_df.empty and "كود العضو" in sc_df.columns:
+        sc_col = [
             c
             for c in sc_df.columns
             if "الدرجة" in c or "درجة" in c or "Score" in c
         ]
-
-        if sc_code_col and sc_val_col:
-          scc = sc_code_col[0]
-          scv = sc_val_col[0]
-          sc_df[scv] = pd.to_numeric(sc_df[scv], errors="coerce").fillna(0)
-          sc_sum = sc_df.groupby(scc)[scv].sum().reset_index()
-          sc_sum.columns = [c_name, "نقاط التقييمات"]
-        else:
-          sc_sum = pd.DataFrame(columns=[c_name, "نقاط التقييمات"])
+        sc_v = sc_col[0] if sc_col else sc_df.columns[-1]
+        sc_df[sc_v] = pd.to_numeric(sc_df[sc_v], errors="coerce").fillna(0)
+        sc_sum = sc_df.groupby("كود العضو")[sc_v].sum().reset_index()
+        sc_sum.columns = [c_name, "نقاط التقييمات"]
       else:
         sc_sum = pd.DataFrame(columns=[c_name, "نقاط التقييمات"])
 
       leaderboard = leaderboard.merge(att_sum, on=c_name, how="left").fillna(0)
       leaderboard = leaderboard.merge(sc_sum, on=c_name, how="left").fillna(0)
-
       leaderboard["المجموع الكلي"] = (
           leaderboard["نقاط الحضور"] + leaderboard["نقاط التقييمات"]
       )
@@ -1022,17 +913,12 @@ if "leaderboard" in tab_dict:
       if st.button("☁️ رفع ترتيب الأعضاء إلى Google Sheets"):
         if not leaderboard.empty:
           if update_leaderboard_in_gsheet(leaderboard):
-            st.success(
-                "تم تحديث ورقة 'ترتيب الأعضاء' داخل Google Sheets بنجاح! 🎉"
-            )
-        else:
-          st.warning("لا توجد بيانات لرفعها.")
+            st.success("تم تحديث ورقة 'ترتيب الأعضاء' سحابياً بنجاح! 🎉")
 
     if not leaderboard.empty:
       sub_t1, sub_t2, sub_all = st.tabs(
           ["🥇 الفريق الأول", "🥇 الفريق الثاني", "📊 الترتيب العام"]
       )
-
       with sub_t1:
         st.dataframe(
             leaderboard[leaderboard[t_name] == "الفريق الأول"],
@@ -1045,26 +931,14 @@ if "leaderboard" in tab_dict:
         )
       with sub_all:
         st.dataframe(leaderboard, use_container_width=True)
-    else:
-      st.info("لا توجد بيانات أعضاء متاحة لحساب الترتيب.")
 
-# --- Tab: الاعضاء ---
 if "directory" in tab_dict:
   with tab_dict["directory"]:
     st.subheader("👥 إضافة كشاف جديد")
-
     if "form_version" not in st.session_state:
       st.session_state.form_version = 0
 
-    if st.button("🔄 تحديث البيانات من Google Sheets"):
-      updated_data = load_data_from_gsheet("الأعضاء")
-      if not updated_data.empty:
-        st.session_state.members = updated_data
-        st.success("تم تحديث قائمة الأعضاء بنجاح!")
-        st.rerun()
-
     v = st.session_state.form_version
-
     m_name = st.text_input(
         "اسم الكشاف رباعي",
         placeholder="أدخل الاسم رباعياً",
@@ -1078,32 +952,27 @@ if "directory" in tab_dict:
     m_phone = st.text_input(
         "رقم التليفون", placeholder="01xxxxxxxxx", key=f"widget_m_phone_{v}"
     )
-
     gender = st.radio(
         "النوع", ["ذكر", "أنثى"], horizontal=True, key=f"widget_gender_{v}"
     )
-
     birth_date = st.date_input(
         "تاريخ الميلاد",
         value=datetime.date(2000, 1, 1),
-        min_value=datetime.date(1900, 1, 1),
-        max_value=datetime.date(3000, 1, 1),
         key=f"widget_birth_date_{v}",
     )
-
-    stages_list = [
-        "أولى إعدادي",
-        "تانية إعدادي",
-        "تالتة إعدادي",
-        "أولى ثانوي",
-        "تانية ثانوي",
-        "تالتة ثانوي",
-        "جامعة",
-        "أخرى",
-    ]
-
     academic_stage = st.selectbox(
-        "المرحلة الدراسية", stages_list, key=f"widget_academic_stage_{v}"
+        "المرحلة الدراسية",
+        [
+            "أولى إعدادي",
+            "تانية إعدادي",
+            "تالتة إعدادي",
+            "أولى ثانوي",
+            "تانية ثانوي",
+            "تالتة ثانوي",
+            "جامعة",
+            "أخرى",
+        ],
+        key=f"widget_academic_stage_{v}",
     )
 
     suggested_dept = "كشاف"
@@ -1126,7 +995,6 @@ if "directory" in tab_dict:
         if suggested_dept in default_depts
         else 0
     )
-
     m_dept = st.selectbox(
         "الفرقة الكشفية",
         default_depts,
@@ -1134,98 +1002,64 @@ if "directory" in tab_dict:
         key=f"widget_m_dept_{v}_{gender}_{academic_stage}",
     )
 
-    st.divider()
-
     if st.button("إضافة لخدمة الكشافة"):
       if m_name.strip():
         cleaned_input_name = " ".join(m_name.strip().split())
+        max_c = (
+            st.session_state.members["كود العضو"].max()
+            if not st.session_state.members.empty
+            else 21820260
+        )
+        new_c = int(max_c + 1)
+        t_date = datetime.datetime.now().strftime("%Y-%m-%d")
 
-        existing_names = []
-        if not st.session_state.members.empty:
-          name_col_candidates = [
-              c for c in st.session_state.members.columns if "اسم" in c or "Name" in c
-          ]
-          if name_col_candidates:
-            col_to_check = name_col_candidates[0]
-            existing_names = (
-                st.session_state.members[col_to_check]
-                .astype(str)
-                .apply(lambda x: " ".join(x.strip().split()))
-                .tolist()
-            )
-
-        if cleaned_input_name in existing_names:
-          st.error(
-              f"❌ عذراً، العضو (**{cleaned_input_name}**) مضاف مسبقاً في"
-              " السجل!"
+        if append_to_google_sheet("الأعضاء", [
+            new_c,
+            cleaned_input_name,
+            m_team,
+            m_phone,
+            gender,
+            str(birth_date),
+            academic_stage,
+            m_dept,
+            t_date,
+        ]):
+          new_m = {
+              "كود العضو": new_c,
+              "اسم الكشاف": cleaned_input_name,
+              "الفريق": m_team,
+              "رقم التليفون": m_phone,
+              "النوع": gender,
+              "تاريخ الميلاد": birth_date,
+              "المرحلة الدراسية": academic_stage,
+              "الفرقة": m_dept,
+              "تاريخ الانضمام": t_date,
+          }
+          st.session_state.members = pd.concat(
+              [st.session_state.members, pd.DataFrame([new_m])],
+              ignore_index=True,
           )
-        else:
-          max_c = (
-              st.session_state.members["كود العضو"].max()
-              if not st.session_state.members.empty
-              else 21820260
+          st.session_state.form_version += 1
+          st.success(
+              f"🎉 تمت إضافة الكشاف ({cleaned_input_name}) لـ ({m_team}) بنجاح!"
           )
-          new_c = int(max_c + 1)
-          t_date = datetime.datetime.now().strftime("%Y-%m-%d")
+          time.sleep(1)
+          st.rerun()
 
-          if append_to_google_sheet("الأعضاء", [
-              new_c,
-              cleaned_input_name,
-              m_team,
-              m_phone,
-              gender,
-              str(birth_date),
-              academic_stage,
-              m_dept,
-              t_date,
-          ]):
-            new_m = {
-                "كود العضو": new_c,
-                "اسم الكشاف": cleaned_input_name,
-                "الفريق": m_team,
-                "رقم التليفون": m_phone,
-                "النوع": gender,
-                "تاريخ الميلاد": birth_date,
-                "المرحلة الدراسية": academic_stage,
-                "الفرقة": m_dept,
-                "تاريخ الانضمام": t_date,
-            }
-            st.session_state.members = pd.concat(
-                [st.session_state.members, pd.DataFrame([new_m])],
-                ignore_index=True,
-            )
-
-            st.session_state.form_version += 1
-
-            st.success(
-                f"🎉 تمت إضافة الكشاف ({cleaned_input_name}) لـ ({m_team}) بنجاح"
-                f" بالكود ({new_c})!"
-            )
-            time.sleep(1)
-            st.rerun()
-          else:
-            st.error("حدث خطأ في الاتصال بالشبكة أو الرفع لشيت الأعضاء.")
-      else:
-        st.warning("⚠️ يرجى إدخال اسم الكشاف على الأقل.")
-
-# --- Tab: الشيت السحابي ---
 if "sheet_link" in tab_dict:
   with tab_dict["sheet_link"]:
     st.subheader("☁️ رابط Google Sheets المباشر")
     st.markdown(
-        "يمكنك فتح الملف والتعديل عليه مباشرة من هنا: [اضغط هنا لفتح Google"
-        f" Sheets]({SHEET_FULL_URL})"
+        f"[اضغط هنا لفتح Google Sheets في نافذة جديدة]({SHEET_FULL_URL})"
     )
     st.markdown(
         f'<iframe src="{SHEET_FULL_URL}" width="100%" height="600px"></iframe>',
         unsafe_allow_html=True,
     )
 
-# --- Tab: إدارة الحسابات (للآدمن فقط) ---
 if "accounts" in tab_dict:
   with tab_dict["accounts"]:
     st.subheader("⚙️ إضافة حساب جديد وتحديد الصلاحيات")
-
     all_possible_tabs = [
         "تسجيل الحضور",
         "التقييمات",
@@ -1233,19 +1067,14 @@ if "accounts" in tab_dict:
         "دليل الكشافة",
         "الشيت السحابي",
     ]
-
     new_u_role = st.selectbox(
         "نوع الحساب", ["كابتن", "عضو", "آدمن"], key="user_role_select"
     )
 
     if new_u_role == "آدمن":
-      st.info("ℹ️ حساب (آدمن): يتمتع بكافة الصلاحيات تلقائياً.")
       selected_tabs = all_possible_tabs
-
     elif new_u_role == "عضو":
-      st.info("ℹ️ حساب (عضو): متاح له التصفح فقط لـ [لوحة الصدارة].")
       selected_tabs = ["لوحة الصدارة"]
-
     else:
       selected_tabs = st.multiselect(
           "حدد القوائم المتاحة لـ (كابتن):",
@@ -1264,13 +1093,9 @@ if "accounts" in tab_dict:
       new_u_pass = st.text_input(
           "كلمة السر الجديدة", type="password", key="input_u_pass"
       )
-
       submit_user = st.form_submit_button("إضافة الحساب وحفظه سحابياً")
-
       if submit_user:
-        if not new_u_name.strip() or not new_u_pass.strip():
-          st.warning("⚠️ يرجى ملء كافة البيانات المطلوبة (الاسم وكلمة السر).")
-        else:
+        if new_u_name.strip() and new_u_pass.strip():
           perms_str = ", ".join(selected_tabs)
           new_row = [
               new_u_name.strip(),
@@ -1279,18 +1104,10 @@ if "accounts" in tab_dict:
               perms_str,
           ]
           if append_to_google_sheet("المستخدمين", new_row):
-            st.success(
-                f"🎉 تم إنشاء حساب ({new_u_role}) باسم ({new_u_name}) وتسجيل"
-                " الصلاحيات بنجاح!"
-            )
+            st.success(f"🎉 تم إنشاء حساب ({new_u_name}) بنجاح!")
             st.rerun()
-          else:
-            st.error("حدث خطأ أثناء حفظ الحساب في شيت المستخدمين.")
 
     st.divider()
-    st.subheader("📋 قائمة الحسابات والتحكم في الصلاحيات")
     users_list = load_data_from_gsheet("المستخدمين")
     if not users_list.empty:
       st.dataframe(users_list, use_container_width=True)
-    else:
-      st.info("لا يوجد مستخدمين مسجلين حالياً.")
