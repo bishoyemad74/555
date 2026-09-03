@@ -463,8 +463,13 @@ if "attendance" in tab_dict:
         horizontal=True,
     )
 
-    # التحقق المباشر من الشيت والجلسة الحالية
-    session_info = load_data_from_gsheet("حالة_الجلسة")
+    # زر تحديث حالة الجلسات بين الأجهزة
+    if st.button("🔄 تحديث حالة الجلسات من السحاب"):
+      st.cache_data.clear()
+      st.rerun()
+
+    # التحقق المباشر بدون كاش من الشيت والجلسة الحالية
+    session_info = load_data_from_gsheet("حالة_الجلسة", bypass_cache=True)
     active_session = None
 
     if not session_info.empty and "الحالة" in session_info.columns:
@@ -474,8 +479,8 @@ if "attendance" in tab_dict:
       ]
       if not open_rows.empty:
         active_session = open_rows.iloc[-1].to_dict()
+        st.session_state.active_teams[selected_team] = active_session
 
-    # إذا كانت الجلسة مسجلة في الجلسة المحلية أيضاً
     if selected_team in st.session_state.active_teams:
       active_session = st.session_state.active_teams[selected_team]
 
@@ -486,7 +491,7 @@ if "attendance" in tab_dict:
           f"👤 **القائد:** {active_session.get('المستخدم', st.session_state.current_username)} | 📅"
           f" **بدأت:** {active_session.get('التاريخ', '')}"
       )
-      draft_df = load_data_from_gsheet("مسودة_الحضور")
+      draft_df = load_data_from_gsheet("مسودة_الحضور", bypass_cache=True)
       if not draft_df.empty and "كود العضو" in draft_df.columns:
         for _, d_row in draft_df.iterrows():
           c_code = d_row.get("كود العضو", "")
@@ -507,7 +512,8 @@ if "attendance" in tab_dict:
 
     with col_start:
       if st.button("🚀 بدء الاجتماع / الجلسة"):
-        latest_check = load_data_from_gsheet("حالة_الجلسة")
+        # جلب البيانات مباشرة بدون كاش للتحقق من الأجهزة الأخرى
+        latest_check = load_data_from_gsheet("حالة_الجلسة", bypass_cache=True)
         already_open = False
         if not latest_check.empty and "الحالة" in latest_check.columns:
           existing = latest_check[
