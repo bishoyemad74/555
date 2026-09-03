@@ -872,7 +872,7 @@ if "leaderboard" in tab_dict:
       leaderboard = members_df[[c_name, n_name, t_name]].copy()
 
       att_df = st.session_state.attendance
-            if not att_df.empty:
+     if not att_df.empty:
                 # التحقق الآمن من وجود العمود قبل تحويله لمنع KeyError
                 if "درجة الحضور" in att_df.columns:
                     att_df["درجة الحضور"] = pd.to_numeric(att_df["درجة الحضور"], errors="coerce").fillna(0)
