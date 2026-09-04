@@ -4,3 +4,4 @@ google-auth
 zxing-cpp
 opencv-python-headless
 pillow
+firebase-admin
