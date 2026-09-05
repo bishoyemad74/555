@@ -1119,7 +1119,7 @@ if "directory" in tab_dict:
 
         new_c = int(max_c + 1)
         # استبدال t_date القديم بهذا السطر:
-            t_date = (datetime.datetime.now() + datetime.timedelta(hours=3)).strftime(
+        t_date = (datetime.datetime.now() + datetime.timedelta(hours=3)).strftime(
     "%Y-%m-%d"
 )
 
