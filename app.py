@@ -604,7 +604,6 @@ if "attendance" in tab_dict:
           # استبدال سطر today_date القديم بهذا السطر:
 now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
 today_date = now_egypt.strftime("%Y-%m-%d %H:%M")
-
           open_session_firebase(
               selected_team, st.session_state.current_username, now_ts, today_date
           )
