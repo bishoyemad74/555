@@ -618,8 +618,8 @@ if "attendance" in tab_dict:
         if active_session:
           try:
             # إضافة 3 ساعات للتوقيت المحلي
-now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
-today = now_egypt.strftime("%Y-%m-%d")
+          now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
+          today = now_egypt.strftime("%Y-%m-%d")
 
 
 
