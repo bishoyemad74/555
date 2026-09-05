@@ -804,7 +804,7 @@ if "attendance" in tab_dict:
               m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
               if clean_manual not in scanned_members:
                 # استبدال سطر t_now القديم بهذا السطر:
-t_now = (datetime.datetime.now() + datetime.timedelta(hours=3)).strftime(
+                t_now = (datetime.datetime.now() + datetime.timedelta(hours=3)).strftime(
     "%H:%M:%S"
 )
 
