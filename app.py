@@ -2,6 +2,8 @@ import datetime
 import json
 import os
 import time
+import firebase_admin
+from firebase_admin import credentials, db
 import pandas as pd
 from PIL import Image
 import streamlit as st
@@ -33,7 +35,99 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# مكتبات الباركود
+# --- 🔥 تهيئة Firebase للحالات الحية واللحظية ---
+FIREBASE_CREDS = {
+    "type": "service_account",
+    "project_id": "scout-app-d5614",
+    "private_key_id": "6d124414e35bdcf820dd3315a85cb549f13df03e",
+    "private_key": (
+        "-----BEGIN PRIVATE"
+        " KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\n1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\n00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\nL5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\nB3RFZh7bqFkM82JJfMF6Lg==\n-----END"
+        " PRIVATE KEY-----\n"
+    ),
+    "client_email": (
+        "firebase-adminsdk-fbsvc@scout-app-d5614.iam.gserviceaccount.com"
+    ),
+    "client_id": "112235328729842790577",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": (
+        "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40scout-app-d5614.iam.gserviceaccount.com"
+    ),
+    "universe_domain": "googleapis.com",
+}
+
+if not firebase_admin._apps:
+  cred = credentials.Certificate(FIREBASE_CREDS)
+  firebase_admin.initialize_app(
+      cred,
+      {
+          "databaseURL": (
+              "https://scout-app-d5614-default-rtdb.firebaseio.com/"
+          )
+      },
+  )
+
+
+# --- دوال التعامل مع Firebase ---
+def get_live_sessions_firebase():
+  try:
+    ref = db.reference("active_sessions")
+    data = ref.get()
+    return data if data else {}
+  except Exception:
+    return {}
+
+
+def open_session_firebase(team_name, username, timestamp_now, date_str):
+  key_team = "team_1" if team_name == "الفريق الأول" else "team_2"
+  ref = db.reference(f"active_sessions/{key_team}")
+  ref.set({
+      "team": team_name,
+      "user": username,
+      "status": "مفتوحة",
+      "start_time": date_str,
+      "start_ts": timestamp_now,
+  })
+
+
+def close_session_firebase(team_name):
+  key_team = "team_1" if team_name == "الفريق الأول" else "team_2"
+  ref = db.reference(f"active_sessions/{key_team}")
+  ref.delete()
+
+
+def save_draft_scan_firebase(team_name, code, name, time_str, score, username):
+  key_team = "team_1" if team_name == "الفريق الأول" else "team_2"
+  ref = db.reference(f"drafts/{key_team}/{code}")
+  ref.set({
+      "code": code,
+      "name": name,
+      "team": team_name,
+      "time": time_str,
+      "score": score,
+      "user": username,
+  })
+
+
+def get_draft_scans_firebase(team_name):
+  key_team = "team_1" if team_name == "الفريق الأول" else "team_2"
+  try:
+    ref = db.reference(f"drafts/{key_team}")
+    data = ref.get()
+    return data if data else {}
+  except Exception:
+    return {}
+
+
+def clear_draft_scans_firebase(team_name):
+  key_team = "team_1" if team_name == "الفريق الأول" else "team_2"
+  ref = db.reference(f"drafts/{key_team}")
+  ref.delete()
+
+
+# --- مكتبات الباركود ---
 try:
   import zxingcpp
 
@@ -48,7 +142,7 @@ try:
 except Exception:
   HAS_PYZBAR = False
 
-# مكتبات الربط المباشر مع Google Sheets
+# --- Google Sheets ---
 try:
   from google.oauth2.service_account import Credentials
   import gspread
@@ -56,7 +150,6 @@ try:
   HAS_GSPREAD = True
 except ImportError:
   HAS_GSPREAD = False
-
 
 SPREADSHEET_ID = "1B4Ho5U0x0TDf36bu7KqxXnMZCnvAiVxzfLthX_ga94c"
 SHEET_FULL_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
@@ -86,7 +179,8 @@ def get_gsheet_client():
   return None
 
 
-def load_data_from_gsheet(sheet_name, bypass_cache=False):
+@st.cache_data(ttl=10, show_spinner=False)
+def load_data_from_gsheet(sheet_name):
   try:
     client = get_gsheet_client()
     if client:
@@ -110,24 +204,24 @@ def append_to_google_sheet(sheet_name, row_data):
       st.cache_data.clear()
       return True
   except Exception as e:
-    st.error(f"خطأ في المزامنة السحابية ({sheet_name}): {str(e)}")
+    st.error(f"⚠️ خطأ في الشيت ({sheet_name}): {type(e).__name__} - {str(e)}")
   return False
 
 
-def clear_gsheet_tab(sheet_name):
+def append_rows_to_google_sheet(sheet_name, rows_data):
+  """إضافة مجموعة صفوف دفعة واحدة لضمان عدم تجاوز طلبات Google API."""
   try:
     client = get_gsheet_client()
     if client:
-      sh = client.open_by_key(SPREADSHEET_ID)
-      try:
-        sheet = sh.worksheet(sheet_name)
-        sheet.clear()
-        st.cache_data.clear()
-        return True
-      except Exception:
-        pass
+      sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
+      sheet.append_rows(rows_data)
+      st.cache_data.clear()
+      return True
   except Exception as e:
-    st.error(f"خطأ أثناء تفريغ شيت ({sheet_name}): {e}")
+    st.error(
+        f"⚠️ خطأ في الرفع الجماعي ({sheet_name}): {type(e).__name__} -"
+        f" {str(e)}"
+    )
   return False
 
 
@@ -178,7 +272,9 @@ def update_leaderboard_in_gsheet(df_leaderboard):
       try:
         sheet = sh.worksheet("ترتيب الأعضاء")
       except Exception:
-        sheet = sh.add_worksheet(title="ترتيب الأعضاء", rows="100", cols="10")
+        sheet = sh.add_worksheet(
+            title="ترتيب الأعضاء", rows="100", cols="10"
+        )
       sheet.clear()
       headers = df_leaderboard.columns.tolist()
       data = df_leaderboard.astype(str).values.tolist()
@@ -410,10 +506,6 @@ if "scores" not in st.session_state:
         "ملاحظات",
     ])
 
-if "active_teams" not in st.session_state:
-  st.session_state.active_teams = {}
-if "scanned_members" not in st.session_state:
-  st.session_state.scanned_members = {}
 if "eval_scanned_code" not in st.session_state:
   st.session_state.eval_scanned_code = ""
 if "show_eval_camera" not in st.session_state:
@@ -455,163 +547,165 @@ if "attendance" in tab_dict:
   with tab_dict["attendance"]:
     st.subheader("تسجيل الحضور الفوري")
 
+    col_btn_refresh, _ = st.columns([1, 1])
+    with col_btn_refresh:
+      if st.button("🔄 مزامنة الجلسات الحية فوراً"):
+        st.rerun()
+
+    live_sessions = get_live_sessions_firebase()
+
+    if live_sessions:
+      for k_item, sess_v in live_sessions.items():
+        t_title = sess_v.get("team", "الفريق")
+        u_owner = sess_v.get("user", "قائد")
+        st_time = sess_v.get("start_time", "")
+        st.success(
+            f"🟢 **جلسة نشطة حالياً لـ ({t_title})** | 👤 **القائد:** {u_owner} |"
+            f" 📅 **بدأت:** {st_time}"
+        )
+    else:
+      st.info("ℹ️ لا توجد أي جلسات مفتوحة حالياً في أي فريق.")
+
+    st.divider()
+
     selected_team = st.radio(
-        "اختر الفريق لتسجيل الجلسة:",
+        "اختر الفريق للعمل عليه:",
         ["الفريق الأول", "الفريق الثاني"],
         horizontal=True,
     )
 
-    # التحقق المباشر من الشيت والجلسة الحالية
-    session_info = load_data_from_gsheet("حالة_الجلسة")
-    active_session = None
+    selected_key = "team_1" if selected_team == "الفريق الأول" else "team_2"
+    active_session = live_sessions.get(selected_key, None)
 
-    if not session_info.empty and "الحالة" in session_info.columns:
-      open_rows = session_info[
-          (session_info["الحالة"] == "مفتوحة")
-          & (session_info["الفريق"] == selected_team)
-      ]
-      if not open_rows.empty:
-        active_session = open_rows.iloc[-1].to_dict()
-
-    # إذا كانت الجلسة مسجلة في الجلسة المحلية أيضاً
-    if selected_team in st.session_state.active_teams:
-      active_session = st.session_state.active_teams[selected_team]
-
+    # جلب المسودة الحية من Firebase وتحويل المفاتيح إلى نصوص نظيفة
+    scanned_members = {}
     if active_session:
-      start_ts = float(active_session.get("Start_Timestamp", time.time()))
-      st.success(
-          f"🟢 **توجد جلسة مفتوحة حالياً لـ ({selected_team})**\n\n"
-          f"👤 **القائد:** {active_session.get('المستخدم', st.session_state.current_username)} | 📅"
-          f" **بدأت:** {active_session.get('التاريخ', '')}"
-      )
-      draft_df = load_data_from_gsheet("مسودة_الحضور")
-      if not draft_df.empty and "كود العضو" in draft_df.columns:
-        for _, d_row in draft_df.iterrows():
-          c_code = d_row.get("كود العضو", "")
-          t_str = str(d_row.get("وقت التسجيل", ""))
-          sc_val = float(d_row.get("درجة الحضور", 10.0))
-          if c_code:
-            try:
-              st.session_state.scanned_members[int(c_code)] = (t_str, sc_val)
-            except ValueError:
-              st.session_state.scanned_members[c_code] = (t_str, sc_val)
-    else:
-      st.info(
-          f"ℹ️ لا توجد جلسة مفتوحة حالياً لـ (**{selected_team}**). يمكنك بدء"
-          " جلسة جديدة."
-      )
+      draft_scans = get_draft_scans_firebase(selected_team)
+      for c_k, item_v in draft_scans.items():
+        clean_k = str(c_k).strip()
+        scanned_members[clean_k] = (
+            item_v.get("time", ""),
+            float(item_v.get("score", 10.0)),
+        )
 
     col_start, col_stop = st.columns(2)
 
     with col_start:
       if st.button("🚀 بدء الاجتماع / الجلسة"):
-        latest_check = load_data_from_gsheet("حالة_الجلسة")
-        already_open = False
-        if not latest_check.empty and "الحالة" in latest_check.columns:
-          existing = latest_check[
-              (latest_check["الحالة"] == "مفتوحة")
-              & (latest_check["الفريق"] == selected_team)
-          ]
-          if not existing.empty:
-            already_open = True
-            m_user = existing.iloc[-1].get("المستخدم", "قائد آخر")
-            m_time = existing.iloc[-1].get("التاريخ", "")
-            st.error(
-                f"❌ عذراً! توجد جلسة مفتوحة بالفعل لـ ({selected_team}) قام"
-                f" بفتحها القائد ({m_user}) في ({m_time})."
-            )
-
-        if not already_open:
+        if active_session:
+          m_user = active_session.get("user", "قائد آخر")
+          m_time = active_session.get("start_time", "")
+          st.error(
+              f"❌ عذراً! توجد جلسة مفتوحة بالفعل لـ ({selected_team}) قام"
+              f" بفتحها القائد ({m_user}) في ({m_time})."
+          )
+        else:
           now_ts = time.time()
-          today_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-          session_payload = {
-              "التاريخ": today_date,
-              "المستخدم": st.session_state.current_username,
-              "الحالة": "مفتوحة",
-              "الفريق": selected_team,
-              "Start_Timestamp": str(now_ts),
-          }
+          # استبدال سطر today_date القديم بهذا السطر:
+          now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
+          today_date = now_egypt.strftime("%Y-%m-%d %H:%M")
 
-          st.session_state.active_teams[selected_team] = session_payload
-
-          new_sess_row = [
-              today_date,
-              st.session_state.current_username,
-              "مفتوحة",
-              selected_team,
-              str(now_ts),
-          ]
-          append_to_google_sheet("حالة_الجلسة", new_sess_row)
-
-          st.success(f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح!")
-          st.cache_data.clear()
-          time.sleep(0.5)
+          open_session_firebase(
+              selected_team, st.session_state.current_username, now_ts, today_date
+          )
+          st.success(
+              f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح عبر Firebase!"
+          )
+          time.sleep(0.3)
           st.rerun()
 
     with col_stop:
       if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
         if active_session:
-          today = datetime.datetime.now().strftime("%Y-%m-%d")
-          new_att = []
+          try:
+            # إضافة 3 ساعات للتوقيت المحلي
+             now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
+             today = now_egypt.strftime("%Y-%m-%d")
 
-          if (
-              not st.session_state.members.empty
-              and "الفريق" not in st.session_state.members.columns
-          ):
-            st.session_state.members["الفريق"] = "الفريق الأول"
 
-          team_members = (
-              st.session_state.members[
-                  st.session_state.members["الفريق"] == selected_team
+
+            # 1. جلب أعضاء الفريق المحدد فقط
+            team_members = (
+                st.session_state.members[
+                    st.session_state.members["الفريق"] == selected_team
+                ]
+                if "الفريق" in st.session_state.members.columns
+                else st.session_state.members
+            )
+
+            rows_to_upload = []
+            new_att_records = []
+
+            # 2. المرور على جميع أعضاء الفريق بدون استثناء
+            for _, row in team_members.iterrows():
+              raw_code = row.get("كود العضو", "")
+              clean_code_str = str(raw_code).strip()
+              member_name = row.get(
+                  "اسم الكشاف", row.get("الاسم", "غير معروف")
+              )
+
+              # المطابقة
+              if clean_code_str in scanned_members:
+                t_str, sc = scanned_members[clean_code_str]
+                st_name = "حاضر"
+              else:
+                t_str = "تلقائي"
+                sc = 0.0
+                st_name = "غائب"
+
+              # تجهيز الصف للرفع الجماعي
+              row_data = [
+                  today,
+                  raw_code,
+                  member_name,
+                  selected_team,
+                  st_name,
+                  t_str,
+                  sc,
               ]
-              if "الفريق" in st.session_state.members.columns
-              else st.session_state.members
-          )
+              rows_to_upload.append(row_data)
 
-          for _, row in team_members.iterrows():
-            c = row.get("كود العضو", "")
-            n = row.get("اسم الكشاف", row.get("الاسم", "غير معروف"))
+              new_att_records.append({
+                  "التاريخ": today,
+                  "كود العضو": raw_code,
+                  "اسم الكشاف": member_name,
+                  "الفريق": selected_team,
+                  "حالة الحضور": st_name,
+                  "وقت التسجيل": t_str,
+                  "درجة الحضور": sc,
+              })
 
-            if c in st.session_state.scanned_members:
-              t_str, sc = st.session_state.scanned_members[c]
-              st_name = "حاضر"
-            else:
-              t_str, sc, st_name = "تلقائي", 0.0, "غائب"
+            # 3. إرسال الصفوف دفعة واحدة للسحاب
+            if rows_to_upload:
+              if append_rows_to_google_sheet("الحضور", rows_to_upload):
+                st.session_state.attendance = pd.concat(
+                    [
+                        st.session_state.attendance,
+                        pd.DataFrame(new_att_records),
+                    ],
+                    ignore_index=True,
+                )
 
-            row_data = [today, c, n, selected_team, st_name, t_str, sc]
-            append_to_google_sheet("الحضور", row_data)
+                # إغلاق الجلسة ومسح المسودة من Firebase
+                close_session_firebase(selected_team)
+                clear_draft_scans_firebase(selected_team)
 
-            new_att.append({
-                "التاريخ": today,
-                "كود العضو": c,
-                "اسم الكشاف": n,
-                "الفريق": selected_team,
-                "حالة الحضور": st_name,
-                "وقت التسجيل": t_str,
-                "درجة الحضور": sc,
-            })
-
-          st.session_state.attendance = pd.concat(
-              [st.session_state.attendance, pd.DataFrame(new_att)],
-              ignore_index=True,
-          )
-
-          if selected_team in st.session_state.active_teams:
-            del st.session_state.active_teams[selected_team]
-
-          st.session_state.scanned_members = {}
-
-          clear_gsheet_tab("حالة_الجلسة")
-          clear_gsheet_tab("مسودة_الحضور")
-
-          st.success("تم إغلاق الجلسة وترحيل البيانات سحابياً! ☁️")
-          time.sleep(1)
-          st.rerun()
+                st.success(
+                    f"🎉 تم تسجيل حضور وغياب ({len(rows_to_upload)}) عضو لـ"
+                    f" ({selected_team}) بنجاح! ☁️"
+                )
+                time.sleep(1)
+                st.rerun()
+              else:
+                st.error("❌ فشلت عملية الرفع الجماعي لـ Google Sheets.")
+          except Exception as ex:
+            st.error(f"❌ حدث خطأ غير متوقع أثناء إغلاق الجلسة: {ex}")
+            st.exception(ex)
         else:
           st.warning("لا توجد جلسة نشطة لهذا الفريق حالياً.")
 
     if active_session:
-      start_ts = float(active_session.get("Start_Timestamp", time.time()))
+      start_ts = float(active_session.get("start_ts", time.time()))
       elapsed_min = int((time.time() - start_ts) // 60)
       curr_score = max(0.0, round(10.0 - (int(elapsed_min // 5) * 1.0), 1))
       st.info(
@@ -630,58 +724,58 @@ if "attendance" in tab_dict:
       if img_file is not None:
         extracted = extract_qr_code(img_file)
         if extracted:
-          try:
-            code_val = int(extracted)
-            m = (
-                st.session_state.members[
-                    (st.session_state.members["كود العضو"] == code_val)
-                    & (st.session_state.members["الفريق"] == selected_team)
-                ]
-                if "الفريق" in st.session_state.members.columns
-                else st.session_state.members[
-                    st.session_state.members["كود العضو"] == code_val
-                ]
-            )
+          clean_extracted = str(extracted).strip()
+          m = (
+              st.session_state.members[
+                  (
+                      st.session_state.members["كود العضو"]
+                      .astype(str)
+                      .str.strip()
+                      == clean_extracted
+                  )
+                  & (st.session_state.members["الفريق"] == selected_team)
+              ]
+              if "الفريق" in st.session_state.members.columns
+              else st.session_state.members[
+                  st.session_state.members["كود العضو"].astype(str).str.strip()
+                  == clean_extracted
+              ]
+          )
 
-            if not m.empty:
-              row_data = m.iloc[0]
-              m_name = row_data.get(
-                  "اسم الكشاف", row_data.get("الاسم", "كشاف")
+          if not m.empty:
+            row_data = m.iloc[0]
+            m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
+
+            if clean_extracted not in scanned_members:
+              t_now = datetime.datetime.now().strftime("%H:%M:%S")
+              save_draft_scan_firebase(
+                  selected_team,
+                  clean_extracted,
+                  m_name,
+                  t_now,
+                  curr_score,
+                  st.session_state.current_username,
               )
-
-              if code_val not in st.session_state.scanned_members:
-                t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                st.session_state.scanned_members[code_val] = (t_now, curr_score)
-
-                draft_row = [
-                    code_val,
-                    m_name,
-                    selected_team,
-                    t_now,
-                    curr_score,
-                    st.session_state.current_username,
-                ]
-                append_to_google_sheet("مسودة_الحضور", draft_row)
-
-                st.success(
-                    f"🎉 تم تسجيل حضور: {m_name} ({selected_team}) - كود:"
-                    f" {code_val}"
-                )
-                st.balloons()
-              else:
-                st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
+              st.success(
+                  f"🎉 تم تسجيل حضور: {m_name} ({selected_team}) - كود:"
+                  f" {clean_extracted}"
+              )
+              st.balloons()
             else:
-              st.error(
-                  f"❌ الكود ({code_val}) غير مسجل ضمن أعضاء {selected_team}!"
+              st.info(
+                  f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة."
               )
-          except ValueError:
-            st.warning(f"الـ QR يحتوي على نص: {extracted}")
+          else:
+            st.error(
+                f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء"
+                f" {selected_team}!"
+            )
         else:
           st.error("❌ لم يتم التعرف على الرمز.")
     else:
       st.info(
-          "💡 لا توجد جلسة مفتوحة. قم باختيار الفريق ثم اضغط **🚀 بدء الاجتماع"
-          " / الجلسة**."
+          "💡 لا توجد جلسة مفتوحة لهذا الفريق. قم باختيار الفريق ثم اضغط **🚀"
+          " بدء الاجتماع / الجلسة**."
       )
 
     st.divider()
@@ -697,54 +791,52 @@ if "attendance" in tab_dict:
 
         if submit_manual:
           if manual_code_str.strip():
-            try:
-              manual_code = int(manual_code_str.strip())
-              m = (
-                  st.session_state.members[
-                      (st.session_state.members["كود العضو"] == manual_code)
-                      & (st.session_state.members["الفريق"] == selected_team)
-                  ]
-                  if "الفريق" in st.session_state.members.columns
-                  else st.session_state.members[
-                      st.session_state.members["كود العضو"] == manual_code
-                  ]
-              )
+            clean_manual = str(manual_code_str.strip()).strip()
+            m = (
+                st.session_state.members[
+                    (
+                        st.session_state.members["كود العضو"]
+                        .astype(str)
+                        .str.strip()
+                        == clean_manual
+                    )
+                    & (st.session_state.members["الفريق"] == selected_team)
+                ]
+                if "الفريق" in st.session_state.members.columns
+                else st.session_state.members[
+                    st.session_state.members["كود العضو"].astype(str).str.strip()
+                    == clean_manual
+                ]
+            )
 
-              if not m.empty:
-                row_data = m.iloc[0]
-                m_name = row_data.get(
-                    "اسم الكشاف", row_data.get("الاسم", "كشاف")
+            if not m.empty:
+              row_data = m.iloc[0]
+              m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
+              if clean_manual not in scanned_members:
+                # استبدال سطر t_now القديم بهذا السطر:
+                t_now = (datetime.datetime.now() + datetime.timedelta(hours=3)).strftime(
+    "%H:%M:%S"
+)
+
+                save_draft_scan_firebase(
+                    selected_team,
+                    clean_manual,
+                    m_name,
+                    t_now,
+                    curr_score,
+                    st.session_state.current_username,
                 )
-                if manual_code not in st.session_state.scanned_members:
-                  t_now = datetime.datetime.now().strftime("%H:%M:%S")
-                  st.session_state.scanned_members[manual_code] = (
-                      t_now,
-                      curr_score,
-                  )
-
-                  draft_row = [
-                      manual_code,
-                      m_name,
-                      selected_team,
-                      t_now,
-                      curr_score,
-                      st.session_state.current_username,
-                  ]
-                  append_to_google_sheet("مسودة_الحضور", draft_row)
-
-                  st.session_state.manual_reset_counter += 1
-                  st.success(
-                      f"🎉 تم تسجيل: {m_name} ({selected_team}) | الدرجة:"
-                      f" {curr_score}/10"
-                  )
-                  time.sleep(0.8)
-                  st.rerun()
-                else:
-                  st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
+                st.session_state.manual_reset_counter += 1
+                st.success(
+                    f"🎉 تم تسجيل: {m_name} ({selected_team}) | الدرجة:"
+                    f" {curr_score}/10"
+                )
+                time.sleep(0.8)
+                st.rerun()
               else:
-                st.error(f"الكود غير مسجل في {selected_team}!")
-            except ValueError:
-              st.error("يرجى إدخال أرقام فقط لكود الكشاف.")
+                st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
+            else:
+              st.error(f"الكود غير مسجل في {selected_team}!")
           else:
             st.warning("يرجى إدخال كود الكشاف أولاً.")
 
@@ -769,7 +861,7 @@ if "evaluations" in tab_dict:
       if eval_img is not None:
         extracted_eval = extract_qr_code(eval_img)
         if extracted_eval:
-          st.session_state.eval_scanned_code = str(extracted_eval)
+          st.session_state.eval_scanned_code = str(extracted_eval).strip()
           st.session_state.show_eval_camera = False
           st.success(f"تم التقاط الكود: {extracted_eval}")
           st.rerun()
@@ -806,50 +898,52 @@ if "evaluations" in tab_dict:
 
       if submit_eval:
         if s_code_input.strip():
-          try:
-            s_code = int(s_code_input.strip())
-            matched = st.session_state.members[
-                st.session_state.members["كود العضو"] == s_code
-            ]
-            if not matched.empty:
-              row_found = matched.iloc[0]
-              found_member_name = row_found.get(
-                  "اسم الكشاف", row_found.get("الاسم", "غير معروف")
-              )
-              t_date = datetime.datetime.now().strftime("%Y-%m-%d")
+          clean_s_code = str(s_code_input.strip()).strip()
+          matched = st.session_state.members[
+              st.session_state.members["كود العضو"].astype(str).str.strip()
+              == clean_s_code
+          ]
+          if not matched.empty:
+            row_found = matched.iloc[0]
+            found_member_name = row_found.get(
+                "اسم الكشاف", row_found.get("الاسم", "غير معروف")
+            )
+            # استبدال t_date القديم بهذا السطر:
+            t_date = (datetime.datetime.now() + datetime.timedelta(hours=3)).strftime(
+    "%Y-%m-%d"
+)
 
-              if append_to_google_sheet(
-                  "التقييمات",
-                  [
-                      t_date,
-                      s_code,
-                      found_member_name,
-                      eval_team,
-                      s_type,
-                      s_val,
-                      s_notes,
-                  ],
-              ):
-                st.session_state.eval_scanned_code = ""
-                st.session_state.eval_reset_counter += 1
-                st.success(
-                    f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} ({eval_team}) بنجاح!"
-                )
-                time.sleep(1)
-                st.rerun()
-              else:
-                st.error("حدث خطأ أثناء الرفع السحابي.")
+
+            if append_to_google_sheet(
+                "التقييمات",
+                [
+                    t_date,
+                    clean_s_code,
+                    found_member_name,
+                    eval_team,
+                    s_type,
+                    s_val,
+                    s_notes,
+                ],
+            ):
+              st.session_state.eval_scanned_code = ""
+              st.session_state.eval_reset_counter += 1
+              st.success(
+                  f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} ({eval_team}) بنجاح!"
+              )
+              time.sleep(1)
+              st.rerun()
             else:
-              st.error("❌ الكود المدخل غير موجود في الأعضاء.")
-          except ValueError:
-            st.error("⚠️ يرجى إدخال أرقام صحيحة للكود.")
+              st.error("حدث خطأ أثناء الرفع السحابي.")
+          else:
+            st.error("❌ الكود المدخل غير موجود في الأعضاء.")
         else:
           st.warning("يرجى إدخال كود الكشاف أولاً.")
 
-# --- Tab: لوحة الصدارة (المعدل والمصحح) ---
+# --- Tab: لوحة الصدارة ---
 if "leaderboard" in tab_dict:
   with tab_dict["leaderboard"]:
-    st.subheader("🏆 ترتيب الكشافة حسب إجمالي الدرجات")
+    st.subheader("🏆 ترتيب الكشافة حسَب إجمالي الدرجات")
     col_ref, col_sync = st.columns(2)
     leaderboard = pd.DataFrame()
 
@@ -871,44 +965,28 @@ if "leaderboard" in tab_dict:
         members_df[t_name] = "الفريق الأول"
 
       leaderboard = members_df[[c_name, n_name, t_name]].copy()
-      leaderboard[c_name] = (
-          leaderboard[c_name]
-          .astype(str)
-          .str.strip()
-          .str.replace(".0", "", regex=False)
-      )
+      leaderboard[c_name] = leaderboard[c_name].astype(str).str.strip()
 
-      # حساب نقاط الحضور
       att_df = st.session_state.attendance.copy()
       if not att_df.empty and "كود العضو" in att_df.columns:
-        att_df[c_name] = (
-            att_df["كود العضو"]
-            .astype(str)
-            .str.strip()
-            .str.replace(".0", "", regex=False)
-        )
+        att_df["كود العضو"] = att_df["كود العضو"].astype(str).str.strip()
         if "درجة الحضور" in att_df.columns:
           att_df["درجة الحضور"] = pd.to_numeric(
               att_df["درجة الحضور"], errors="coerce"
           ).fillna(0)
-          att_sum = (
-              att_df.groupby(c_name)["درجة الحضور"].sum().reset_index()
-          )
+        att_sum = (
+            att_df.groupby("كود العضو")["درجة الحضور"].sum().reset_index()
+            if "درجة الحضور" in att_df.columns
+            else pd.DataFrame(columns=[c_name, "نقاط الحضور"])
+        )
+        if "درجة الحضور" in att_df.columns:
           att_sum.columns = [c_name, "نقاط الحضور"]
-        else:
-          att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
       else:
         att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
 
-      # حساب نقاط التقييمات
       sc_df = st.session_state.scores.copy()
       if not sc_df.empty and "كود العضو" in sc_df.columns:
-        sc_df[c_name] = (
-            sc_df["كود العضو"]
-            .astype(str)
-            .str.strip()
-            .str.replace(".0", "", regex=False)
-        )
+        sc_df["كود العضو"] = sc_df["كود العضو"].astype(str).str.strip()
         sc_col = [
             c
             for c in sc_df.columns
@@ -916,19 +994,15 @@ if "leaderboard" in tab_dict:
         ]
         sc_v = sc_col[0] if sc_col else sc_df.columns[-1]
         sc_df[sc_v] = pd.to_numeric(sc_df[sc_v], errors="coerce").fillna(0)
-        sc_sum = sc_df.groupby(c_name)[sc_v].sum().reset_index()
+        sc_sum = sc_df.groupby("كود العضو")[sc_v].sum().reset_index()
         sc_sum.columns = [c_name, "نقاط التقييمات"]
       else:
         sc_sum = pd.DataFrame(columns=[c_name, "نقاط التقييمات"])
 
-      # الدمج الآمن وحساب المجموع
       leaderboard = leaderboard.merge(att_sum, on=c_name, how="left").fillna(0)
       leaderboard = leaderboard.merge(sc_sum, on=c_name, how="left").fillna(0)
       leaderboard["المجموع الكلي"] = (
-          pd.to_numeric(leaderboard["نقاط الحضور"], errors="coerce").fillna(0)
-          + pd.to_numeric(leaderboard["نقاط التقييمات"], errors="coerce").fillna(
-              0
-          )
+          leaderboard["نقاط الحضور"] + leaderboard["نقاط التقييمات"]
       )
       leaderboard = leaderboard.sort_values(
           by="المجموع الكلي", ascending=False
@@ -1040,13 +1114,25 @@ if "directory" in tab_dict:
     if st.button("إضافة لخدمة الكشافة"):
       if m_name.strip():
         cleaned_input_name = " ".join(m_name.strip().split())
-        max_c = (
-            st.session_state.members["كود العضو"].max()
-            if not st.session_state.members.empty
-            else 21820260
-        )
+        try:
+          max_c = (
+              pd.to_numeric(
+                  st.session_state.members["كود العضو"], errors="coerce"
+              ).max()
+              if not st.session_state.members.empty
+              else 21820260
+          )
+          if pd.isna(max_c):
+            max_c = 21820260
+        except Exception:
+          max_c = 21820260
+
         new_c = int(max_c + 1)
-        t_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        # استبدال t_date القديم بهذا السطر:
+        t_date = (datetime.datetime.now() + datetime.timedelta(hours=3)).strftime(
+    "%Y-%m-%d"
+)
+
 
         if append_to_google_sheet("الأعضاء", [
             new_c,
