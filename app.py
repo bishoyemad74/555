@@ -625,7 +625,7 @@ if "attendance" in tab_dict:
 
 
             # 1. جلب أعضاء الفريق المحدد فقط
-            team_members = (
+             team_members = (
                 st.session_state.members[
                     st.session_state.members["الفريق"] == selected_team
                 ]
@@ -633,11 +633,11 @@ if "attendance" in tab_dict:
                 else st.session_state.members
             )
 
-            rows_to_upload = []
-            new_att_records = []
+             rows_to_upload = []
+             new_att_records = []
 
             # 2. المرور على جميع أعضاء الفريق بدون استثناء
-            for _, row in team_members.iterrows():
+             for _, row in team_members.iterrows():
               raw_code = row.get("كود العضو", "")
               clean_code_str = str(raw_code).strip()
               member_name = row.get(
