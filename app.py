@@ -601,7 +601,10 @@ if "attendance" in tab_dict:
           )
         else:
           now_ts = time.time()
-          today_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+          # استبدال سطر today_date القديم بهذا السطر:
+now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
+today_date = now_egypt.strftime("%Y-%m-%d %H:%M")
+
           open_session_firebase(
               selected_team, st.session_state.current_username, now_ts, today_date
           )
@@ -615,7 +618,11 @@ if "attendance" in tab_dict:
       if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
         if active_session:
           try:
-            today = datetime.datetime.now().strftime("%Y-%m-%d")
+            # إضافة 3 ساعات للتوقيت المحلي
+now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
+today = now_egypt.strftime("%Y-%m-%d")
+
+
 
             # 1. جلب أعضاء الفريق المحدد فقط
             team_members = (
@@ -806,7 +813,11 @@ if "attendance" in tab_dict:
               row_data = m.iloc[0]
               m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
               if clean_manual not in scanned_members:
-                t_now = datetime.datetime.now().strftime("%H:%M:%S")
+                # استبدال سطر t_now القديم بهذا السطر:
+t_now = (datetime.datetime.now() + datetime.timedelta(hours=3)).strftime(
+    "%H:%M:%S"
+)
+
                 save_draft_scan_firebase(
                     selected_team,
                     clean_manual,
@@ -897,7 +908,11 @@ if "evaluations" in tab_dict:
             found_member_name = row_found.get(
                 "اسم الكشاف", row_found.get("الاسم", "غير معروف")
             )
-            t_date = datetime.datetime.now().strftime("%Y-%m-%d")
+            # استبدال t_date القديم بهذا السطر:
+            t_date = (datetime.datetime.now() + datetime.timedelta(hours=3)).strftime(
+    "%Y-%m-%d"
+)
+
 
             if append_to_google_sheet(
                 "التقييمات",
@@ -1113,7 +1128,11 @@ if "directory" in tab_dict:
           max_c = 21820260
 
         new_c = int(max_c + 1)
-        t_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        # استبدال t_date القديم بهذا السطر:
+            t_date = (datetime.datetime.now() + datetime.timedelta(hours=3)).strftime(
+    "%Y-%m-%d"
+)
+
 
         if append_to_google_sheet("الأعضاء", [
             new_c,
