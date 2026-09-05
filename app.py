@@ -613,95 +613,86 @@ if "attendance" in tab_dict:
           time.sleep(0.3)
           st.rerun()
 
-    with col_stop:
-      if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
-        if active_session:
-          try:
-            # إضافة 3 ساعات للتوقيت المحلي
-         now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
-         today = now_egypt.strftime("%Y-%m-%d")
+        with col_stop:
+            if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
+                if active_session:
+                    try:
+                        now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
+                        today = now_egypt.strftime("%Y-%m-%d")
 
+                        team_members = (
+                            st.session_state.members[
+                                st.session_state.members["الفريق"] == selected_team
+                            ]
+                            if "الفريق" in st.session_state.members.columns
+                            else st.session_state.members
+                        )
 
+                        rows_to_upload = []
+                        new_att_records = []
 
-            # 1. جلب أعضاء الفريق المحدد فقط
-         team_members = (
-                st.session_state.members[
-                    st.session_state.members["الفريق"] == selected_team
-                ]
-                if "الفريق" in st.session_state.members.columns
-                else st.session_state.members
-            )
+                        for _, row in team_members.iterrows():
+                            raw_code = row.get("كود العضو", "")
+                            clean_code_str = str(raw_code).strip()
+                            member_name = row.get(
+                                "اسم الكشاف", row.get("الاسم", "غير معروف")
+                            )
 
-            rows_to_upload = []
-            new_att_records = []
+                            if clean_code_str in scanned_members:
+                                t_str, sc = scanned_members[clean_code_str]
+                                st_name = "حاضر"
+                            else:
+                                t_str = "تلقائي"
+                                sc = 0.0
+                                st_name = "غائب"
 
-            # 2. المرور على جميع أعضاء الفريق بدون استثناء
-            for _, row in team_members.iterrows():
-              raw_code = row.get("كود العضو", "")
-              clean_code_str = str(raw_code).strip()
-              member_name = row.get(
-                  "اسم الكشاف", row.get("الاسم", "غير معروف")
-              )
+                            row_data = [
+                                today,
+                                raw_code,
+                                member_name,
+                                selected_team,
+                                st_name,
+                                t_str,
+                                sc,
+                            ]
+                            rows_to_upload.append(row_data)
 
-              # المطابقة
-              if clean_code_str in scanned_members:
-                t_str, sc = scanned_members[clean_code_str]
-                st_name = "حاضر"
-              else:
-                t_str = "تلقائي"
-                sc = 0.0
-                st_name = "غائب"
+                            new_att_records.append({
+                                "التاريخ": today,
+                                "كود العضو": raw_code,
+                                "اسم الكشاف": member_name,
+                                "الفريق": selected_team,
+                                "حالة الحضور": st_name,
+                                "وقت التسجيل": t_str,
+                                "درجة الحضور": sc,
+                            })
 
-              # تجهيز الصف للرفع الجماعي
-              row_data = [
-                  today,
-                  raw_code,
-                  member_name,
-                  selected_team,
-                  st_name,
-                  t_str,
-                  sc,
-              ]
-              rows_to_upload.append(row_data)
+                        if rows_to_upload:
+                            if append_rows_to_google_sheet("الحضور", rows_to_upload):
+                                st.session_state.attendance = pd.concat(
+                                    [
+                                        st.session_state.attendance,
+                                        pd.DataFrame(new_att_records),
+                                    ],
+                                    ignore_index=True,
+                                )
 
-              new_att_records.append({
-                  "التاريخ": today,
-                  "كود العضو": raw_code,
-                  "اسم الكشاف": member_name,
-                  "الفريق": selected_team,
-                  "حالة الحضور": st_name,
-                  "وقت التسجيل": t_str,
-                  "درجة الحضور": sc,
-              })
+                                close_session_firebase(selected_team)
+                                clear_draft_scans_firebase(selected_team)
 
-            # 3. إرسال الصفوف دفعة واحدة للسحاب
-            if rows_to_upload:
-              if append_rows_to_google_sheet("الحضور", rows_to_upload):
-                st.session_state.attendance = pd.concat(
-                    [
-                        st.session_state.attendance,
-                        pd.DataFrame(new_att_records),
-                    ],
-                    ignore_index=True,
-                )
+                                st.success(
+                                    f"🎉 تم تسجيل حضور وغياب ({len(rows_to_upload)}) عضو لـ ({selected_team}) بنجاح! ☁️"
+                                )
+                                time.sleep(1)
+                                st.rerun()
+                            else:
+                                st.error("❌ فشلت عملية الرفع الجماعي لـ Google Sheets.")
+                    except Exception as ex:
+                        st.error(f"❌ حدث خطأ غير متوقع أثناء إغلاق الجلسة: {ex}")
+                        st.exception(ex)
+                else:
+                    st.warning("لا توجد جلسة نشطة لهذا الفريق حالياً.")
 
-                # إغلاق الجلسة ومسح المسودة من Firebase
-                close_session_firebase(selected_team)
-                clear_draft_scans_firebase(selected_team)
-
-                st.success(
-                    f"🎉 تم تسجيل حضور وغياب ({len(rows_to_upload)}) عضو لـ"
-                    f" ({selected_team}) بنجاح! ☁️"
-                )
-                time.sleep(1)
-                st.rerun()
-              else:
-                st.error("❌ فشلت عملية الرفع الجماعي لـ Google Sheets.")
-          except Exception as ex:
-            st.error(f"❌ حدث خطأ غير متوقع أثناء إغلاق الجلسة: {ex}")
-            st.exception(ex)
-        else:
-          st.warning("لا توجد جلسة نشطة لهذا الفريق حالياً.")
 
     if active_session:
       start_ts = float(active_session.get("start_ts", time.time()))
