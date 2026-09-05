@@ -178,9 +178,7 @@ def update_leaderboard_in_gsheet(df_leaderboard):
       try:
         sheet = sh.worksheet("ترتيب الأعضاء")
       except Exception:
-        sheet = sh.add_worksheet(
-            title="ترتيب الأعضاء", rows="100", cols="10"
-        )
+        sheet = sh.add_worksheet(title="ترتيب الأعضاء", rows="100", cols="10")
       sheet.clear()
       headers = df_leaderboard.columns.tolist()
       data = df_leaderboard.astype(str).values.tolist()
@@ -671,9 +669,7 @@ if "attendance" in tab_dict:
                 )
                 st.balloons()
               else:
-                st.info(
-                    f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة."
-                )
+                st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
             else:
               st.error(
                   f"❌ الكود ({code_val}) غير مسجل ضمن أعضاء {selected_team}!"
@@ -752,7 +748,7 @@ if "attendance" in tab_dict:
           else:
             st.warning("يرجى إدخال كود الكشاف أولاً.")
 
-# --- باقي القوائم ---
+# --- Tab: التقييمات ---
 if "evaluations" in tab_dict:
   with tab_dict["evaluations"]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
@@ -850,15 +846,20 @@ if "evaluations" in tab_dict:
         else:
           st.warning("يرجى إدخال كود الكشاف أولاً.")
 
+# --- Tab: لوحة الصدارة (المعدل والمصحح) ---
 if "leaderboard" in tab_dict:
   with tab_dict["leaderboard"]:
-    st.subheader("🏆 ترتيب الكشافة حسَب إجمالي الدرجات")
+    st.subheader("🏆 ترتيب الكشافة حسب إجمالي الدرجات")
     col_ref, col_sync = st.columns(2)
     leaderboard = pd.DataFrame()
 
     if not st.session_state.members.empty:
       members_df = st.session_state.members.copy()
-      c_name = "كود العضو" if "كود العضو" in members_df.columns else members_df.columns[0]
+      c_name = (
+          "كود العضو"
+          if "كود العضو" in members_df.columns
+          else members_df.columns[0]
+      )
       n_name = (
           "اسم الكشاف"
           if "اسم الكشاف" in members_df.columns
@@ -870,21 +871,44 @@ if "leaderboard" in tab_dict:
         members_df[t_name] = "الفريق الأول"
 
       leaderboard = members_df[[c_name, n_name, t_name]].copy()
+      leaderboard[c_name] = (
+          leaderboard[c_name]
+          .astype(str)
+          .str.strip()
+          .str.replace(".0", "", regex=False)
+      )
 
-      att_df = st.session_state.attendance
+      # حساب نقاط الحضور
+      att_df = st.session_state.attendance.copy()
       if not att_df.empty and "كود العضو" in att_df.columns:
-        att_df["درجة الحضور"] = pd.to_numeric(
-            att_df["درجة الحضور"], errors="coerce"
-        ).fillna(0)
-        att_sum = (
-            att_df.groupby("كود العضو")["درجة الحضور"].sum().reset_index()
+        att_df[c_name] = (
+            att_df["كود العضو"]
+            .astype(str)
+            .str.strip()
+            .str.replace(".0", "", regex=False)
         )
-        att_sum.columns = [c_name, "نقاط الحضور"]
+        if "درجة الحضور" in att_df.columns:
+          att_df["درجة الحضور"] = pd.to_numeric(
+              att_df["درجة الحضور"], errors="coerce"
+          ).fillna(0)
+          att_sum = (
+              att_df.groupby(c_name)["درجة الحضور"].sum().reset_index()
+          )
+          att_sum.columns = [c_name, "نقاط الحضور"]
+        else:
+          att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
       else:
         att_sum = pd.DataFrame(columns=[c_name, "نقاط الحضور"])
 
-      sc_df = st.session_state.scores
+      # حساب نقاط التقييمات
+      sc_df = st.session_state.scores.copy()
       if not sc_df.empty and "كود العضو" in sc_df.columns:
+        sc_df[c_name] = (
+            sc_df["كود العضو"]
+            .astype(str)
+            .str.strip()
+            .str.replace(".0", "", regex=False)
+        )
         sc_col = [
             c
             for c in sc_df.columns
@@ -892,15 +916,19 @@ if "leaderboard" in tab_dict:
         ]
         sc_v = sc_col[0] if sc_col else sc_df.columns[-1]
         sc_df[sc_v] = pd.to_numeric(sc_df[sc_v], errors="coerce").fillna(0)
-        sc_sum = sc_df.groupby("كود العضو")[sc_v].sum().reset_index()
+        sc_sum = sc_df.groupby(c_name)[sc_v].sum().reset_index()
         sc_sum.columns = [c_name, "نقاط التقييمات"]
       else:
         sc_sum = pd.DataFrame(columns=[c_name, "نقاط التقييمات"])
 
+      # الدمج الآمن وحساب المجموع
       leaderboard = leaderboard.merge(att_sum, on=c_name, how="left").fillna(0)
       leaderboard = leaderboard.merge(sc_sum, on=c_name, how="left").fillna(0)
       leaderboard["المجموع الكلي"] = (
-          leaderboard["نقاط الحضور"] + leaderboard["نقاط التقييمات"]
+          pd.to_numeric(leaderboard["نقاط الحضور"], errors="coerce").fillna(0)
+          + pd.to_numeric(leaderboard["نقاط التقييمات"], errors="coerce").fillna(
+              0
+          )
       )
       leaderboard = leaderboard.sort_values(
           by="المجموع الكلي", ascending=False
@@ -909,6 +937,7 @@ if "leaderboard" in tab_dict:
 
     with col_ref:
       if st.button("🔄 تحديث البيانات"):
+        st.cache_data.clear()
         st.session_state.attendance = load_data_from_gsheet("الحضور")
         st.session_state.scores = load_data_from_gsheet("التقييمات")
         st.session_state.members = load_data_from_gsheet("الأعضاء")
@@ -937,6 +966,7 @@ if "leaderboard" in tab_dict:
       with sub_all:
         st.dataframe(leaderboard, use_container_width=True)
 
+# --- Tab: الأعضاء ---
 if "directory" in tab_dict:
   with tab_dict["directory"]:
     st.subheader("👥 إضافة كشاف جديد")
@@ -1051,6 +1081,7 @@ if "directory" in tab_dict:
           time.sleep(1)
           st.rerun()
 
+# --- Tab: الشيت السحابي ---
 if "sheet_link" in tab_dict:
   with tab_dict["sheet_link"]:
     st.subheader("☁️ رابط Google Sheets المباشر")
@@ -1062,6 +1093,7 @@ if "sheet_link" in tab_dict:
         unsafe_allow_html=True,
     )
 
+# --- Tab: إدارة الحسابات ---
 if "accounts" in tab_dict:
   with tab_dict["accounts"]:
     st.subheader("⚙️ إضافة حساب جديد وتحديد الصلاحيات")
