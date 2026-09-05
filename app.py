@@ -624,7 +624,7 @@ if "attendance" in tab_dict:
 
 
             # 1. جلب أعضاء الفريق المحدد فقط
-            team_members = (
+         team_members = (
                 st.session_state.members[
                     st.session_state.members["الفريق"] == selected_team
                 ]
