@@ -294,13 +294,14 @@ def check_login(username, password):
         pass
     return False, None, {}
 
-# --- 🎯 مكون المسح التلقائي المستمر واستبعاد الكاميرا الوايد/الأمامية ---
+# --- 🎯 مكون المسح التلقائي المستمر مع نقل البيانات المباشر ---
 def continuous_qr_scanner_component(key="scanner"):
     html_code = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <script src="https://unpkg.com/html5-qrcode"></script>
+        <script src="./streamlit-component-lib.js"></script>
         <style>
             #reader {{
                 width: 100%;
@@ -318,22 +319,33 @@ def continuous_qr_scanner_component(key="scanner"):
             let lastCode = "";
             let lastTime = 0;
 
+            function sendToStreamlit(value) {{
+                if (window.Streamlit) {{
+                    window.Streamlit.setComponentValue(value);
+                }}
+                window.parent.postMessage({{
+                    type: 'streamlit:setComponentValue',
+                    value: value
+                }}, '*');
+            }}
+
             function onScanSuccess(decodedText, decodedResult) {{
                 let now = Date.now();
                 if (decodedText !== lastCode || (now - lastTime > 2000)) {{
                     lastCode = decodedText;
                     lastTime = now;
-                    window.parent.postMessage({{
-                        type: 'streamlit:setComponentValue',
-                        value: decodedText
-                    }}, '*');
+                    
+                    sendToStreamlit(decodedText);
+                    
+                    if (navigator.vibrate) {{
+                        navigator.vibrate(200);
+                    }}
                 }}
             }}
 
             function startCamera() {{
                 Html5Qrcode.getCameras().then(devices => {{
                     if (devices && devices.length) {{
-                        // فلترة واختيار الكاميرا الخلفية الرئيسية دون الوايد أنجل
                         let backCam = devices.find(d => {{
                             let label = d.label.toLowerCase();
                             return (label.includes('back') || label.includes('rear') || label.includes('0')) 
@@ -344,22 +356,27 @@ def continuous_qr_scanner_component(key="scanner"):
                         let html5QrCode = new Html5Qrcode("reader");
                         html5QrCode.start(
                             selectedCamId, 
-                            {{ fps: 15, qrbox: {{ width: 250, height: 250 }} }},
+                            {{ fps: 10, qrbox: {{ width: 220, height: 220 }} }},
                             onScanSuccess
                         ).catch(err => {{
-                            html5QrCode.start({{ facingMode: "environment" }}, {{ fps: 15, qrbox: 250 }}, onScanSuccess);
+                            html5QrCode.start({{ facingMode: "environment" }}, {{ fps: 10, qrbox: 220 }}, onScanSuccess);
                         }});
                     }}
                 }}).catch(err => {{
                     console.error("Camera access error:", err);
                 }});
             }}
+            
+            if (window.Streamlit) {{
+                window.Streamlit.setComponentReady();
+            }}
+            
             startCamera();
         </script>
     </body>
     </html>
     """
-    return components.html(html_code, height=320)
+    return components.html(html_code, height=330)
 
 st.markdown(
     """
@@ -741,7 +758,7 @@ if "attendance" in tab_dict:
 
         st.divider()
 
-        # --- المسح المستمر باستخدام المكون الجديد المعدل ---
+        # --- المسح المستمر باستخدام المكون المعدل ---
         if active_session:
             st.subheader(f"📷 الكاميرا الحية والمسح التلقائي المستمر ({selected_team})")
 
