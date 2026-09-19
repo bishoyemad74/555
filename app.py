@@ -2,16 +2,15 @@ import datetime
 import json
 import os
 import time
+from zoneinfo import ZoneInfo  # مكتبة مدمجة في بايثون 3.9+ لا تحتاج تثبيت
 import firebase_admin
 from firebase_admin import credentials, db
-import pandas as pd
-
-import pytz
 from PIL import Image
+import pandas as pd
 import streamlit as st
 
-# --- ضبط التوقيت المباشر لمصر ---
-EGYPT_TZ = pytz.timezone("Africa/Cairo")
+# --- ضبط التوقيت المباشر لمصر (مدمج بدلا من pytz) ---
+EGYPT_TZ = ZoneInfo("Africa/Cairo")
 
 
 def get_egypt_now():
@@ -219,7 +218,6 @@ def append_to_google_sheet(sheet_name, row_data):
 
 
 def append_rows_to_google_sheet(sheet_name, rows_data):
-  """إضافة مجموعة صفوف دفعة واحدة لضمان عدم تجاوز طلبات Google API."""
   try:
     client = get_gsheet_client()
     if client:
@@ -235,7 +233,6 @@ def append_rows_to_google_sheet(sheet_name, rows_data):
   return False
 
 
-# --- دوال جديدة لتحديث وحذف الأعضاء (Admin Management) ---
 def update_member_in_gsheet(member_code, updated_data_dict):
   try:
     client = get_gsheet_client()
@@ -246,7 +243,6 @@ def update_member_in_gsheet(member_code, updated_data_dict):
         for idx, row in enumerate(records):
           if str(row.get("كود العضو", "")).strip() == str(member_code).strip():
             row_num = idx + 2
-            # تحديث البيانات حسب الترتيب
             sheet.update_cell(
                 row_num, 2, updated_data_dict.get("اسم الكشاف", "")
             )
@@ -254,9 +250,7 @@ def update_member_in_gsheet(member_code, updated_data_dict):
             sheet.update_cell(
                 row_num, 4, updated_data_dict.get("رقم التليفون", "")
             )
-            sheet.update_cell(
-                row_num, 8, updated_data_dict.get("الفرقة", "")
-            )
+            sheet.update_cell(row_num, 8, updated_data_dict.get("الفرقة", ""))
             st.cache_data.clear()
             return True
   except Exception as e:
@@ -328,9 +322,7 @@ def update_leaderboard_in_gsheet(df_leaderboard):
       try:
         sheet = sh.worksheet("ترتيب الأعضاء")
       except Exception:
-        sheet = sh.add_worksheet(
-            title="ترتيب الأعضاء", rows="100", cols="10"
-        )
+        sheet = sh.add_worksheet(title="ترتيب الأعضاء", rows="100", cols="10")
       sheet.clear()
       headers = df_leaderboard.columns.tolist()
       data = df_leaderboard.astype(str).values.tolist()
@@ -633,7 +625,6 @@ if "attendance" in tab_dict:
     selected_key = "team_1" if selected_team == "الفريق الأول" else "team_2"
     active_session = live_sessions.get(selected_key, None)
 
-    # جلب المسودة الحية من Firebase وتحويل المفاتيح إلى نصوص نظيفة
     scanned_members = {}
     if active_session:
       draft_scans = get_draft_scans_firebase(selected_team)
@@ -676,7 +667,6 @@ if "attendance" in tab_dict:
             now_egypt = get_egypt_now()
             today = now_egypt.strftime("%Y-%m-%d")
 
-            # 1. جلب أعضاء الفريق المحدد فقط
             team_members = (
                 st.session_state.members[
                     st.session_state.members["الفريق"] == selected_team
@@ -688,7 +678,6 @@ if "attendance" in tab_dict:
             rows_to_upload = []
             new_att_records = []
 
-            # 2. المرور على جميع أعضاء الفريق بدون استثناء
             for _, row in team_members.iterrows():
               raw_code = row.get("كود العضو", "")
               clean_code_str = str(raw_code).strip()
@@ -696,7 +685,6 @@ if "attendance" in tab_dict:
                   "اسم الكشاف", row.get("الاسم", "غير معروف")
               )
 
-              # المطابقة
               if clean_code_str in scanned_members:
                 t_str, sc = scanned_members[clean_code_str]
                 st_name = "حاضر"
@@ -705,7 +693,6 @@ if "attendance" in tab_dict:
                 sc = 0.0
                 st_name = "غائب"
 
-              # تجهيز الصف للرفع الجماعي
               row_data = [
                   today,
                   raw_code,
@@ -727,7 +714,6 @@ if "attendance" in tab_dict:
                   "درجة الحضور": sc,
               })
 
-            # 3. إرسال الصفوف دفعة واحدة للسحاب
             if rows_to_upload:
               if append_rows_to_google_sheet("الحضور", rows_to_upload):
                 st.session_state.attendance = pd.concat(
@@ -738,7 +724,6 @@ if "attendance" in tab_dict:
                     ignore_index=True,
                 )
 
-                # إغلاق الجلسة ومسح المسودة من Firebase
                 close_session_firebase(selected_team)
                 clear_draft_scans_firebase(selected_team)
 
@@ -752,7 +737,6 @@ if "attendance" in tab_dict:
                 st.error("❌ فشلت عملية الرفع الجماعي لـ Google Sheets.")
           except Exception as ex:
             st.error(f"❌ حدث خطأ غير متوقع أثناء إغلاق الجلسة: {ex}")
-            st.exception(ex)
         else:
           st.warning("لا توجد جلسة نشطة لهذا الفريق حالياً.")
 
@@ -771,7 +755,17 @@ if "attendance" in tab_dict:
 
     if active_session:
       st.subheader(f"📷 التقاط الكارت والتسجيل التلقائي ({selected_team})")
-      img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
+
+      # الكاميرا المباشرة
+      img_file = st.camera_input("التقط صورة الكارت عبر الكاميرا المباشرة")
+
+      # بديل احتياطي متوافق تماماً في حالة تعذر فتح الكاميرا المباشرة من المتصفح
+      if img_file is None:
+        img_file = st.file_uploader(
+            "📁 أو اختر صورة كارت الكشاف من الاستوديو/الكاميرا العادية",
+            type=["jpg", "jpeg", "png"],
+            key="att_file_upload",
+        )
 
       if img_file is not None:
         extracted = extract_qr_code(img_file)
@@ -814,16 +808,14 @@ if "attendance" in tab_dict:
               )
               st.balloons()
             else:
-              st.info(
-                  f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة."
-              )
+              st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
           else:
             st.error(
                 f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء"
                 f" {selected_team}!"
             )
         else:
-          st.error("❌ لم يتم التعرف على الرمز.")
+          st.error("❌ لم يتم التعرف على الرمز من الصورة.")
     else:
       st.info(
           "💡 لا توجد جلسة مفتوحة لهذا الفريق. قم باختيار الفريق ثم اضغط **🚀"
@@ -907,6 +899,14 @@ if "evaluations" in tab_dict:
       eval_img = st.camera_input(
           "التقط صورة كارت الكشاف للتقييم", key="eval_cam"
       )
+
+      if eval_img is None:
+        eval_img = st.file_uploader(
+            "📁 أو ارفع صورة كارت التقييم",
+            type=["jpg", "jpeg", "png"],
+            key="eval_file_upload",
+        )
+
       if eval_img is not None:
         extracted_eval = extract_qr_code(eval_img)
         if extracted_eval:
@@ -1085,7 +1085,7 @@ if "leaderboard" in tab_dict:
       with sub_all:
         st.dataframe(leaderboard, use_container_width=True)
 
-# --- Tab: الأعضاء وإدارتهم (محدث بطلبك) ---
+# --- Tab: الأعضاء وإدارتهم ---
 if "directory" in tab_dict:
   with tab_dict["directory"]:
     dir_tabs = (
@@ -1215,7 +1215,7 @@ if "directory" in tab_dict:
             time.sleep(1)
             st.rerun()
 
-    # --- القسم الخاص بإدارة وتعديل الأعضاء (خاص بالآدمن) ---
+    # --- إدارة الأعضاء للتعديل أو الحذف (للآدمن) ---
     if st.session_state.user_role == "آدمن":
       with dir_tabs[1]:
         st.subheader("⚙️ تعديل أو حذف بيانات كشاف")
