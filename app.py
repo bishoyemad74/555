@@ -25,6 +25,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# تخصيص الواجهة وإخفاء الهيدر
 st.markdown(
     """
     <style>
@@ -38,6 +39,10 @@ st.markdown(
         }
         body, .stApp {
             margin-bottom: -50px !important;
+        }
+        /* إجبار الكاميرات على استخدام الفلاش والتكبير المناسب وتجاوز العدسة الواسعة */
+        video {
+            object-fit: cover !important;
         }
     </style>
 """,
@@ -756,10 +761,12 @@ if "attendance" in tab_dict:
     if active_session:
       st.subheader(f"📷 التقاط الكارت والتسجيل التلقائي ({selected_team})")
 
-      # الكاميرا المباشرة
-      img_file = st.camera_input("التقط صورة الكارت عبر الكاميرا المباشرة")
+      # استخدام الكاميرا الأساسية الخصم الكود بتحديد المتغير
+      img_file = st.camera_input(
+          "التقط صورة الكارت (الكاميرا الخلفية)", key="att_camera_main"
+      )
 
-      # بديل احتياطي متوافق تماماً في حالة تعذر فتح الكاميرا المباشرة من المتصفح
+      # بديل احتياطي متوافق تماماً
       if img_file is None:
         img_file = st.file_uploader(
             "📁 أو اختر صورة كارت الكشاف من الاستوديو/الكاميرا العادية",
@@ -885,11 +892,16 @@ if "attendance" in tab_dict:
 if "evaluations" in tab_dict:
   with tab_dict["evaluations"]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
-    col_cam_btn, _ = st.columns([1, 1])
-    with col_cam_btn:
-      if st.button(
-          "📷 فتح/إغلاق الكاميرا لمسح الكود", key="toggle_eval_cam_btn"
-      ):
+
+    # إضافة زر لتشغيل الكاميرا في التقييمات مفصول كلياً لضمان العمل
+    col_cam_toggle, _ = st.columns([1.5, 1])
+    with col_cam_toggle:
+      cam_state_label = (
+          "❌ إغلاق الكاميرا"
+          if st.session_state.show_eval_camera
+          else "📷 فتح الكاميرا لمسح الكود"
+      )
+      if st.button(cam_state_label, key="btn_toggle_eval_cam"):
         st.session_state.show_eval_camera = (
             not st.session_state.show_eval_camera
         )
@@ -897,14 +909,14 @@ if "evaluations" in tab_dict:
 
     if st.session_state.show_eval_camera:
       eval_img = st.camera_input(
-          "التقط صورة كارت الكشاف للتقييم", key="eval_cam"
+          "امسح كارت الكشاف (الكاميرا الخلفية)", key="eval_camera_unique"
       )
 
       if eval_img is None:
         eval_img = st.file_uploader(
-            "📁 أو ارفع صورة كارت التقييم",
+            "📁 أو اختر صورة الكارت من جهازك",
             type=["jpg", "jpeg", "png"],
-            key="eval_file_upload",
+            key="eval_file_upload_unique",
         )
 
       if eval_img is not None:
@@ -912,10 +924,11 @@ if "evaluations" in tab_dict:
         if extracted_eval:
           st.session_state.eval_scanned_code = str(extracted_eval).strip()
           st.session_state.show_eval_camera = False
-          st.success(f"تم التقاط الكود: {extracted_eval}")
+          st.success(f"🎉 تم قراءة الكود بنجاح: {extracted_eval}")
+          time.sleep(0.5)
           st.rerun()
         else:
-          st.error("لم يتم التعرف على الرمز.")
+          st.error("❌ لم يتم التعرف على الرمز، يرجى المحاولة من مسافة أوضح.")
 
     with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
       eval_team = st.selectbox(
@@ -924,7 +937,7 @@ if "evaluations" in tab_dict:
       s_code_input = st.text_input(
           "كود الكشاف",
           value=st.session_state.eval_scanned_code,
-          placeholder="أدخل الكود أو امسحه بالكاميرا",
+          placeholder="أدخل الكود أو امسحه بالكاميرا أعلاه",
       )
       s_type = st.selectbox("نوع التقييم", [
           "الزي الكشفي",
