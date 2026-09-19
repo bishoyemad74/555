@@ -5,8 +5,18 @@ import time
 import firebase_admin
 from firebase_admin import credentials, db
 import pandas as pd
+
+import pytz
 from PIL import Image
 import streamlit as st
+
+# --- ضبط التوقيت المباشر لمصر ---
+EGYPT_TZ = pytz.timezone("Africa/Cairo")
+
+
+def get_egypt_now():
+  return datetime.datetime.now(EGYPT_TZ)
+
 
 # --- إعدادات الصفحة ---
 st.set_page_config(
@@ -222,6 +232,52 @@ def append_rows_to_google_sheet(sheet_name, rows_data):
         f"⚠️ خطأ في الرفع الجماعي ({sheet_name}): {type(e).__name__} -"
         f" {str(e)}"
     )
+  return False
+
+
+# --- دوال جديدة لتحديث وحذف الأعضاء (Admin Management) ---
+def update_member_in_gsheet(member_code, updated_data_dict):
+  try:
+    client = get_gsheet_client()
+    if client:
+      sheet = client.open_by_key(SPREADSHEET_ID).worksheet("الأعضاء")
+      records = sheet.get_all_records()
+      if records:
+        for idx, row in enumerate(records):
+          if str(row.get("كود العضو", "")).strip() == str(member_code).strip():
+            row_num = idx + 2
+            # تحديث البيانات حسب الترتيب
+            sheet.update_cell(
+                row_num, 2, updated_data_dict.get("اسم الكشاف", "")
+            )
+            sheet.update_cell(row_num, 3, updated_data_dict.get("الفريق", ""))
+            sheet.update_cell(
+                row_num, 4, updated_data_dict.get("رقم التليفون", "")
+            )
+            sheet.update_cell(
+                row_num, 8, updated_data_dict.get("الفرقة", "")
+            )
+            st.cache_data.clear()
+            return True
+  except Exception as e:
+    st.error(f"خطأ في تعديل الكشاف: {e}")
+  return False
+
+
+def delete_member_from_gsheet(member_code):
+  try:
+    client = get_gsheet_client()
+    if client:
+      sheet = client.open_by_key(SPREADSHEET_ID).worksheet("الأعضاء")
+      records = sheet.get_all_records()
+      if records:
+        for idx, row in enumerate(records):
+          if str(row.get("كود العضو", "")).strip() == str(member_code).strip():
+            sheet.delete_rows(idx + 2)
+            st.cache_data.clear()
+            return True
+  except Exception as e:
+    st.error(f"خطأ في حذف الكشاف: {e}")
   return False
 
 
@@ -601,7 +657,7 @@ if "attendance" in tab_dict:
           )
         else:
           now_ts = time.time()
-          now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
+          now_egypt = get_egypt_now()
           today_date = now_egypt.strftime("%Y-%m-%d %H:%M")
 
           open_session_firebase(
@@ -617,7 +673,7 @@ if "attendance" in tab_dict:
       if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
         if active_session:
           try:
-            now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
+            now_egypt = get_egypt_now()
             today = now_egypt.strftime("%Y-%m-%d")
 
             # 1. جلب أعضاء الفريق المحدد فقط
@@ -743,7 +799,7 @@ if "attendance" in tab_dict:
             m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
 
             if clean_extracted not in scanned_members:
-              t_now = datetime.datetime.now().strftime("%H:%M:%S")
+              t_now = get_egypt_now().strftime("%H:%M:%S")
               save_draft_scan_firebase(
                   selected_team,
                   clean_extracted,
@@ -809,9 +865,7 @@ if "attendance" in tab_dict:
               row_data = m.iloc[0]
               m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
               if clean_manual not in scanned_members:
-                t_now = (
-                    datetime.datetime.now() + datetime.timedelta(hours=3)
-                ).strftime("%H:%M:%S")
+                t_now = get_egypt_now().strftime("%H:%M:%S")
 
                 save_draft_scan_firebase(
                     selected_team,
@@ -903,9 +957,7 @@ if "evaluations" in tab_dict:
             found_member_name = row_found.get(
                 "اسم الكشاف", row_found.get("الاسم", "غير معروف")
             )
-            t_date = (
-                datetime.datetime.now() + datetime.timedelta(hours=3)
-            ).strftime("%Y-%m-%d")
+            t_date = get_egypt_now().strftime("%Y-%m-%d")
 
             if append_to_google_sheet(
                 "التقييمات",
@@ -1033,130 +1085,192 @@ if "leaderboard" in tab_dict:
       with sub_all:
         st.dataframe(leaderboard, use_container_width=True)
 
-# --- Tab: الأعضاء ---
+# --- Tab: الأعضاء وإدارتهم (محدث بطلبك) ---
 if "directory" in tab_dict:
   with tab_dict["directory"]:
-    st.subheader("👥 إضافة كشاف جديد")
-    if "form_version" not in st.session_state:
-      st.session_state.form_version = 0
-
-    v = st.session_state.form_version
-    m_name = st.text_input(
-        "اسم الكشاف رباعي",
-        placeholder="أدخل الاسم رباعياً",
-        key=f"widget_m_name_{v}",
-    )
-    m_team = st.selectbox(
-        "اختر الفريق",
-        ["الفريق الأول", "الفريق الثاني"],
-        key=f"widget_m_team_{v}",
-    )
-    m_phone = st.text_input(
-        "رقم التليفون", placeholder="01xxxxxxxxx", key=f"widget_m_phone_{v}"
-    )
-    gender = st.radio(
-        "النوع", ["ذكر", "أنثى"], horizontal=True, key=f"widget_gender_{v}"
-    )
-    birth_date = st.date_input(
-        "تاريخ الميلاد",
-        value=datetime.date(2000, 1, 1),
-        key=f"widget_birth_date_{v}",
-    )
-    academic_stage = st.selectbox(
-        "المرحلة الدراسية",
-        [
-            "أولى إعدادي",
-            "تانية إعدادي",
-            "تالتة إعدادي",
-            "أولى ثانوي",
-            "تانية ثانوي",
-            "تالتة ثانوي",
-            "جامعة",
-            "أخرى",
-        ],
-        key=f"widget_academic_stage_{v}",
+    dir_tabs = (
+        st.tabs(["➕ إضافة كشاف جديد", "✏️ إدارة وتعديل الأعضاء"])
+        if st.session_state.user_role == "آدمن"
+        else [st.container()]
     )
 
-    suggested_dept = "كشاف"
-    if gender == "ذكر":
-      if "إعدادي" in academic_stage:
-        suggested_dept = "كشاف"
-      elif "ثانوي" in academic_stage:
-        suggested_dept = "متقدم"
-      elif academic_stage in ["جامعة", "أخرى"]:
-        suggested_dept = "جوال"
-    else:
-      if "إعدادي" in academic_stage or "ثانوي" in academic_stage:
-        suggested_dept = "مرشدات"
-      elif academic_stage in ["جامعة", "أخرى"]:
-        suggested_dept = "جوالات"
+    with dir_tabs[0] if st.session_state.user_role == "آدمن" else dir_tabs:
+      st.subheader("👥 إضافة كشاف جديد")
+      if "form_version" not in st.session_state:
+        st.session_state.form_version = 0
 
-    default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
-    default_idx = (
-        default_depts.index(suggested_dept)
-        if suggested_dept in default_depts
-        else 0
-    )
-    m_dept = st.selectbox(
-        "الفرقة الكشفية",
-        default_depts,
-        index=default_idx,
-        key=f"widget_m_dept_{v}_{gender}_{academic_stage}",
-    )
+      v = st.session_state.form_version
+      m_name = st.text_input(
+          "اسم الكشاف رباعي",
+          placeholder="أدخل الاسم رباعياً",
+          key=f"widget_m_name_{v}",
+      )
+      m_team = st.selectbox(
+          "اختر الفريق",
+          ["الفريق الأول", "الفريق الثاني"],
+          key=f"widget_m_team_{v}",
+      )
+      m_phone = st.text_input(
+          "رقم التليفون", placeholder="01xxxxxxxxx", key=f"widget_m_phone_{v}"
+      )
+      gender = st.radio(
+          "النوع", ["ذكر", "أنثى"], horizontal=True, key=f"widget_gender_{v}"
+      )
+      birth_date = st.date_input(
+          "تاريخ الميلاد",
+          value=datetime.date(2000, 1, 1),
+          key=f"widget_birth_date_{v}",
+      )
+      academic_stage = st.selectbox(
+          "المرحلة الدراسية",
+          [
+              "أولى إعدادي",
+              "تانية إعدادي",
+              "تالتة إعدادي",
+              "أولى ثانوي",
+              "تانية ثانوي",
+              "تالتة ثانوي",
+              "جامعة",
+              "أخرى",
+          ],
+          key=f"widget_academic_stage_{v}",
+      )
 
-    if st.button("إضافة لخدمة الكشافة"):
-      if m_name.strip():
-        cleaned_input_name = " ".join(m_name.strip().split())
-        try:
-          max_c = (
-              pd.to_numeric(
-                  st.session_state.members["كود العضو"], errors="coerce"
-              ).max()
-              if not st.session_state.members.empty
-              else 21820260
-          )
-          if pd.isna(max_c):
+      suggested_dept = "كشاف"
+      if gender == "ذكر":
+        if "إعدادي" in academic_stage:
+          suggested_dept = "كشاف"
+        elif "ثانوي" in academic_stage:
+          suggested_dept = "متقدم"
+        elif academic_stage in ["جامعة", "أخرى"]:
+          suggested_dept = "جوال"
+      else:
+        if "إعدادي" in academic_stage or "ثانوي" in academic_stage:
+          suggested_dept = "مرشدات"
+        elif academic_stage in ["جامعة", "أخرى"]:
+          suggested_dept = "جوالات"
+
+      default_depts = ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"]
+      default_idx = (
+          default_depts.index(suggested_dept)
+          if suggested_dept in default_depts
+          else 0
+      )
+      m_dept = st.selectbox(
+          "الفرقة الكشفية",
+          default_depts,
+          index=default_idx,
+          key=f"widget_m_dept_{v}_{gender}_{academic_stage}",
+      )
+
+      if st.button("إضافة لخدمة الكشافة"):
+        if m_name.strip():
+          cleaned_input_name = " ".join(m_name.strip().split())
+          try:
+            max_c = (
+                pd.to_numeric(
+                    st.session_state.members["كود العضو"], errors="coerce"
+                ).max()
+                if not st.session_state.members.empty
+                else 21820260
+            )
+            if pd.isna(max_c):
+              max_c = 21820260
+          except Exception:
             max_c = 21820260
-        except Exception:
-          max_c = 21820260
 
-        new_c = int(max_c + 1)
-        t_date = (
-            datetime.datetime.now() + datetime.timedelta(hours=3)
-        ).strftime("%Y-%m-%d")
+          new_c = int(max_c + 1)
+          t_date = get_egypt_now().strftime("%Y-%m-%d")
 
-        if append_to_google_sheet("الأعضاء", [
-            new_c,
-            cleaned_input_name,
-            m_team,
-            m_phone,
-            gender,
-            str(birth_date),
-            academic_stage,
-            m_dept,
-            t_date,
-        ]):
-          new_m = {
-              "كود العضو": new_c,
-              "اسم الكشاف": cleaned_input_name,
-              "الفريق": m_team,
-              "رقم التليفون": m_phone,
-              "النوع": gender,
-              "تاريخ الميلاد": birth_date,
-              "المرحلة الدراسية": academic_stage,
-              "الفرقة": m_dept,
-              "تاريخ الانضمام": t_date,
+          if append_to_google_sheet("الأعضاء", [
+              new_c,
+              cleaned_input_name,
+              m_team,
+              m_phone,
+              gender,
+              str(birth_date),
+              academic_stage,
+              m_dept,
+              t_date,
+          ]):
+            new_m = {
+                "كود العضو": new_c,
+                "اسم الكشاف": cleaned_input_name,
+                "الفريق": m_team,
+                "رقم التليفون": m_phone,
+                "النوع": gender,
+                "تاريخ الميلاد": birth_date,
+                "المرحلة الدراسية": academic_stage,
+                "الفرقة": m_dept,
+                "تاريخ الانضمام": t_date,
+            }
+            st.session_state.members = pd.concat(
+                [st.session_state.members, pd.DataFrame([new_m])],
+                ignore_index=True,
+            )
+            st.session_state.form_version += 1
+            st.success(
+                f"🎉 تمت إضافة الكشاف ({cleaned_input_name}) لـ ({m_team}) بنجاح!"
+            )
+            time.sleep(1)
+            st.rerun()
+
+    # --- القسم الخاص بإدارة وتعديل الأعضاء (خاص بالآدمن) ---
+    if st.session_state.user_role == "آدمن":
+      with dir_tabs[1]:
+        st.subheader("⚙️ تعديل أو حذف بيانات كشاف")
+        if not st.session_state.members.empty:
+          member_options = {
+              f"{row.get('اسم الكشاف', '')} ({row.get('كود العضو', '')})": row
+              for _, row in st.session_state.members.iterrows()
           }
-          st.session_state.members = pd.concat(
-              [st.session_state.members, pd.DataFrame([new_m])],
-              ignore_index=True,
+          selected_m_label = st.selectbox(
+              "اختر الكشاف للتعديل:", list(member_options.keys())
           )
-          st.session_state.form_version += 1
-          st.success(
-              f"🎉 تمت إضافة الكشاف ({cleaned_input_name}) لـ ({m_team}) بنجاح!"
+          target_member = member_options[selected_m_label]
+
+          m_code = target_member.get("كود العضو", "")
+          e_name = st.text_input(
+              "اسم الكشاف", value=str(target_member.get("اسم الكشاف", ""))
           )
-          time.sleep(1)
-          st.rerun()
+          e_team = st.selectbox(
+              "الفريق",
+              ["الفريق الأول", "الفريق الثاني"],
+              index=0
+              if target_member.get("الفريق", "") == "الفريق الأول"
+              else 1,
+          )
+          e_phone = st.text_input(
+              "رقم التليفون", value=str(target_member.get("رقم التليفون", ""))
+          )
+          e_dept = st.selectbox(
+              "الفرقة",
+              ["كشاف", "متقدم", "جوال", "مرشدات", "جوالات", "قادة"],
+              index=0,
+          )
+
+          col_update, col_del = st.columns(2)
+          with col_update:
+            if st.button("💾 حفظ التعديلات سحابياً"):
+              up_data = {
+                  "اسم الكشاف": e_name,
+                  "الفريق": e_team,
+                  "رقم التليفون": e_phone,
+                  "الفرقة": e_dept,
+              }
+              if update_member_in_gsheet(m_code, up_data):
+                st.success("🎉 تم حفظ وتحديث بيانات الكشاف!")
+                st.session_state.members = load_data_from_gsheet("الأعضاء")
+                time.sleep(1)
+                st.rerun()
+
+          with col_del:
+            if st.button("🗑️ حذف الكشاف نهائياً"):
+              if delete_member_from_gsheet(m_code):
+                st.warning("⚠️ تم حذف الكشاف نهائياً من القواعد السحابية.")
+                st.session_state.members = load_data_from_gsheet("الأعضاء")
+                time.sleep(1)
+                st.rerun()
 
 # --- Tab: الشيت السحابي ---
 if "sheet_link" in tab_dict:
