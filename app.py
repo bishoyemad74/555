@@ -36,14 +36,42 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- 🔥 تهيئة Firebase بالحساب الخدمي ---
+# --- 🔥 تهيئة Firebase بالحساب الخدمي (تم إصلاح معالجة المفتاح الخاص) ---
+RAW_PRIVATE_KEY = (
+    "-----BEGIN PRIVATE KEY-----\n"
+    "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\n"
+    "KKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n"
+    "+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\n"
+    "yy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSESEyzMSWNQ\n"
+    "IWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\n"
+    "ti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\n"
+    "qb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\n"
+    "iSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\n"
+    "hdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\n"
+    "ffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\n"
+    "hTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\n"
+    "aYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\n"
+    "lJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\n"
+    "1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\n"
+    "xUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n"
+    "9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\n"
+    "NuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\n"
+    "JnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\n"
+    "8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\n"
+    "00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\n"
+    "L5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\n"
+    "wdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\n"
+    "a6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\n"
+    "cG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\n"
+    "B3RFZh7bqFkM82JJfMF6Lg==\n"
+    "-----END PRIVATE KEY-----\n"
+)
+
 FIREBASE_CREDS = {
     "type": "service_account",
     "project_id": "scout-app-d5614",
     "private_key_id": "6d124414e35bdcf820dd3315a85cb549f13df03e",
-    "private_key": (
-        "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSESEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\n1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\n00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\nL5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\nB3RFZh7bqFkM82JJfMF6Lg==\n-----END PRIVATE KEY-----\n"
-    ),
+    "private_key": RAW_PRIVATE_KEY.replace("\\n", "\n"),
     "client_email": "firebase-adminsdk-fbsvc@scout-app-d5614.iam.gserviceaccount.com",
     "client_id": "112235328729842790577",
     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -319,7 +347,6 @@ def continuous_qr_scanner_component():
             let lastTime = 0;
 
             function sendDataToStreamlit(value) {
-                // إرسال البيانات المباشر إلى Streamlit Parent Frame
                 window.parent.postMessage({
                     type: 'streamlit:setComponentValue',
                     value: value
@@ -332,12 +359,10 @@ def continuous_qr_scanner_component():
                     lastCode = decodedText;
                     lastTime = now;
                     
-                    // اهتزاز الهاتف عند نجاح القراءة
                     if (navigator.vibrate) {
                         navigator.vibrate([200, 100, 200]);
                     }
 
-                    // إرسال البيانات
                     sendDataToStreamlit(decodedText);
                 }
             }
@@ -892,7 +917,6 @@ if "evaluations" in tab_dict:
     with tab_dict["evaluations"]:
         st.subheader("📝 إضافة تقييم أو نشاط كشفي")
 
-        # 📷 تم إرجاع خيار الكاميرا لقراءة الباركود في التقييمات كما كان تماماً
         col_cam_btn, _ = st.columns([1, 1])
         with col_cam_btn:
             if st.button("📷 فتح/إغلاق كاميرا التقييمات"):
