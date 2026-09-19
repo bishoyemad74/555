@@ -42,7 +42,7 @@ FIREBASE_CREDS = {
     "project_id": "scout-app-d5614",
     "private_key_id": "6d124414e35bdcf820dd3315a85cb549f13df03e",
     "private_key": (
-        "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\n1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\n00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\nL5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\nB3RFZh7bqFkM82JJfMF6Lg==\n-----END PRIVATE KEY-----\n"
+        "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSESEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\n1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\n00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\nL5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\nB3RFZh7bqFkM82JJfMF6Lg==\n-----END PRIVATE KEY-----\n"
     ),
     "client_email": "firebase-adminsdk-fbsvc@scout-app-d5614.iam.gserviceaccount.com",
     "client_id": "112235328729842790577",
@@ -294,23 +294,22 @@ def check_login(username, password):
         pass
     return False, None, {}
 
-# --- 🎯 مكون المسح التلقائي المستمر مع نقل البيانات المباشر ---
-def continuous_qr_scanner_component(key="scanner"):
-    html_code = f"""
+# --- 🎯 مكون المسح التلقائي المستمر مع نقل البيانات المباشر لـ Streamlit ---
+def continuous_qr_scanner_component():
+    html_code = """
     <!DOCTYPE html>
     <html>
     <head>
         <script src="https://unpkg.com/html5-qrcode"></script>
-        <script src="./streamlit-component-lib.js"></script>
         <style>
-            #reader {{
+            #reader {
                 width: 100%;
                 max-width: 400px;
                 margin: 0 auto;
                 border: 2px solid #0D47A1;
                 border-radius: 10px;
                 overflow: hidden;
-            }}
+            }
         </style>
     </head>
     <body>
@@ -319,57 +318,53 @@ def continuous_qr_scanner_component(key="scanner"):
             let lastCode = "";
             let lastTime = 0;
 
-            function sendToStreamlit(value) {{
-                if (window.Streamlit) {{
-                    window.Streamlit.setComponentValue(value);
-                }}
-                window.parent.postMessage({{
+            function sendDataToStreamlit(value) {
+                // إرسال البيانات المباشر إلى Streamlit Parent Frame
+                window.parent.postMessage({
                     type: 'streamlit:setComponentValue',
                     value: value
-                }}, '*');
-            }}
+                }, '*');
+            }
 
-            function onScanSuccess(decodedText, decodedResult) {{
+            function onScanSuccess(decodedText, decodedResult) {
                 let now = Date.now();
-                if (decodedText !== lastCode || (now - lastTime > 2000)) {{
+                if (decodedText !== lastCode || (now - lastTime > 2500)) {
                     lastCode = decodedText;
                     lastTime = now;
                     
-                    sendToStreamlit(decodedText);
-                    
-                    if (navigator.vibrate) {{
-                        navigator.vibrate(200);
-                    }}
-                }}
-            }}
+                    // اهتزاز الهاتف عند نجاح القراءة
+                    if (navigator.vibrate) {
+                        navigator.vibrate([200, 100, 200]);
+                    }
 
-            function startCamera() {{
-                Html5Qrcode.getCameras().then(devices => {{
-                    if (devices && devices.length) {{
-                        let backCam = devices.find(d => {{
+                    // إرسال البيانات
+                    sendDataToStreamlit(decodedText);
+                }
+            }
+
+            function startCamera() {
+                Html5Qrcode.getCameras().then(devices => {
+                    if (devices && devices.length) {
+                        let backCam = devices.find(d => {
                             let label = d.label.toLowerCase();
                             return (label.includes('back') || label.includes('rear') || label.includes('0')) 
                                    && !label.includes('wide') && !label.includes('ultra');
-                        }});
+                        });
                         let selectedCamId = backCam ? backCam.id : devices[devices.length - 1].id;
                         
                         let html5QrCode = new Html5Qrcode("reader");
                         html5QrCode.start(
                             selectedCamId, 
-                            {{ fps: 10, qrbox: {{ width: 220, height: 220 }} }},
+                            { fps: 10, qrbox: { width: 220, height: 220 } },
                             onScanSuccess
-                        ).catch(err => {{
-                            html5QrCode.start({{ facingMode: "environment" }}, {{ fps: 10, qrbox: 220 }}, onScanSuccess);
-                        }});
-                    }}
-                }}).catch(err => {{
+                        ).catch(err => {
+                            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, onScanSuccess);
+                        });
+                    }
+                }).catch(err => {
                     console.error("Camera access error:", err);
-                }});
-            }}
-            
-            if (window.Streamlit) {{
-                window.Streamlit.setComponentReady();
-            }}
+                });
+            }
             
             startCamera();
         </script>
@@ -758,11 +753,11 @@ if "attendance" in tab_dict:
 
         st.divider()
 
-        # --- المسح المستمر باستخدام المكون المعدل ---
+        # --- المسح التلقائي المباشر ---
         if active_session:
             st.subheader(f"📷 الكاميرا الحية والمسح التلقائي المستمر ({selected_team})")
 
-            scanned_qr_code = continuous_qr_scanner_component(key=f"scanner_{selected_key}")
+            scanned_qr_code = continuous_qr_scanner_component()
 
             if scanned_qr_code:
                 clean_extracted = "".join(filter(str.isdigit, str(scanned_qr_code))).strip()
@@ -808,6 +803,8 @@ if "attendance" in tab_dict:
                             f"🎉 تم تسجيل حضور: {m_name} ({selected_team}) - كود: {clean_extracted}"
                         )
                         st.toast(f"✅ تم تسجيل: {m_name}", icon="🟢")
+                        time.sleep(0.5)
+                        st.rerun()
                     else:
                         st.warning(
                             f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة."
@@ -894,6 +891,23 @@ if "attendance" in tab_dict:
 if "evaluations" in tab_dict:
     with tab_dict["evaluations"]:
         st.subheader("📝 إضافة تقييم أو نشاط كشفي")
+
+        # 📷 تم إرجاع خيار الكاميرا لقراءة الباركود في التقييمات كما كان تماماً
+        col_cam_btn, _ = st.columns([1, 1])
+        with col_cam_btn:
+            if st.button("📷 فتح/إغلاق كاميرا التقييمات"):
+                st.session_state.show_eval_camera = not st.session_state.show_eval_camera
+
+        if st.session_state.show_eval_camera:
+            st.info("قم بتوجيه الكاميرا نحو QR الكشاف ليتم كتابة الكود تلقائياً:")
+            eval_qr_val = continuous_qr_scanner_component()
+            if eval_qr_val:
+                clean_eval_qr = "".join(filter(str.isdigit, str(eval_qr_val))).strip()
+                if clean_eval_qr:
+                    st.session_state.eval_scanned_code = clean_eval_qr
+                    st.session_state.show_eval_camera = False
+                    st.success(f"تم التقاط الكود: {clean_eval_qr}")
+                    st.rerun()
 
         with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
             eval_team = st.selectbox(
