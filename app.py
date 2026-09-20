@@ -2,11 +2,14 @@ import datetime
 import json
 import os
 import time
+from zoneinfo import ZoneInfo
 import firebase_admin
 from firebase_admin import credentials, db
 import pandas as pd
 from PIL import Image
 import streamlit as st
+
+CAIRO_TZ = ZoneInfo("Africa/Cairo")
 
 # --- إعدادات الصفحة ---
 st.set_page_config(
@@ -601,7 +604,7 @@ if "attendance" in tab_dict:
           )
         else:
           now_ts = time.time()
-          now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
+          now_egypt = datetime.datetime.now(CAIRO_TZ)
           today_date = now_egypt.strftime("%Y-%m-%d %H:%M")
 
           open_session_firebase(
@@ -617,7 +620,7 @@ if "attendance" in tab_dict:
       if st.button("🔴 إغلاق الجلسة وترحيل البيانات للسحاب فورا"):
         if active_session:
           try:
-            now_egypt = datetime.datetime.now() + datetime.timedelta(hours=3)
+            now_egypt = datetime.datetime.now(CAIRO_TZ)
             today = now_egypt.strftime("%Y-%m-%d")
 
             # 1. جلب أعضاء الفريق المحدد فقط
@@ -743,7 +746,7 @@ if "attendance" in tab_dict:
             m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
 
             if clean_extracted not in scanned_members:
-              t_now = datetime.datetime.now().strftime("%H:%M:%S")
+              t_now = datetime.datetime.now(CAIRO_TZ).strftime("%H:%M:%S")
               save_draft_scan_firebase(
                   selected_team,
                   clean_extracted,
@@ -810,7 +813,7 @@ if "attendance" in tab_dict:
               m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
               if clean_manual not in scanned_members:
                 t_now = (
-                    datetime.datetime.now() + datetime.timedelta(hours=3)
+                    datetime.datetime.now(CAIRO_TZ)
                 ).strftime("%H:%M:%S")
 
                 save_draft_scan_firebase(
@@ -903,9 +906,7 @@ if "evaluations" in tab_dict:
             found_member_name = row_found.get(
                 "اسم الكشاف", row_found.get("الاسم", "غير معروف")
             )
-            t_date = (
-                datetime.datetime.now() + datetime.timedelta(hours=3)
-            ).strftime("%Y-%m-%d")
+            t_date = datetime.datetime.now(CAIRO_TZ).strftime("%Y-%m-%d")
 
             if append_to_google_sheet(
                 "التقييمات",
@@ -1121,9 +1122,7 @@ if "directory" in tab_dict:
           max_c = 21820260
 
         new_c = int(max_c + 1)
-        t_date = (
-            datetime.datetime.now() + datetime.timedelta(hours=3)
-        ).strftime("%Y-%m-%d")
+        t_date = datetime.datetime.now(CAIRO_TZ).strftime("%Y-%m-%d")
 
         if append_to_google_sheet("الأعضاء", [
             new_c,
