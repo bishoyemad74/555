@@ -7,7 +7,6 @@ from firebase_admin import credentials, db
 import pandas as pd
 from PIL import Image
 import streamlit as st
-import streamlit.components.v1 as components
 
 # --- إعدادات الصفحة ---
 st.set_page_config(
@@ -31,6 +30,10 @@ st.markdown(
         body, .stApp {
             margin-bottom: -50px !important;
         }
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+        html, body, [class*="css"] { font-family: 'Tajawal', sans-serif; direction: rtl; text-align: right; }
+        .stButton>button { width: 100%; background-color: #1565C0; color: white; font-weight: bold; border-radius: 10px; padding: 12px; font-size: 16px; }
+        .header-box { background-color: #0D47A1; color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px; }
     </style>
 """,
     unsafe_allow_html=True,
@@ -264,6 +267,7 @@ def update_leaderboard_in_gsheet(df_leaderboard):
         st.error(f"خطأ في ترتيب الأعضاء: {e}")
     return False
 
+# --- 📷 دالة استخراج الباركود المؤكدة والآمنة ---
 def extract_qr_code(image_file):
     try:
         img = Image.open(image_file)
@@ -316,179 +320,6 @@ def check_login(username, password):
     except Exception:
         pass
     return False, None, {}
-
-# --- 🎥 قارئ الكاميرا الأساسية المعدل لمنع القراءات الوهمية تلقائياً ---
-def advanced_camera_scanner(key_suffix="default"):
-    html_code = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-        <style>
-            #reader_box_{key_suffix} {{
-                position: relative;
-                width: 100%;
-                max-width: 450px;
-                margin: 0 auto;
-                border-radius: 16px;
-                overflow: hidden;
-                box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-                border: 4px solid #1565C0;
-                transition: border-color 0.3s ease;
-            }}
-            #reader_box_{key_suffix}.scan-success {{
-                border-color: #00E676 !important;
-                box-shadow: 0 0 25px #00E676 !important;
-            }}
-            .controls-btn {{
-                display: flex;
-                gap: 10px;
-                justify-content: center;
-                margin-top: 12px;
-            }}
-            .btn-cam {{
-                background-color: #1565C0;
-                color: white;
-                border: none;
-                padding: 10px 18px;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: bold;
-                cursor: pointer;
-            }}
-            .status-banner {{
-                text-align: center;
-                font-size: 14px;
-                font-weight: bold;
-                color: #1565C0;
-                margin-top: 8px;
-            }}
-        </style>
-    </head>
-    <body>
-        <div id="reader_box_{key_suffix}">
-            <div id="reader_{key_suffix}"></div>
-        </div>
-        <div class="status-banner" id="status_{key_suffix}">📷 الكاميرا بانتظار مسح كارت جديد...</div>
-        <div class="controls-btn">
-            <button class="btn-cam" onclick="switchCamera()">🔄 تغيير العدسة/الكاميرا</button>
-        </div>
-
-        <script>
-            let html5QrCode;
-            let currentDeviceId = null;
-            let videoDevices = [];
-            let deviceIndex = 0;
-            let lastScannedCode = "";
-            let lastScanTime = 0;
-
-            function sendToStreamlit(value) {{
-                window.parent.postMessage({{
-                    type: "streamlit:setComponentValue",
-                    value: value
-                }}, "*");
-            }}
-
-            async function initDevicesAndStart() {{
-                try {{
-                    const devices = await Html5Qrcode.getCameras();
-                    if (devices && devices.length) {{
-                        videoDevices = devices;
-                        let mainCam = devices.find(d => 
-                            d.label.toLowerCase().includes("back 0") || 
-                            d.label.toLowerCase().includes("main") || 
-                            d.label.toLowerCase().includes("camera 0") ||
-                            d.label.toLowerCase().includes("primary")
-                        );
-                        if (!mainCam) {{
-                            mainCam = devices[devices.length - 1];
-                        }}
-                        currentDeviceId = mainCam.id;
-                        startScanner(currentDeviceId);
-                    }} else {{
-                        startScannerWithFacingMode();
-                    }}
-                }} catch (e) {{
-                    startScannerWithFacingMode();
-                }}
-            }}
-
-            function startScanner(deviceId) {{
-                if (html5QrCode) {{
-                    html5QrCode.stop().then(() => {{ runScanner(deviceId); }}).catch(() => {{ runScanner(deviceId); }});
-                }} else {{
-                    runScanner(deviceId);
-                }}
-            }}
-
-            function startScannerWithFacingMode() {{
-                runScanner({{ facingMode: {{ exact: "environment" }} }});
-            }}
-
-            function runScanner(cameraConfig) {{
-                html5QrCode = new Html5Qrcode("reader_{key_suffix}");
-                const config = {{ fps: 25, qrbox: {{ width: 260, height: 260 }} }};
-
-                html5QrCode.start(
-                    cameraConfig,
-                    config,
-                    (decodedText) => {{
-                        const now = Date.now();
-                        // منع القراءة المكررة فوراً للكارت نفسه في أقل من 3 ثوانٍ
-                        if (decodedText === lastScannedCode && (now - lastScanTime) < 3000) {{
-                            return;
-                        }}
-                        lastScannedCode = decodedText;
-                        lastScanTime = now;
-
-                        const box = document.getElementById("reader_box_{key_suffix}");
-                        const status = document.getElementById("status_{key_suffix}");
-                        box.classList.add("scan-success");
-                        status.innerText = "✅ تم قراءة الكارت: " + decodedText;
-
-                        // إرسال الكود الحقيقي فقط
-                        sendToStreamlit(decodedText);
-
-                        setTimeout(() => {{
-                            box.classList.remove("scan-success");
-                            status.innerText = "📷 الكاميرا بانتظار مسح كارت جديد...";
-                        }}, 2500);
-                    }},
-                    (errorMessage) => {{}}
-                ).catch(err => {{
-                    console.error("Camera Start Error", err);
-                }});
-            }}
-
-            function switchCamera() {{
-                if (videoDevices.length > 1) {{
-                    deviceIndex = (deviceIndex + 1) % videoDevices.length;
-                    currentDeviceId = videoDevices[deviceIndex].id;
-                    startScanner(currentDeviceId);
-                }} else {{
-                    startScannerWithFacingMode();
-                }}
-            }}
-
-            initDevicesAndStart();
-        </script>
-    </body>
-    </html>
-    """
-    return components.html(html_code, height=440)
-
-st.markdown(
-    """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Tajawal', sans-serif; direction: rtl; text-align: right; }
-    #MainMenu, footer, header, .stDeployButton, [data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
-    .stButton>button { width: 100%; background-color: #1565C0; color: white; font-weight: bold; border-radius: 10px; padding: 12px; font-size: 16px; }
-    .header-box { background-color: #0D47A1; color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px; }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
 
 st.markdown(
     '<div class="header-box"><h2> كشافة أم النور ⚜️ </h2></div>',
@@ -579,10 +410,6 @@ if "eval_reset_counter" not in st.session_state:
     st.session_state.eval_reset_counter = 0
 if "manual_reset_counter" not in st.session_state:
     st.session_state.manual_reset_counter = 0
-if "last_processed_code" not in st.session_state:
-    st.session_state.last_processed_code = ""
-if "last_msg_time" not in st.session_state:
-    st.session_state.last_msg_time = 0
 
 # --- تهيئة البيانات ---
 if "members" not in st.session_state or st.session_state.members.empty:
@@ -770,17 +597,12 @@ if "attendance" in tab_dict:
 
         if active_session:
             st.subheader(f"📷 مسح الكارت وتسجيل الحضور المباشر ({selected_team})")
-            scan_method = st.radio("وسيلة المسح:", ["الكاميرا الحية الأساسية (QR)", "التقاط صورة عادية"], horizontal=True)
-
-            if scan_method == "الكاميرا الحية الأساسية (QR)":
-                extracted = advanced_camera_scanner(key_suffix="attendance")
-                
-                # التحقق والتسجيل اللحظي المباشر عند توفر كود حقيقي من الكاميرا
-                if extracted and str(extracted).strip() != "":
-                    clean_extracted = "".join(filter(str.isdigit, str(extracted)))
-                    if not clean_extracted:
-                        clean_extracted = str(extracted).strip()
-
+            
+            img_file = st.camera_input("📷 وجه الكاميرا للكارت واضغط التقاط للتحقق والتسجيل المباشر")
+            if img_file is not None:
+                extracted = extract_qr_code(img_file)
+                if extracted:
+                    clean_extracted = str(extracted).strip()
                     m = (
                         st.session_state.members[
                             (st.session_state.members["كود العضو"].astype(str).str.strip() == clean_extracted) &
@@ -804,66 +626,22 @@ if "attendance" in tab_dict:
                                 curr_score,
                                 st.session_state.current_username,
                             )
-                            st.session_state.last_processed_code = clean_extracted
-                            st.session_state.last_msg_time = time.time()
+                            st.success(f"🎉 تم تسجيل حضور العضو: **{m_name}** | الكود: **{clean_extracted}** | الدرجة: **{curr_score}**")
+                            st.balloons()
+                            time.sleep(1)
                             st.rerun()
                         else:
                             st.info(f"ℹ️ الكشاف {m_name} مسجل حضور بالفعل في هذه الجلسة.")
                     else:
                         st.error(f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء {selected_team}!")
-
-                # إظهار رسالة النجاح مؤقتاً بعد التسجيل لمنع ثباتها
-                if st.session_state.last_processed_code:
-                    if time.time() - st.session_state.last_msg_time < 3.0:
-                        st.success(f"🎉 تم تسجيل الحضور فوراً للكود: **{st.session_state.last_processed_code}**")
-                    else:
-                        st.session_state.last_processed_code = ""
-
-            else:
-                img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
-                if img_file is not None:
-                    extracted = extract_qr_code(img_file)
-                    if extracted:
-                        clean_extracted = str(extracted).strip()
-                        m = (
-                            st.session_state.members[
-                                (st.session_state.members["كود العضو"].astype(str).str.strip() == clean_extracted) &
-                                (st.session_state.members["الفريق"] == selected_team)
-                            ]
-                            if "الفريق" in st.session_state.members.columns
-                            else st.session_state.members[st.session_state.members["كود العضو"].astype(str).str.strip() == clean_extracted]
-                        )
-
-                        if not m.empty:
-                            row_data = m.iloc[0]
-                            m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
-
-                            if clean_extracted not in scanned_members:
-                                t_now = get_now().strftime("%H:%M:%S")
-                                save_draft_scan_firebase(
-                                    selected_team,
-                                    clean_extracted,
-                                    m_name,
-                                    t_now,
-                                    curr_score,
-                                    st.session_state.current_username,
-                                )
-                                st.success(f"🎉 تم تسجيل حضور العضو: **{m_name}** | الكود: **{clean_extracted}**")
-                                st.balloons()
-                                time.sleep(0.5)
-                                st.rerun()
-                            else:
-                                st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
-                        else:
-                            st.error(f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء {selected_team}!")
-                    else:
-                        st.error("❌ لم يتم التعرف على الرمز.")
+                else:
+                    st.error("❌ لم يتم التعرف على الرمز من الصورة، تأكد من وضوح كارت QR.")
         else:
             st.info("💡 لا توجد جلسة مفتوحة لهذا الفريق. قم باختيار الفريق ثم اضغط **🚀 بدء الاجتماع / الجلسة**.")
 
         st.divider()
 
-        # 📋 عرض قائمة الحضور الفورية التي تتحدث تلقائياً تحت الكاميرا مباشرة
+        # 📋 عرض قائمة الحضور الفورية
         if scanned_members:
             st.markdown("### 📋 قائمة الأعضاء الحاضرين في الجلسة الحالية:")
             scanned_list = [
@@ -918,26 +696,32 @@ if "attendance" in tab_dict:
 if "evaluations" in tab_dict:
     with tab_dict["evaluations"]:
         st.subheader("📝 إضافة تقييم أو نشاط كشفي")
-        col_cam_btn, _ = st.columns([1, 1])
-        with col_cam_btn:
-            if st.button("📷 فتح/إغلاق الكاميرا لمسح الكود", key="toggle_eval_cam_btn"):
-                st.session_state.show_eval_camera = not st.session_state.show_eval_camera
-                st.rerun()
+        
+        # زر إظهار/إخفاء الكاميرا في صفحة التقييمات
+        btn_cam_text = "📷 إغلاق الكاميرا" if st.session_state.show_eval_camera else "📷 فتح الكاميرا لمسح كارت التقييم"
+        if st.button(btn_cam_text, key="toggle_eval_cam_btn"):
+            st.session_state.show_eval_camera = not st.session_state.show_eval_camera
+            st.rerun()
 
         if st.session_state.show_eval_camera:
-            extracted_eval = advanced_camera_scanner(key_suffix="eval")
-            if extracted_eval:
-                st.session_state.eval_scanned_code = str(extracted_eval).strip()
-                st.session_state.show_eval_camera = False
-                st.success(f"تم التقاط الكود: {extracted_eval}")
-                st.rerun()
+            eval_img = st.camera_input("التقط صورة الكارت لقراءة الكود للتقييم")
+            if eval_img is not None:
+                extracted_eval = extract_qr_code(eval_img)
+                if extracted_eval:
+                    st.session_state.eval_scanned_code = str(extracted_eval).strip()
+                    st.session_state.show_eval_camera = False
+                    st.success(f"🎉 تم قراءة الكود بنجاح: **{st.session_state.eval_scanned_code}**")
+                    time.sleep(0.5)
+                    st.rerun()
+                else:
+                    st.error("❌ لم يتم قراءة الرمز، جرب التقاط صورة أوضح.")
 
         with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
             eval_team = st.selectbox("الفريق", ["الفريق الأول", "الفريق الثاني"], key="eval_team_select")
             s_code_input = st.text_input(
                 "كود الكشاف",
                 value=st.session_state.eval_scanned_code,
-                placeholder="أدخل الكود أو امسحه بالكاميرا",
+                placeholder="أدخل الكود أو امسحه بالكاميرا أعلاه",
             )
             s_type = st.selectbox("نوع التقييم", [
                 "الزي الكشفي",
