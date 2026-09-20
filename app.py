@@ -317,7 +317,7 @@ def check_login(username, password):
         pass
     return False, None, {}
 
-# --- 🎥 قارئ الكاميرا الأساسية المصلح بالكامل (تحديد الكاميرا الرئيسية + إرسال فوري لـ Streamlit) ---
+# --- 🎥 قارئ الكاميرا الأساسية المعدل لمنع القراءات الوهمية تلقائياً ---
 def advanced_camera_scanner(key_suffix="default"):
     html_code = f"""
     <!DOCTYPE html>
@@ -369,7 +369,7 @@ def advanced_camera_scanner(key_suffix="default"):
         <div id="reader_box_{key_suffix}">
             <div id="reader_{key_suffix}"></div>
         </div>
-        <div class="status-banner" id="status_{key_suffix}">📷 الكاميرا الأساسية تعمل.. وجّه الـ QR للعدسة</div>
+        <div class="status-banner" id="status_{key_suffix}">📷 الكاميرا بانتظار مسح كارت جديد...</div>
         <div class="controls-btn">
             <button class="btn-cam" onclick="switchCamera()">🔄 تغيير العدسة/الكاميرا</button>
         </div>
@@ -394,7 +394,6 @@ def advanced_camera_scanner(key_suffix="default"):
                     const devices = await Html5Qrcode.getCameras();
                     if (devices && devices.length) {{
                         videoDevices = devices;
-                        // فلترة واختيار العدسة الأساسية وتجنب الكاميرا العريضة ultrawide
                         let mainCam = devices.find(d => 
                             d.label.toLowerCase().includes("back 0") || 
                             d.label.toLowerCase().includes("main") || 
@@ -435,6 +434,7 @@ def advanced_camera_scanner(key_suffix="default"):
                     config,
                     (decodedText) => {{
                         const now = Date.now();
+                        // منع القراءة المكررة فوراً للكارت نفسه في أقل من 3 ثوانٍ
                         if (decodedText === lastScannedCode && (now - lastScanTime) < 3000) {{
                             return;
                         }}
@@ -444,15 +444,15 @@ def advanced_camera_scanner(key_suffix="default"):
                         const box = document.getElementById("reader_box_{key_suffix}");
                         const status = document.getElementById("status_{key_suffix}");
                         box.classList.add("scan-success");
-                        status.innerText = "✅ تم القراءة والتسجيل الفوري: " + decodedText;
+                        status.innerText = "✅ تم قراءة الكارت: " + decodedText;
 
-                        // إرسال الكود فوراً وبدون أي تأخير لـ Streamlit
+                        // إرسال الكود الحقيقي فقط
                         sendToStreamlit(decodedText);
 
                         setTimeout(() => {{
                             box.classList.remove("scan-success");
-                            status.innerText = "📷 الكاميرا الأساسية تعمل.. وجّه الـ QR للعدسة";
-                        }}, 2000);
+                            status.innerText = "📷 الكاميرا بانتظار مسح كارت جديد...";
+                        }}, 2500);
                     }},
                     (errorMessage) => {{}}
                 ).catch(err => {{
@@ -579,6 +579,10 @@ if "eval_reset_counter" not in st.session_state:
     st.session_state.eval_reset_counter = 0
 if "manual_reset_counter" not in st.session_state:
     st.session_state.manual_reset_counter = 0
+if "last_processed_code" not in st.session_state:
+    st.session_state.last_processed_code = ""
+if "last_msg_time" not in st.session_state:
+    st.session_state.last_msg_time = 0
 
 # --- تهيئة البيانات ---
 if "members" not in st.session_state or st.session_state.members.empty:
@@ -770,7 +774,9 @@ if "attendance" in tab_dict:
 
             if scan_method == "الكاميرا الحية الأساسية (QR)":
                 extracted = advanced_camera_scanner(key_suffix="attendance")
-                if extracted:
+                
+                # التحقق والتسجيل اللحظي المباشر عند توفر كود حقيقي من الكاميرا
+                if extracted and str(extracted).strip() != "":
                     clean_extracted = "".join(filter(str.isdigit, str(extracted)))
                     if not clean_extracted:
                         clean_extracted = str(extracted).strip()
@@ -798,15 +804,20 @@ if "attendance" in tab_dict:
                                 curr_score,
                                 st.session_state.current_username,
                             )
-                            # إظهار الرسالة والتأكيد الفوري
-                            st.success(f"🎉 تم تسجيل حضور العضو تلقائياً: **{m_name}** | الكود: **{clean_extracted}** | الدرجة: **{curr_score}**")
-                            st.balloons()
-                            time.sleep(0.5)
+                            st.session_state.last_processed_code = clean_extracted
+                            st.session_state.last_msg_time = time.time()
                             st.rerun()
                         else:
                             st.info(f"ℹ️ الكشاف {m_name} مسجل حضور بالفعل في هذه الجلسة.")
                     else:
                         st.error(f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء {selected_team}!")
+
+                # إظهار رسالة النجاح مؤقتاً بعد التسجيل لمنع ثباتها
+                if st.session_state.last_processed_code:
+                    if time.time() - st.session_state.last_msg_time < 3.0:
+                        st.success(f"🎉 تم تسجيل الحضور فوراً للكود: **{st.session_state.last_processed_code}**")
+                    else:
+                        st.session_state.last_processed_code = ""
 
             else:
                 img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
