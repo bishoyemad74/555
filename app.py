@@ -2,12 +2,20 @@ import datetime
 import json
 import os
 import time
+import threading
 from zoneinfo import ZoneInfo
 import firebase_admin
 from firebase_admin import credentials, db
 import pandas as pd
 from PIL import Image
 import streamlit as st
+
+try:
+    from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
+    import av
+    HAS_WEBRTC = True
+except Exception:
+    HAS_WEBRTC = False
 
 CAIRO_TZ = ZoneInfo("Africa/Cairo")
 
@@ -144,6 +152,73 @@ try:
   HAS_PYZBAR = True
 except Exception:
   HAS_PYZBAR = False
+
+# --- 📷 كاميرا QR الخلفية 1x لأندرويد ---
+CAMERA_CONSTRAINTS = {
+    "video": {
+        "facingMode": {"exact": "environment"},
+        "zoom": {"ideal": 1.0},
+        "width": {"ideal": 1280},
+        "height": {"ideal": 720},
+    },
+    "audio": False,
+}
+
+
+if HAS_WEBRTC:
+    class QRVideoProcessor(VideoProcessorBase):
+        def __init__(self):
+            self.lock = threading.Lock()
+            self.latest_code = None
+            self.last_scan_time = 0.0
+
+        def recv(self, frame):
+            img = frame.to_ndarray(format="bgr24")
+
+            # لا نفحص كل فريم لتقليل الحمل على الهاتف.
+            now = time.time()
+            if now - self.last_scan_time >= 0.20:
+                self.last_scan_time = now
+                try:
+                    detected = None
+                    if HAS_ZXING:
+                        results = zxingcpp.read_barcodes(img)
+                        if results:
+                            detected = results[0].text
+                    if not detected and HAS_PYZBAR:
+                        decoded = decode(img)
+                        if decoded:
+                            detected = decoded[0].data.decode("utf-8")
+
+                    if detected:
+                        clean_digits = "".join(filter(str.isdigit, str(detected)))
+                        clean_value = clean_digits if clean_digits else str(detected).strip()
+                        if clean_value:
+                            with self.lock:
+                                self.latest_code = clean_value
+                except Exception:
+                    pass
+
+            return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+
+def get_qr_code_from_rear_camera(component_key):
+    """فتح الكاميرا الخلفية الأساسية 1x ومسح QR تلقائياً."""
+    if not HAS_WEBRTC:
+        return None
+
+    ctx = webrtc_streamer(
+        key=component_key,
+        video_processor_factory=QRVideoProcessor,
+        media_stream_constraints=CAMERA_CONSTRAINTS,
+        sendback_audio=False,
+    )
+
+    if ctx.video_processor:
+        with ctx.video_processor.lock:
+            return ctx.video_processor.latest_code
+    return None
+
 
 # --- Google Sheets ---
 try:
@@ -718,59 +793,63 @@ if "attendance" in tab_dict:
 
     if active_session:
       st.subheader(f"📷 التقاط الكارت والتسجيل التلقائي ({selected_team})")
-      img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
+      extracted = None
+      if HAS_WEBRTC:
+        extracted = get_qr_code_from_rear_camera("attendance_qr_camera")
+      else:
+        img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
+        if img_file is not None:
+          extracted = extract_qr_code(img_file)
 
-      if img_file is not None:
-        extracted = extract_qr_code(img_file)
-        if extracted:
-          clean_extracted = str(extracted).strip()
-          m = (
-              st.session_state.members[
-                  (
-                      st.session_state.members["كود العضو"]
-                      .astype(str)
-                      .str.strip()
-                      == clean_extracted
-                  )
-                  & (st.session_state.members["الفريق"] == selected_team)
-              ]
-              if "الفريق" in st.session_state.members.columns
-              else st.session_state.members[
-                  st.session_state.members["كود العضو"].astype(str).str.strip()
-                  == clean_extracted
-              ]
-          )
+      if extracted:
+        clean_extracted = str(extracted).strip()
+        m = (
+            st.session_state.members[
+                (
+                    st.session_state.members["كود العضو"]
+                    .astype(str)
+                    .str.strip()
+                    == clean_extracted
+                )
+                & (st.session_state.members["الفريق"] == selected_team)
+            ]
+            if "الفريق" in st.session_state.members.columns
+            else st.session_state.members[
+                st.session_state.members["كود العضو"].astype(str).str.strip()
+                == clean_extracted
+            ]
+        )
 
-          if not m.empty:
-            row_data = m.iloc[0]
-            m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
+        if not m.empty:
+          row_data = m.iloc[0]
+          m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
 
-            if clean_extracted not in scanned_members:
-              t_now = datetime.datetime.now(CAIRO_TZ).strftime("%H:%M:%S")
-              save_draft_scan_firebase(
-                  selected_team,
-                  clean_extracted,
-                  m_name,
-                  t_now,
-                  curr_score,
-                  st.session_state.current_username,
-              )
-              st.success(
-                  f"🎉 تم تسجيل حضور: {m_name} ({selected_team}) - كود:"
-                  f" {clean_extracted}"
-              )
-              st.balloons()
-            else:
-              st.info(
-                  f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة."
-              )
+          if clean_extracted not in scanned_members:
+            t_now = datetime.datetime.now(CAIRO_TZ).strftime("%H:%M:%S")
+            save_draft_scan_firebase(
+                selected_team,
+                clean_extracted,
+                m_name,
+                t_now,
+                curr_score,
+                st.session_state.current_username,
+            )
+            st.success(
+                f"🎉 تم تسجيل حضور: {m_name} ({selected_team}) - كود:"
+                f" {clean_extracted}"
+            )
+            st.balloons()
           else:
-            st.error(
-                f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء"
-                f" {selected_team}!"
+            st.info(
+                f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة."
             )
         else:
-          st.error("❌ لم يتم التعرف على الرمز.")
+          st.error(
+              f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء"
+              f" {selected_team}!"
+          )
+      else:
+        st.error("❌ لم يتم التعرف على الرمز.")
     else:
       st.info(
           "💡 لا توجد جلسة مفتوحة لهذا الفريق. قم باختيار الفريق ثم اضغط **🚀"
@@ -853,18 +932,23 @@ if "evaluations" in tab_dict:
         st.rerun()
 
     if st.session_state.show_eval_camera:
-      eval_img = st.camera_input(
-          "التقط صورة كارت الكشاف للتقييم", key="eval_cam"
-      )
-      if eval_img is not None:
-        extracted_eval = extract_qr_code(eval_img)
-        if extracted_eval:
-          st.session_state.eval_scanned_code = str(extracted_eval).strip()
-          st.session_state.show_eval_camera = False
-          st.success(f"تم التقاط الكود: {extracted_eval}")
-          st.rerun()
-        else:
-          st.error("لم يتم التعرف على الرمز.")
+      extracted_eval = None
+      if HAS_WEBRTC:
+        extracted_eval = get_qr_code_from_rear_camera("evaluation_qr_camera")
+      else:
+        eval_img = st.camera_input(
+            "التقط صورة كارت الكشاف للتقييم", key="eval_cam"
+        )
+        if eval_img is not None:
+          extracted_eval = extract_qr_code(eval_img)
+
+      if extracted_eval:
+        st.session_state.eval_scanned_code = str(extracted_eval).strip()
+        st.session_state.show_eval_camera = False
+        st.success(f"تم التقاط الكود: {extracted_eval}")
+        st.rerun()
+      else:
+        st.error("لم يتم التعرف على الرمز.")
 
     with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
       eval_team = st.selectbox(
