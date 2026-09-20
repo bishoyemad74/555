@@ -6,4 +6,4 @@ opencv-python-headless
 pillow
 firebase-admin
 pytz
-
+streamlit-webrtc==0.75.0
