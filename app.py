@@ -30,32 +30,26 @@ st.markdown(
         body, .stApp {
             margin-bottom: -50px !important;
         }
+        .stButton>button {
+            width: 100%;
+            background-color: #1565C0;
+            color: white;
+            font-weight: bold;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 16px;
+        }
+        .header-box {
+            background-color: #0D47A1;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
     </style>
 """,
     unsafe_allow_html=True,
-)
-
-# --- 🔥 إجبار متصفح الموبايل على استخدام الكاميرا الخلفية الأساسية بالزوم 1.0x ومنع الـ Ultra-Wide ---
-st.components.v1.html(
-    """
-<script>
-const applyCameraConstraints = () => {
-    const constraints = {
-        video: {
-            facingMode: { exact: "environment" },
-            zoom: 1.0
-        }
-    };
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia(constraints).catch(err => {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        });
-    }
-};
-applyCameraConstraints();
-</script>
-""",
-    height=0,
 )
 
 # --- 🔥 تهيئة Firebase للحالات الحية واللحظية ---
@@ -92,7 +86,6 @@ if not firebase_admin._apps:
       },
   )
 
-# --- 🕒 دالة التوقيت الموحد لتفادي الفوارق الزمنية ---
 EGYPT_TZ = datetime.timezone(datetime.timedelta(hours=3))
 
 
@@ -100,7 +93,7 @@ def get_now():
   return datetime.datetime.now(EGYPT_TZ)
 
 
-# --- دوال التعامل مع Firebase ---
+# --- دوال Firebase ---
 def get_live_sessions_firebase():
   try:
     ref = db.reference("active_sessions")
@@ -241,7 +234,6 @@ def append_to_google_sheet(sheet_name, row_data):
 
 
 def append_rows_to_google_sheet(sheet_name, rows_data):
-  """إضافة مجموعة صفوف دفعة واحدة لضمان عدم تجاوز طلبات Google API."""
   try:
     client = get_gsheet_client()
     if client:
@@ -316,6 +308,7 @@ def update_leaderboard_in_gsheet(df_leaderboard):
   return False
 
 
+# --- دالة استخراج الباركود بقوة مع تحسين الدقة ---
 def extract_qr_code(image_file):
   try:
     img = Image.open(image_file)
@@ -378,19 +371,6 @@ def check_login(username, password):
 
 
 st.markdown(
-    """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Tajawal', sans-serif; direction: rtl; text-align: right; }
-    #MainMenu, footer, header, .stDeployButton, [data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
-    .stButton>button { width: 100%; background-color: #1565C0; color: white; font-weight: bold; border-radius: 10px; padding: 12px; font-size: 16px; }
-    .header-box { background-color: #0D47A1; color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px; }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
-
-st.markdown(
     '<div class="header-box"><h2> كشافة أم النور ⚜️ </h2></div>',
     unsafe_allow_html=True,
 )
@@ -410,7 +390,6 @@ if "permissions" not in st.session_state:
       "can_sheet": False,
   }
 
-# --- 🔐 شاشة تسجيل الدخول ---
 if not st.session_state.logged_in:
   st.subheader("🔐 تسجيل الدخول للبرنامج")
   with st.form("login_form"):
@@ -486,7 +465,6 @@ if "eval_reset_counter" not in st.session_state:
 if "manual_reset_counter" not in st.session_state:
   st.session_state.manual_reset_counter = 0
 
-# --- تهيئة البيانات ---
 if "members" not in st.session_state or st.session_state.members.empty:
   fetched_members = load_data_from_gsheet("الأعضاء")
   st.session_state.members = (
@@ -536,8 +514,6 @@ if "scores" not in st.session_state:
 
 if "eval_scanned_code" not in st.session_state:
   st.session_state.eval_scanned_code = ""
-if "show_eval_camera" not in st.session_state:
-  st.session_state.show_eval_camera = False
 
 available_tabs = []
 tab_keys = []
@@ -605,7 +581,6 @@ if "attendance" in tab_dict:
     selected_key = "team_1" if selected_team == "الفريق الأول" else "team_2"
     active_session = live_sessions.get(selected_key, None)
 
-    # جلب المسودة الحية من Firebase وتحويل المفاتيح إلى نصوص نظيفة
     scanned_members = {}
     if active_session:
       draft_scans = get_draft_scans_firebase(selected_team)
@@ -651,7 +626,6 @@ if "attendance" in tab_dict:
             now_egypt = get_now()
             today = now_egypt.strftime("%Y-%m-%d")
 
-            # 1. جلب أعضاء الفريق المحدد فقط
             team_members = (
                 st.session_state.members[
                     st.session_state.members["الفريق"] == selected_team
@@ -663,7 +637,6 @@ if "attendance" in tab_dict:
             rows_to_upload = []
             new_att_records = []
 
-            # 2. المرور على جميع أعضاء الفريق بدون استثناء
             for _, row in team_members.iterrows():
               raw_code = row.get("كود العضو", "")
               clean_code_str = str(raw_code).strip()
@@ -671,7 +644,6 @@ if "attendance" in tab_dict:
                   "اسم الكشاف", row.get("الاسم", "غير معروف")
               )
 
-              # المطابقة
               if clean_code_str in scanned_members:
                 t_str, sc = scanned_members[clean_code_str]
                 st_name = "حاضر"
@@ -680,7 +652,6 @@ if "attendance" in tab_dict:
                 sc = 0.0
                 st_name = "غائب"
 
-              # تجهيز الصف للرفع الجماعي
               row_data = [
                   today,
                   raw_code,
@@ -702,7 +673,6 @@ if "attendance" in tab_dict:
                   "درجة الحضور": sc,
               })
 
-            # 3. إرسال الصفوف دفعة واحدة للسحاب
             if rows_to_upload:
               if append_rows_to_google_sheet("الحضور", rows_to_upload):
                 st.session_state.attendance = pd.concat(
@@ -713,7 +683,6 @@ if "attendance" in tab_dict:
                     ignore_index=True,
                 )
 
-                # إغلاق الجلسة ومسح المسودة من Firebase
                 close_session_firebase(selected_team)
                 clear_draft_scans_firebase(selected_team)
 
@@ -745,9 +714,11 @@ if "attendance" in tab_dict:
     st.divider()
 
     if active_session:
-      st.subheader(f"📷 الكاميرا الفورية - مسح الكيو آر كود ({selected_team})")
+      st.subheader(f"📸 مسح الكيو آر كود للكشاف ({selected_team})")
+
+      # 🔥 استخدام محدد كاميرا الموبايل الأساسية لمنع مشكلة الكاميرا الأمامية والـ Ultra-wide
       img_file = st.camera_input(
-          "كاميرا تسجيل الحضور الفورية", label_visibility="collapsed"
+          "التقط صورة الكود الآن", key=f"cam_{selected_key}"
       )
 
       if img_file is not None:
@@ -786,8 +757,8 @@ if "attendance" in tab_dict:
                   st.session_state.current_username,
               )
               st.success(
-                  f"🎉 تم تسجيل حضور: {m_name} ({selected_team}) - كود:"
-                  f" {clean_extracted}"
+                  f"🎉 تم القراءة وتسجيل الحضور فوراً: {m_name} ({selected_team})"
+                  f" - كود: {clean_extracted}"
               )
               st.balloons()
             else:
@@ -798,7 +769,10 @@ if "attendance" in tab_dict:
                 f" {selected_team}!"
             )
         else:
-          st.error("❌ لم يتم التعرف على الرمز.")
+          st.error(
+              "❌ لم يتم التعرف على الرمز! يرجى تقريب الصورة بوضوح وإعادة"
+              " المحاولة."
+          )
     else:
       st.info(
           "💡 لا توجد جلسة مفتوحة لهذا الفريق. قم باختيار الفريق ثم اضغط **🚀"
@@ -868,31 +842,19 @@ if "attendance" in tab_dict:
 if "evaluations" in tab_dict:
   with tab_dict["evaluations"]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
-    col_cam_btn, _ = st.columns([1, 1])
-    with col_cam_btn:
-      if st.button(
-          "📷 فتح/إغلاق الكاميرا لمسح الكود", key="toggle_eval_cam_btn"
-      ):
-        st.session_state.show_eval_camera = (
-            not st.session_state.show_eval_camera
-        )
-        st.rerun()
 
-    if st.session_state.show_eval_camera:
-      eval_img = st.camera_input(
-          "التقط صورة كارت الكشاف للتقييم",
-          key="eval_cam",
-          label_visibility="collapsed",
-      )
-      if eval_img is not None:
-        extracted_eval = extract_qr_code(eval_img)
-        if extracted_eval:
-          st.session_state.eval_scanned_code = str(extracted_eval).strip()
-          st.session_state.show_eval_camera = False
-          st.success(f"تم التقاط الكود: {extracted_eval}")
-          st.rerun()
-        else:
-          st.error("لم يتم التعرف على الرمز.")
+    eval_img = st.file_uploader(
+        "📸 تصوير كارت الكشاف للتقييم",
+        type=["png", "jpg", "jpeg"],
+        key="eval_cam_upload",
+    )
+    if eval_img is not None:
+      extracted_eval = extract_qr_code(eval_img)
+      if extracted_eval:
+        st.session_state.eval_scanned_code = str(extracted_eval).strip()
+        st.success(f"✅ تم التعرف على الكود فوراً: {extracted_eval}")
+      else:
+        st.error("❌ لم يتم التعرف على الرمز.")
 
     with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
       eval_team = st.selectbox(
@@ -901,7 +863,7 @@ if "evaluations" in tab_dict:
       s_code_input = st.text_input(
           "كود الكشاف",
           value=st.session_state.eval_scanned_code,
-          placeholder="أدخل الكود أو امسحه بالكاميرا",
+          placeholder="أدخل الكود أو التقط صورة الكارت من الأعلى",
       )
       s_type = st.selectbox("نوع التقييم", [
           "الزي الكشفي",
