@@ -317,7 +317,7 @@ def check_login(username, password):
         pass
     return False, None, {}
 
-# --- 🎥 قارئ الكاميرا الأساسية المصلح بالكامل (تحديد الكاميرا الرئيسية + التسجيل التلقائي) ---
+# --- 🎥 قارئ الكاميرا الأساسية المصلح بالكامل (تحديد الكاميرا الرئيسية + إرسال فوري لـ Streamlit) ---
 def advanced_camera_scanner(key_suffix="default"):
     html_code = f"""
     <!DOCTYPE html>
@@ -394,7 +394,7 @@ def advanced_camera_scanner(key_suffix="default"):
                     const devices = await Html5Qrcode.getCameras();
                     if (devices && devices.length) {{
                         videoDevices = devices;
-                        // اختيار الكاميرا الأساسية الخاملة وتجنب العدسة العريضة ultrawide
+                        // فلترة واختيار العدسة الأساسية وتجنب الكاميرا العريضة ultrawide
                         let mainCam = devices.find(d => 
                             d.label.toLowerCase().includes("back 0") || 
                             d.label.toLowerCase().includes("main") || 
@@ -402,7 +402,7 @@ def advanced_camera_scanner(key_suffix="default"):
                             d.label.toLowerCase().includes("primary")
                         );
                         if (!mainCam) {{
-                            mainCam = devices[devices.length - 1]; // اختر الكاميرا الخلفية العادية
+                            mainCam = devices[devices.length - 1];
                         }}
                         currentDeviceId = mainCam.id;
                         startScanner(currentDeviceId);
@@ -444,9 +444,9 @@ def advanced_camera_scanner(key_suffix="default"):
                         const box = document.getElementById("reader_box_{key_suffix}");
                         const status = document.getElementById("status_{key_suffix}");
                         box.classList.add("scan-success");
-                        status.innerText = "✅ تم القراءة والتسجيل: " + decodedText;
+                        status.innerText = "✅ تم القراءة والتسجيل الفوري: " + decodedText;
 
-                        // إرسال الكود فوراً لـ Streamlit
+                        // إرسال الكود فوراً وبدون أي تأخير لـ Streamlit
                         sendToStreamlit(decodedText);
 
                         setTimeout(() => {{
@@ -798,12 +798,13 @@ if "attendance" in tab_dict:
                                 curr_score,
                                 st.session_state.current_username,
                             )
-                            st.success(f"🎉 تم تسجيل العضو تلقائياً: **{m_name}** | الكود: **{clean_extracted}** | الدرجة: **{curr_score}**")
+                            # إظهار الرسالة والتأكيد الفوري
+                            st.success(f"🎉 تم تسجيل حضور العضو تلقائياً: **{m_name}** | الكود: **{clean_extracted}** | الدرجة: **{curr_score}**")
                             st.balloons()
                             time.sleep(0.5)
                             st.rerun()
                         else:
-                            st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
+                            st.info(f"ℹ️ الكشاف {m_name} مسجل حضور بالفعل في هذه الجلسة.")
                     else:
                         st.error(f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء {selected_team}!")
 
@@ -836,7 +837,7 @@ if "attendance" in tab_dict:
                                     curr_score,
                                     st.session_state.current_username,
                                 )
-                                st.success(f"🎉 تم تسجيل العضو: **{m_name}** | الكود: **{clean_extracted}**")
+                                st.success(f"🎉 تم تسجيل حضور العضو: **{m_name}** | الكود: **{clean_extracted}**")
                                 st.balloons()
                                 time.sleep(0.5)
                                 st.rerun()
@@ -851,7 +852,7 @@ if "attendance" in tab_dict:
 
         st.divider()
 
-        # عرض قائمة الحضور الحالية
+        # 📋 عرض قائمة الحضور الفورية التي تتحدث تلقائياً تحت الكاميرا مباشرة
         if scanned_members:
             st.markdown("### 📋 قائمة الأعضاء الحاضرين في الجلسة الحالية:")
             scanned_list = [
@@ -892,11 +893,11 @@ if "attendance" in tab_dict:
                                     st.session_state.current_username,
                                 )
                                 st.session_state.manual_reset_counter += 1
-                                st.success(f"🎉 تم تسجيل العضو: **{m_name}** ({selected_team}) | الدرجة: **{curr_score}/10**")
+                                st.success(f"🎉 تم تسجيل حضور العضو: **{m_name}** ({selected_team}) | الدرجة: **{curr_score}/10**")
                                 time.sleep(0.8)
                                 st.rerun()
                             else:
-                                st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
+                                st.info(f"ℹ️ الكشاف {m_name} مسجل حضور بالفعل.")
                         else:
                             st.error(f"الكود غير مسجل في {selected_team}!")
                     else:
