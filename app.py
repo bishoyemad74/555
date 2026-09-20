@@ -8,6 +8,13 @@ import pandas as pd
 from PIL import Image
 import streamlit as st
 
+# مكتبة الماسح المباشر المباشر بدون زر التقاط
+try:
+    from streamlit_qr_barcodescanner import qr_code_scanner
+    HAS_LIVE_SCANNER = True
+except ImportError:
+    HAS_LIVE_SCANNER = False
+
 # --- إعدادات الصفحة ---
 st.set_page_config(
     page_title="كشافة أم النور",
@@ -39,7 +46,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- 🔥 تهيئة Firebase بالحماية من خطأ st.secrets ---
+# --- 🔥 تهيئة Firebase ---
 def get_firebase_creds():
     try:
         if "firebase" in st.secrets:
@@ -134,19 +141,6 @@ def clear_draft_scans_firebase(team_name):
     key_team = "team_1" if team_name == "الفريق الأول" else "team_2"
     ref = db.reference(f"drafts/{key_team}")
     ref.delete()
-
-# --- مكتبات الباركود ---
-try:
-    import zxingcpp
-    HAS_ZXING = True
-except ImportError:
-    HAS_ZXING = False
-
-try:
-    from pyzbar.pyzbar import decode
-    HAS_PYZBAR = True
-except Exception:
-    HAS_PYZBAR = False
 
 # --- Google Sheets ---
 try:
@@ -267,26 +261,6 @@ def update_leaderboard_in_gsheet(df_leaderboard):
         st.error(f"خطأ في ترتيب الأعضاء: {e}")
     return False
 
-# --- 📷 دالة استخراج الباركود المؤكدة والآمنة ---
-def extract_qr_code(image_file):
-    try:
-        img = Image.open(image_file)
-        if HAS_ZXING:
-            results = zxingcpp.read_barcodes(img)
-            if results:
-                raw_text = results[0].text
-                clean_digits = "".join(filter(str.isdigit, raw_text))
-                return clean_digits if clean_digits else raw_text
-        if HAS_PYZBAR:
-            decoded = decode(img)
-            if decoded:
-                raw_text = decoded[0].data.decode("utf-8")
-                clean_digits = "".join(filter(str.isdigit, raw_text))
-                return clean_digits if clean_digits else raw_text
-    except Exception:
-        pass
-    return None
-
 def check_login(username, password):
     try:
         users_df = load_data_from_gsheet("المستخدمين")
@@ -404,8 +378,6 @@ with col_logout:
 
 st.divider()
 
-if "form_reset_counter" not in st.session_state:
-    st.session_state.form_reset_counter = 0
 if "eval_reset_counter" not in st.session_state:
     st.session_state.eval_reset_counter = 0
 if "manual_reset_counter" not in st.session_state:
@@ -475,7 +447,7 @@ tab_dict = {key: tabs[i] for i, key in enumerate(tab_keys)}
 # --- Tab: تسجيل الحضور ---
 if "attendance" in tab_dict:
     with tab_dict["attendance"]:
-        st.subheader("تسجيل الحضور الفوري")
+        st.subheader("تسجيل الحضور الفوري المباشر")
 
         col_btn_refresh, _ = st.columns([1, 1])
         with col_btn_refresh:
@@ -595,14 +567,17 @@ if "attendance" in tab_dict:
 
         st.divider()
 
+        # 🎯 الماسح المباشر الفوري بدون التقاط صور
         if active_session:
-            st.subheader(f"📷 مسح الكارت وتسجيل الحضور المباشر ({selected_team})")
+            st.subheader(f"📷 المسح المباشر للكارت ({selected_team})")
             
-            img_file = st.camera_input("📷 وجه الكاميرا للكارت واضغط التقاط للتحقق والتسجيل المباشر")
-            if img_file is not None:
-                extracted = extract_qr_code(img_file)
-                if extracted:
-                    clean_extracted = str(extracted).strip()
+            if HAS_LIVE_SCANNER:
+                scanned_code = qr_code_scanner(key="live_attendance_scanner")
+                if scanned_code:
+                    clean_extracted = "".join(filter(str.isdigit, str(scanned_code)))
+                    if not clean_extracted:
+                        clean_extracted = str(scanned_code).strip()
+
                     m = (
                         st.session_state.members[
                             (st.session_state.members["كود العضو"].astype(str).str.strip() == clean_extracted) &
@@ -626,7 +601,7 @@ if "attendance" in tab_dict:
                                 curr_score,
                                 st.session_state.current_username,
                             )
-                            st.success(f"🎉 تم تسجيل حضور العضو: **{m_name}** | الكود: **{clean_extracted}** | الدرجة: **{curr_score}**")
+                            st.success(f"🎉 تم تسجيل حضور العضو فوراً: **{m_name}** | الكود: **{clean_extracted}** | الدرجة: **{curr_score}**")
                             st.balloons()
                             time.sleep(1)
                             st.rerun()
@@ -634,8 +609,8 @@ if "attendance" in tab_dict:
                             st.info(f"ℹ️ الكشاف {m_name} مسجل حضور بالفعل في هذه الجلسة.")
                     else:
                         st.error(f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء {selected_team}!")
-                else:
-                    st.error("❌ لم يتم التعرف على الرمز من الصورة، تأكد من وضوح كارت QR.")
+            else:
+                st.warning("⚠️ يرجى تثبيت مكتبة الماسح المباشر: `pip install streamlit-qr-barcodescanner`")
         else:
             st.info("💡 لا توجد جلسة مفتوحة لهذا الفريق. قم باختيار الفريق ثم اضغط **🚀 بدء الاجتماع / الجلسة**.")
 
@@ -697,24 +672,26 @@ if "evaluations" in tab_dict:
     with tab_dict["evaluations"]:
         st.subheader("📝 إضافة تقييم أو نشاط كشفي")
         
-        # زر إظهار/إخفاء الكاميرا في صفحة التقييمات
         btn_cam_text = "📷 إغلاق الكاميرا" if st.session_state.show_eval_camera else "📷 فتح الكاميرا لمسح كارت التقييم"
         if st.button(btn_cam_text, key="toggle_eval_cam_btn"):
             st.session_state.show_eval_camera = not st.session_state.show_eval_camera
             st.rerun()
 
         if st.session_state.show_eval_camera:
-            eval_img = st.camera_input("التقط صورة الكارت لقراءة الكود للتقييم")
-            if eval_img is not None:
-                extracted_eval = extract_qr_code(eval_img)
-                if extracted_eval:
-                    st.session_state.eval_scanned_code = str(extracted_eval).strip()
+            if HAS_LIVE_SCANNER:
+                scanned_eval = qr_code_scanner(key="live_eval_scanner")
+                if scanned_eval:
+                    clean_eval = "".join(filter(str.isdigit, str(scanned_eval)))
+                    if not clean_eval:
+                        clean_eval = str(scanned_eval).strip()
+                    
+                    st.session_state.eval_scanned_code = clean_eval
                     st.session_state.show_eval_camera = False
-                    st.success(f"🎉 تم قراءة الكود بنجاح: **{st.session_state.eval_scanned_code}**")
+                    st.success(f"🎉 تم قراءة الكود فوراً: **{clean_eval}**")
                     time.sleep(0.5)
                     st.rerun()
-                else:
-                    st.error("❌ لم يتم قراءة الرمز، جرب التقاط صورة أوضح.")
+            else:
+                st.warning("يرجى تثبيت `streamlit-qr-barcodescanner` للمسح المباشر.")
 
         with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
             eval_team = st.selectbox("الفريق", ["الفريق الأول", "الفريق الثاني"], key="eval_team_select")
