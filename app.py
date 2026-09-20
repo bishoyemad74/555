@@ -36,7 +36,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- 🔥 تهيئة Firebase بالحماية من خطأ st.secrets ---
+# --- تهيئة Firebase بالحماية من خطأ st.secrets ---
 def get_firebase_creds():
     try:
         if "firebase" in st.secrets:
@@ -75,7 +75,7 @@ if not firebase_admin._apps:
         },
     )
 
-# --- 🕒 دالة التوقيت الموحد ---
+# --- دالة التوقيت الموحد ---
 EGYPT_TZ = datetime.timezone(datetime.timedelta(hours=3))
 
 def get_now():
@@ -317,10 +317,12 @@ def check_login(username, password):
         pass
     return False, None, {}
 
-# --- 🎥 قارئ الكاميرا المتقدم (تم حل مشكلة التعليق على كود سابق نهائياً) ---
+# --- 🎥 قارئ الكاميرا المتقدم المعدل (تم حل خطأ TypeError وإزالة key من components.html) ---
 def advanced_camera_scanner(key_suffix="default"):
-    # استخدام nonce زمني لمنع حفظ القوائم القابلة للتكرار في Streamlit Component
-    nonce = int(time.time() * 1000)
+    if f"scanner_nonce_{key_suffix}" not in st.session_state:
+        st.session_state[f"scanner_nonce_{key_suffix}"] = int(time.time() * 1000)
+
+    nonce = st.session_state[f"scanner_nonce_{key_suffix}"]
     unique_key = f"{key_suffix}_{nonce}"
 
     html_code = f"""
@@ -338,7 +340,6 @@ def advanced_camera_scanner(key_suffix="default"):
                 overflow: hidden;
                 box-shadow: 0 8px 20px rgba(0,0,0,0.25);
                 border: 4px solid #1565C0;
-                transition: border-color 0.2s ease, box-shadow 0.2s ease;
             }}
             #reader_box_{unique_key}.scan-success {{
                 border-color: #00E676 !important;
@@ -452,10 +453,9 @@ def advanced_camera_scanner(key_suffix="default"):
 
                         const box = document.getElementById("reader_box_{unique_key}");
                         const status = document.getElementById("status_{unique_key}");
-                        box.classList.add("scan-success");
-                        status.innerText = "⚡ تم التقاط الكود: " + decodedText;
+                        if(box) box.classList.add("scan-success");
+                        if(status) status.innerText = "⚡ تم التقاط الكود: " + decodedText;
 
-                        // إرسال الكود فوراً وبدء عملية المعالجة
                         sendToStreamlit(decodedText);
                     }},
                     (errorMessage) => {{}}
@@ -481,7 +481,17 @@ def advanced_camera_scanner(key_suffix="default"):
     </body>
     </html>
     """
-    return components.html(html_code, height=440, key=unique_key)
+
+    # استخدام container وتمرير الـ key إليه لحل خطأ Streamlit
+    container = st.container(key=f"container_{unique_key}")
+    with container:
+        result = components.html(html_code, height=440)
+
+    if st.button("🔄 إعادة تشغيل الكاميرا لتنظيف الذاكرة", key=f"reset_cam_btn_{unique_key}"):
+        st.session_state[f"scanner_nonce_{key_suffix}"] = int(time.time() * 1000)
+        st.rerun()
+
+    return result
 
 st.markdown(
     """
@@ -804,6 +814,8 @@ if "attendance" in tab_dict:
                                 curr_score,
                                 st.session_state.current_username,
                             )
+                            # تغيير الـ Nonce لمنع حفظ القيمة القديمة في الـ Component
+                            st.session_state["scanner_nonce_attendance"] = int(time.time() * 1000)
                             st.success(f"🎉 تم تسجيل حضور العضو تلقائياً: **{m_name}** | الكود: **{clean_extracted}** | الدرجة: **{curr_score}**")
                             st.balloons()
                             time.sleep(0.3)
@@ -923,6 +935,7 @@ if "evaluations" in tab_dict:
             if extracted_eval:
                 st.session_state.eval_scanned_code = str(extracted_eval).strip()
                 st.session_state.show_eval_camera = False
+                st.session_state["scanner_nonce_eval"] = int(time.time() * 1000)
                 st.success(f"تم التقاط الكود: {extracted_eval}")
                 st.rerun()
 
