@@ -156,10 +156,13 @@ except Exception:
 # --- 📷 كاميرا QR الخلفية 1x لأندرويد ---
 CAMERA_CONSTRAINTS = {
     "video": {
-        "facingMode": {"exact": "environment"},
-        "zoom": {"ideal": 1.0},
+        # نطلب الكاميرا الخلفية، مع ideal بدل exact حتى لا ترفض
+        # بعض أجهزة أندرويد الطلب إذا كانت أسماء/قدرات الكاميرات مختلفة.
+        "facingMode": {"ideal": "environment"},
         "width": {"ideal": 1280},
         "height": {"ideal": 720},
+        # محاولة البدء على 1x؛ دعم الزوم يعتمد على المتصفح والجهاز.
+        "zoom": {"ideal": 1.0},
     },
     "audio": False,
 }
@@ -211,6 +214,12 @@ def get_qr_code_from_rear_camera(component_key):
         key=component_key,
         video_processor_factory=QRVideoProcessor,
         media_stream_constraints=CAMERA_CONSTRAINTS,
+        rtc_configuration={
+            "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+        },
+        # تشغيل الكاميرا مباشرة بدل ظهور مشغل فيديو ينتظر الضغط على START.
+        desired_playing_state=True,
+        media_toggle_controls=False,
         sendback_audio=False,
     )
 
