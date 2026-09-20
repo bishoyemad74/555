@@ -317,15 +317,19 @@ def check_login(username, password):
         pass
     return False, None, {}
 
-# --- 🎥 قارئ الكاميرا المتقدم والمُعدل للإرسال الفوري وتجاهل الكاميرا الأمامية تماماً ---
+# --- 🎥 قارئ الكاميرا المتقدم (تم حل مشكلة التعليق على كود سابق نهائياً) ---
 def advanced_camera_scanner(key_suffix="default"):
+    # استخدام nonce زمني لمنع حفظ القوائم القابلة للتكرار في Streamlit Component
+    nonce = int(time.time() * 1000)
+    unique_key = f"{key_suffix}_{nonce}"
+
     html_code = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
         <style>
-            #reader_box_{key_suffix} {{
+            #reader_box_{unique_key} {{
                 position: relative;
                 width: 100%;
                 max-width: 450px;
@@ -336,7 +340,7 @@ def advanced_camera_scanner(key_suffix="default"):
                 border: 4px solid #1565C0;
                 transition: border-color 0.2s ease, box-shadow 0.2s ease;
             }}
-            #reader_box_{key_suffix}.scan-success {{
+            #reader_box_{unique_key}.scan-success {{
                 border-color: #00E676 !important;
                 box-shadow: 0 0 25px #00E676 !important;
             }}
@@ -366,10 +370,10 @@ def advanced_camera_scanner(key_suffix="default"):
         </style>
     </head>
     <body>
-        <div id="reader_box_{key_suffix}">
-            <div id="reader_{key_suffix}"></div>
+        <div id="reader_box_{unique_key}">
+            <div id="reader_{unique_key}"></div>
         </div>
-        <div class="status-banner" id="status_{key_suffix}">⚡ الكاميرا الخلفية تعمل.. وجّه الـ QR للمسح الفوري</div>
+        <div class="status-banner" id="status_{unique_key}">⚡ الكاميرا تعمل.. وجّه الـ QR للمسح الفوري</div>
         <div class="controls-btn">
             <button class="btn-cam" onclick="switchCamera()">🔄 التنقل بين الكاميرات الخلفية</button>
         </div>
@@ -379,8 +383,7 @@ def advanced_camera_scanner(key_suffix="default"):
             let currentDeviceId = null;
             let backDevices = [];
             let deviceIndex = 0;
-            let lastScannedCode = "";
-            let lastScanTime = 0;
+            let isProcessing = false;
 
             function sendToStreamlit(value) {{
                 window.parent.postMessage({{
@@ -393,18 +396,15 @@ def advanced_camera_scanner(key_suffix="default"):
                 try {{
                     const devices = await Html5Qrcode.getCameras();
                     if (devices && devices.length) {{
-                        // فلترة الكاميرات واستبعاد الكاميرا الأمامية (selfie / front) تماماً
                         backDevices = devices.filter(d => {{
                             const label = d.label.toLowerCase();
                             return !label.includes("front") && !label.includes("user") && !label.includes("selfie") && !label.includes("أمامية");
                         }});
 
-                        // إذا لم يستطع التمييز بالاسم، نأخذ القائمة كما هي
                         if (backDevices.length === 0) {{
                             backDevices = devices;
                         }}
 
-                        // البحث عن الكاميرا الأساسية / الرئيسية
                         let mainCam = backDevices.find(d => 
                             d.label.toLowerCase().includes("back 0") || 
                             d.label.toLowerCase().includes("main") || 
@@ -436,45 +436,30 @@ def advanced_camera_scanner(key_suffix="default"):
             }}
 
             function startScannerWithFacingMode() {{
-                // إجبار النظام على استخدام الكاميرا الخلفية حصراً (environment)
                 runScanner({{ facingMode: {{ exact: "environment" }} }});
             }}
 
             function runScanner(cameraConfig) {{
-                html5QrCode = new Html5Qrcode("reader_{key_suffix}");
-                // رفع الـ FPS لـ 30 لإتاحة المسح والتسجيل الفوري بمجرد ظهور الـ QR
-                const config = {{ fps: 30, qrbox: {{ width: 260, height: 260 }} }};
+                html5QrCode = new Html5Qrcode("reader_{unique_key}");
+                const config = {{ fps: 25, qrbox: {{ width: 260, height: 260 }} }};
 
                 html5QrCode.start(
                     cameraConfig,
                     config,
                     (decodedText) => {{
-                        const now = Date.now();
-                        // منع تكرار قراءة نفس الرمز بنفس اللحظة (انتظار 1.2 ثانية فقط)
-                        if (decodedText === lastScannedCode && (now - lastScanTime) < 1200) {{
-                            return;
-                        }}
-                        lastScannedCode = decodedText;
-                        lastScanTime = now;
+                        if (isProcessing) return;
+                        isProcessing = true;
 
-                        const box = document.getElementById("reader_box_{key_suffix}");
-                        const status = document.getElementById("status_{key_suffix}");
+                        const box = document.getElementById("reader_box_{unique_key}");
+                        const status = document.getElementById("status_{unique_key}");
                         box.classList.add("scan-success");
-                        status.innerText = "⚡ تم التسجيل الفوري: " + decodedText;
+                        status.innerText = "⚡ تم التقاط الكود: " + decodedText;
 
-                        // إرسال الكود فوراً لـ Streamlit
+                        // إرسال الكود فوراً وبدء عملية المعالجة
                         sendToStreamlit(decodedText);
-
-                        setTimeout(() => {{
-                            box.classList.remove("scan-success");
-                            status.innerText = "⚡ الكاميرا الخلفية تعمل.. وجّه الـ QR للمسح الفوري";
-                            // تفريغ القيمة فوراً لتهيئة القارئ للكارت التالي
-                            sendToStreamlit(null);
-                        }}, 1000);
                     }},
                     (errorMessage) => {{}}
                 ).catch(err => {{
-                    // في حالة عدم دعم exact environment ينزل تلقائياً لـ environment العادي
                     if (typeof cameraConfig === 'object' && cameraConfig.facingMode) {{
                         runScanner({{ facingMode: "environment" }});
                     }}
@@ -496,7 +481,7 @@ def advanced_camera_scanner(key_suffix="default"):
     </body>
     </html>
     """
-    return components.html(html_code, height=440)
+    return components.html(html_code, height=440, key=unique_key)
 
 st.markdown(
     """
