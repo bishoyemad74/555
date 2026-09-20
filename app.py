@@ -36,7 +36,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- تهيئة Firebase بالحماية من خطأ st.secrets ---
+# --- تهيئة Firebase ---
 def get_firebase_creds():
     try:
         if "firebase" in st.secrets:
@@ -81,7 +81,7 @@ EGYPT_TZ = datetime.timezone(datetime.timedelta(hours=3))
 def get_now():
     return datetime.datetime.now(EGYPT_TZ)
 
-# --- دوال التعامل مع Firebase ---
+# --- دوال Firebase ---
 def get_live_sessions_firebase():
     try:
         ref = db.reference("active_sessions")
@@ -317,7 +317,7 @@ def check_login(username, password):
         pass
     return False, None, {}
 
-# --- 🎥 قارئ الكاميرا المتقدم المعدل (تم حل خطأ TypeError وإزالة key من components.html) ---
+# --- 🎥 قارئ الكاميرا المتقدم مع التصفير الشامل ---
 def advanced_camera_scanner(key_suffix="default"):
     if f"scanner_nonce_{key_suffix}" not in st.session_state:
         st.session_state[f"scanner_nonce_{key_suffix}"] = int(time.time() * 1000)
@@ -340,10 +340,6 @@ def advanced_camera_scanner(key_suffix="default"):
                 overflow: hidden;
                 box-shadow: 0 8px 20px rgba(0,0,0,0.25);
                 border: 4px solid #1565C0;
-            }}
-            #reader_box_{unique_key}.scan-success {{
-                border-color: #00E676 !important;
-                box-shadow: 0 0 25px #00E676 !important;
             }}
             .controls-btn {{
                 display: flex;
@@ -376,7 +372,7 @@ def advanced_camera_scanner(key_suffix="default"):
         </div>
         <div class="status-banner" id="status_{unique_key}">⚡ الكاميرا تعمل.. وجّه الـ QR للمسح الفوري</div>
         <div class="controls-btn">
-            <button class="btn-cam" onclick="switchCamera()">🔄 التنقل بين الكاميرات الخلفية</button>
+            <button class="btn-cam" onclick="switchCamera()">🔄 التنقل بين الكاميرات</button>
         </div>
 
         <script>
@@ -406,18 +402,7 @@ def advanced_camera_scanner(key_suffix="default"):
                             backDevices = devices;
                         }}
 
-                        let mainCam = backDevices.find(d => 
-                            d.label.toLowerCase().includes("back 0") || 
-                            d.label.toLowerCase().includes("main") || 
-                            d.label.toLowerCase().includes("camera 0") ||
-                            d.label.toLowerCase().includes("primary") ||
-                            d.label.toLowerCase().includes("rear")
-                        );
-
-                        if (!mainCam) {{
-                            mainCam = backDevices[0];
-                        }}
-
+                        let mainCam = backDevices[0];
                         currentDeviceId = mainCam.id;
                         startScanner(currentDeviceId);
                     }} else {{
@@ -437,12 +422,12 @@ def advanced_camera_scanner(key_suffix="default"):
             }}
 
             function startScannerWithFacingMode() {{
-                runScanner({{ facingMode: {{ exact: "environment" }} }});
+                runScanner({{ facingMode: "environment" }});
             }}
 
             function runScanner(cameraConfig) {{
                 html5QrCode = new Html5Qrcode("reader_{unique_key}");
-                const config = {{ fps: 25, qrbox: {{ width: 260, height: 260 }} }};
+                const config = {{ fps: 15, qrbox: {{ width: 250, height: 250 }} }};
 
                 html5QrCode.start(
                     cameraConfig,
@@ -450,20 +435,10 @@ def advanced_camera_scanner(key_suffix="default"):
                     (decodedText) => {{
                         if (isProcessing) return;
                         isProcessing = true;
-
-                        const box = document.getElementById("reader_box_{unique_key}");
-                        const status = document.getElementById("status_{unique_key}");
-                        if(box) box.classList.add("scan-success");
-                        if(status) status.innerText = "⚡ تم التقاط الكود: " + decodedText;
-
                         sendToStreamlit(decodedText);
                     }},
                     (errorMessage) => {{}}
-                ).catch(err => {{
-                    if (typeof cameraConfig === 'object' && cameraConfig.facingMode) {{
-                        runScanner({{ facingMode: "environment" }});
-                    }}
-                }});
+                ).catch(err => {{}});
             }}
 
             function switchCamera() {{
@@ -482,12 +457,13 @@ def advanced_camera_scanner(key_suffix="default"):
     </html>
     """
 
-    # استخدام container وتمرير الـ key إليه لحل خطأ Streamlit
     container = st.container(key=f"container_{unique_key}")
     with container:
-        result = components.html(html_code, height=440)
+        result = components.html(html_code, height=430)
 
-    if st.button("🔄 إعادة تشغيل الكاميرا لتنظيف الذاكرة", key=f"reset_cam_btn_{unique_key}"):
+    # زر إعادة التعيين اليدوي الشامل
+    if st.button("🧹 تصفير وقراءة كود جديد", key=f"reset_cam_btn_{unique_key}"):
+        st.session_state[f"last_scanned_{key_suffix}"] = ""
         st.session_state[f"scanner_nonce_{key_suffix}"] = int(time.time() * 1000)
         st.rerun()
 
@@ -526,7 +502,7 @@ if "permissions" not in st.session_state:
         "can_sheet": False,
     }
 
-# --- 🔐 شاشة تسجيل الدخول ---
+# --- شاشة تسجيل الدخول ---
 if not st.session_state.logged_in:
     st.subheader("🔐 تسجيل الدخول للبرنامج")
     with st.form("login_form"):
@@ -814,7 +790,7 @@ if "attendance" in tab_dict:
                                 curr_score,
                                 st.session_state.current_username,
                             )
-                            # تغيير الـ Nonce لمنع حفظ القيمة القديمة في الـ Component
+                            # إعادة ضبط الـ Nonce لمنع استمرار القراءة المكررة
                             st.session_state["scanner_nonce_attendance"] = int(time.time() * 1000)
                             st.success(f"🎉 تم تسجيل حضور العضو تلقائياً: **{m_name}** | الكود: **{clean_extracted}** | الدرجة: **{curr_score}**")
                             st.balloons()
@@ -824,6 +800,10 @@ if "attendance" in tab_dict:
                             st.info(f"ℹ️ الكشاف {m_name} مسجل حضور بالفعل في هذه الجلسة.")
                     else:
                         st.error(f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء {selected_team}!")
+                        # تفريغ الـ State للزر للتخلص فوراً من الكود الوهمي الخاطئ
+                        if st.button("🔴 مسح هذه الرسالة للبدء من جديد"):
+                            st.session_state["scanner_nonce_attendance"] = int(time.time() * 1000)
+                            st.rerun()
 
             else:
                 img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
