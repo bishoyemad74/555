@@ -317,157 +317,74 @@ def check_login(username, password):
         pass
     return False, None, {}
 
-# --- 🎥 قارئ الكاميرا المتقدم مع التصفير الشامل ---
-def advanced_camera_scanner(key_suffix="default"):
-    if f"scanner_nonce_{key_suffix}" not in st.session_state:
-        st.session_state[f"scanner_nonce_{key_suffix}"] = int(time.time() * 1000)
-
-    nonce = st.session_state[f"scanner_nonce_{key_suffix}"]
-    unique_key = f"{key_suffix}_{nonce}"
-
+# --- 🎥 قارئ الكاميرا المباشر المستمر بدون تعليق ---
+def continuous_camera_scanner(key_suffix="default"):
     html_code = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
         <style>
-            #reader_box_{unique_key} {{
-                position: relative;
+            #reader_{key_suffix} {{
                 width: 100%;
                 max-width: 450px;
                 margin: 0 auto;
-                border-radius: 16px;
+                border-radius: 12px;
                 overflow: hidden;
-                box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-                border: 4px solid #1565C0;
-            }}
-            .controls-btn {{
-                display: flex;
-                gap: 10px;
-                justify-content: center;
-                margin-top: 12px;
-            }}
-            .btn-cam {{
-                background-color: #1565C0;
-                color: white;
-                border: none;
-                padding: 10px 18px;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: bold;
-                cursor: pointer;
-            }}
-            .status-banner {{
-                text-align: center;
-                font-size: 14px;
-                font-weight: bold;
-                color: #1565C0;
-                margin-top: 8px;
+                border: 3px solid #1565C0;
             }}
         </style>
     </head>
     <body>
-        <div id="reader_box_{unique_key}">
-            <div id="reader_{unique_key}"></div>
-        </div>
-        <div class="status-banner" id="status_{unique_key}">⚡ الكاميرا تعمل.. وجّه الـ QR للمسح الفوري</div>
-        <div class="controls-btn">
-            <button class="btn-cam" onclick="switchCamera()">🔄 التنقل بين الكاميرات</button>
-        </div>
-
+        <div id="reader_{key_suffix}"></div>
         <script>
             let html5QrCode;
-            let currentDeviceId = null;
-            let backDevices = [];
-            let deviceIndex = 0;
-            let isProcessing = false;
+            let isCooldown = false;
 
-            function sendToStreamlit(value) {{
+            function sendCodeToStreamlit(code) {{
+                if (isCooldown) return;
+                isCooldown = true;
+                
+                // إرسال الكود فوراً لـ Streamlit
                 window.parent.postMessage({{
                     type: "streamlit:setComponentValue",
-                    value: value
+                    value: code
                 }}, "*");
+
+                // إعادة تفعيل القارئ تلقائياً بعد ثانيتين لمسح الكروت الأخرى
+                setTimeout(() => {{
+                    isCooldown = false;
+                }}, 2000);
             }}
 
-            async function initDevicesAndStart() {{
-                try {{
-                    const devices = await Html5Qrcode.getCameras();
-                    if (devices && devices.length) {{
-                        backDevices = devices.filter(d => {{
-                            const label = d.label.toLowerCase();
-                            return !label.includes("front") && !label.includes("user") && !label.includes("selfie") && !label.includes("أمامية");
-                        }});
-
-                        if (backDevices.length === 0) {{
-                            backDevices = devices;
-                        }}
-
-                        let mainCam = backDevices[0];
-                        currentDeviceId = mainCam.id;
-                        startScanner(currentDeviceId);
-                    }} else {{
-                        startScannerWithFacingMode();
-                    }}
-                }} catch (e) {{
-                    startScannerWithFacingMode();
-                }}
-            }}
-
-            function startScanner(deviceId) {{
-                if (html5QrCode) {{
-                    html5QrCode.stop().then(() => {{ runScanner(deviceId); }}).catch(() => {{ runScanner(deviceId); }});
-                }} else {{
-                    runScanner(deviceId);
-                }}
-            }}
-
-            function startScannerWithFacingMode() {{
-                runScanner({{ facingMode: "environment" }});
-            }}
-
-            function runScanner(cameraConfig) {{
-                html5QrCode = new Html5Qrcode("reader_{unique_key}");
-                const config = {{ fps: 15, qrbox: {{ width: 250, height: 250 }} }};
+            function startCamera() {{
+                html5QrCode = new Html5Qrcode("reader_{key_suffix}");
+                const config = {{ fps: 10, qrbox: {{ width: 250, height: 250 }} }};
 
                 html5QrCode.start(
-                    cameraConfig,
+                    {{ facingMode: "environment" }},
                     config,
                     (decodedText) => {{
-                        if (isProcessing) return;
-                        isProcessing = true;
-                        sendToStreamlit(decodedText);
+                        sendCodeToStreamlit(decodedText);
                     }},
-                    (errorMessage) => {{}}
-                ).catch(err => {{}});
+                    (error) => {{}}
+                ).catch(err => {{
+                    // تجربة الكاميرا الافتراضية إذا فشل النمط البيئي
+                    html5QrCode.start(
+                        {{ facingMode: "user" }},
+                        config,
+                        (decodedText) => {{ sendCodeToStreamlit(decodedText); }},
+                        (error) => {{}}
+                    );
+                }});
             }}
 
-            function switchCamera() {{
-                if (backDevices.length > 1) {{
-                    deviceIndex = (deviceIndex + 1) % backDevices.length;
-                    currentDeviceId = backDevices[deviceIndex].id;
-                    startScanner(currentDeviceId);
-                }} else {{
-                    startScannerWithFacingMode();
-                }}
-            }}
-
-            initDevicesAndStart();
+            startCamera();
         </script>
     </body>
     </html>
     """
-
-    container = st.container(key=f"container_{unique_key}")
-    with container:
-        result = components.html(html_code, height=430)
-
-    # زر إعادة التعيين اليدوي الشامل
-    if st.button("🧹 تصفير وقراءة كود جديد", key=f"reset_cam_btn_{unique_key}"):
-        st.session_state[f"last_scanned_{key_suffix}"] = ""
-        st.session_state[f"scanner_nonce_{key_suffix}"] = int(time.time() * 1000)
-        st.rerun()
-
-    return result
+    return components.html(html_code, height=380)
 
 st.markdown(
     """
@@ -758,92 +675,47 @@ if "attendance" in tab_dict:
 
         if active_session:
             st.subheader(f"📷 مسح الكارت وتسجيل الحضور المباشر ({selected_team})")
-            scan_method = st.radio("وسيلة المسح:", ["الكاميرا الحية الأساسية (QR)", "التقاط صورة عادية"], horizontal=True)
+            
+            # القارئ المستمر والمباشر
+            extracted = continuous_camera_scanner(key_suffix="att_cam")
 
-            if scan_method == "الكاميرا الحية الأساسية (QR)":
-                extracted = advanced_camera_scanner(key_suffix="attendance")
-                if extracted:
-                    clean_extracted = "".join(filter(str.isdigit, str(extracted)))
-                    if not clean_extracted:
-                        clean_extracted = str(extracted).strip()
+            if extracted:
+                clean_extracted = "".join(filter(str.isdigit, str(extracted)))
+                if not clean_extracted:
+                    clean_extracted = str(extracted).strip()
 
-                    m = (
-                        st.session_state.members[
-                            (st.session_state.members["كود العضو"].astype(str).str.strip() == clean_extracted) &
-                            (st.session_state.members["الفريق"] == selected_team)
-                        ]
-                        if "الفريق" in st.session_state.members.columns
-                        else st.session_state.members[st.session_state.members["كود العضو"].astype(str).str.strip() == clean_extracted]
-                    )
+                m = (
+                    st.session_state.members[
+                        (st.session_state.members["كود العضو"].astype(str).str.strip() == clean_extracted) &
+                        (st.session_state.members["الفريق"] == selected_team)
+                    ]
+                    if "الفريق" in st.session_state.members.columns
+                    else st.session_state.members[st.session_state.members["كود العضو"].astype(str).str.strip() == clean_extracted]
+                )
 
-                    if not m.empty:
-                        row_data = m.iloc[0]
-                        m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
+                if not m.empty:
+                    row_data = m.iloc[0]
+                    m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
 
-                        if clean_extracted not in scanned_members:
-                            t_now = get_now().strftime("%H:%M:%S")
-                            save_draft_scan_firebase(
-                                selected_team,
-                                clean_extracted,
-                                m_name,
-                                t_now,
-                                curr_score,
-                                st.session_state.current_username,
-                            )
-                            # إعادة ضبط الـ Nonce لمنع استمرار القراءة المكررة
-                            st.session_state["scanner_nonce_attendance"] = int(time.time() * 1000)
-                            st.success(f"🎉 تم تسجيل حضور العضو تلقائياً: **{m_name}** | الكود: **{clean_extracted}** | الدرجة: **{curr_score}**")
-                            st.balloons()
-                            time.sleep(0.3)
-                            st.rerun()
-                        else:
-                            st.info(f"ℹ️ الكشاف {m_name} مسجل حضور بالفعل في هذه الجلسة.")
-                    else:
-                        st.error(f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء {selected_team}!")
-                        # تفريغ الـ State للزر للتخلص فوراً من الكود الوهمي الخاطئ
-                        if st.button("🔴 مسح هذه الرسالة للبدء من جديد"):
-                            st.session_state["scanner_nonce_attendance"] = int(time.time() * 1000)
-                            st.rerun()
-
-            else:
-                img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
-                if img_file is not None:
-                    extracted = extract_qr_code(img_file)
-                    if extracted:
-                        clean_extracted = str(extracted).strip()
-                        m = (
-                            st.session_state.members[
-                                (st.session_state.members["كود العضو"].astype(str).str.strip() == clean_extracted) &
-                                (st.session_state.members["الفريق"] == selected_team)
-                            ]
-                            if "الفريق" in st.session_state.members.columns
-                            else st.session_state.members[st.session_state.members["كود العضو"].astype(str).str.strip() == clean_extracted]
+                    if clean_extracted not in scanned_members:
+                        t_now = get_now().strftime("%H:%M:%S")
+                        save_draft_scan_firebase(
+                            selected_team,
+                            clean_extracted,
+                            m_name,
+                            t_now,
+                            curr_score,
+                            st.session_state.current_username,
                         )
-
-                        if not m.empty:
-                            row_data = m.iloc[0]
-                            m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
-
-                            if clean_extracted not in scanned_members:
-                                t_now = get_now().strftime("%H:%M:%S")
-                                save_draft_scan_firebase(
-                                    selected_team,
-                                    clean_extracted,
-                                    m_name,
-                                    t_now,
-                                    curr_score,
-                                    st.session_state.current_username,
-                                )
-                                st.success(f"🎉 تم تسجيل حضور العضو: **{m_name}** | الكود: **{clean_extracted}**")
-                                st.balloons()
-                                time.sleep(0.3)
-                                st.rerun()
-                            else:
-                                st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
-                        else:
-                            st.error(f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء {selected_team}!")
+                        st.success(f"🎉 تم تسجيل حضور: **{m_name}** | الكود: **{clean_extracted}**")
+                        st.balloons()
+                        time.sleep(0.3)
+                        st.rerun()
                     else:
-                        st.error("❌ لم يتم التعرف على الرمز.")
+                        st.info(f"ℹ️ الكشاف {m_name} مسجل حضور بالفعل.")
+                else:
+                    st.error(f"❌ الكود الممسوح ({clean_extracted}) غير مسجل ضمن أعضاء {selected_team}!")
+
         else:
             st.info("💡 لا توجد جلسة مفتوحة لهذا الفريق. قم باختيار الفريق ثم اضغط **🚀 بدء الاجتماع / الجلسة**.")
 
@@ -904,20 +776,11 @@ if "attendance" in tab_dict:
 if "evaluations" in tab_dict:
     with tab_dict["evaluations"]:
         st.subheader("📝 إضافة تقييم أو نشاط كشفي")
-        col_cam_btn, _ = st.columns([1, 1])
-        with col_cam_btn:
-            if st.button("📷 فتح/إغلاق الكاميرا لمسح الكود", key="toggle_eval_cam_btn"):
-                st.session_state.show_eval_camera = not st.session_state.show_eval_camera
-                st.rerun()
-
-        if st.session_state.show_eval_camera:
-            extracted_eval = advanced_camera_scanner(key_suffix="eval")
-            if extracted_eval:
-                st.session_state.eval_scanned_code = str(extracted_eval).strip()
-                st.session_state.show_eval_camera = False
-                st.session_state["scanner_nonce_eval"] = int(time.time() * 1000)
-                st.success(f"تم التقاط الكود: {extracted_eval}")
-                st.rerun()
+        
+        extracted_eval = continuous_camera_scanner(key_suffix="eval_cam")
+        if extracted_eval:
+            st.session_state.eval_scanned_code = str(extracted_eval).strip()
+            st.success(f"تم التقاط الكود: {extracted_eval}")
 
         with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
             eval_team = st.selectbox("الفريق", ["الفريق الأول", "الفريق الثاني"], key="eval_team_select")
