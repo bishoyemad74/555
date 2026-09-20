@@ -36,10 +36,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- 🔥 تهيئة Firebase للحالات الحية واللحظية ---
+# --- 🔥 تهيئة Firebase بالحماية من خطأ st.secrets ---
 def get_firebase_creds():
-    if "firebase" in st.secrets:
-        return dict(st.secrets["firebase"])
+    try:
+        if "firebase" in st.secrets:
+            return dict(st.secrets["firebase"])
+    except Exception:
+        pass
+
     return {
         "type": "service_account",
         "project_id": "scout-app-d5614",
