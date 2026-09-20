@@ -317,7 +317,7 @@ def check_login(username, password):
         pass
     return False, None, {}
 
-# --- 🎥 قارئ الكاميرا المتقدم والمُعدل للإرسال والمحي الفوري للقيمة ---
+# --- 🎥 قارئ الكاميرا المتقدم والمُعدل للإرسال الفوري وتجاهل الكاميرا الأمامية تماماً ---
 def advanced_camera_scanner(key_suffix="default"):
     html_code = f"""
     <!DOCTYPE html>
@@ -334,7 +334,7 @@ def advanced_camera_scanner(key_suffix="default"):
                 overflow: hidden;
                 box-shadow: 0 8px 20px rgba(0,0,0,0.25);
                 border: 4px solid #1565C0;
-                transition: border-color 0.3s ease;
+                transition: border-color 0.2s ease, box-shadow 0.2s ease;
             }}
             #reader_box_{key_suffix}.scan-success {{
                 border-color: #00E676 !important;
@@ -369,15 +369,15 @@ def advanced_camera_scanner(key_suffix="default"):
         <div id="reader_box_{key_suffix}">
             <div id="reader_{key_suffix}"></div>
         </div>
-        <div class="status-banner" id="status_{key_suffix}">📷 الكاميرا الأساسية تعمل.. وجّه الـ QR للعدسة</div>
+        <div class="status-banner" id="status_{key_suffix}">⚡ الكاميرا الخلفية تعمل.. وجّه الـ QR للمسح الفوري</div>
         <div class="controls-btn">
-            <button class="btn-cam" onclick="switchCamera()">🔄 تغيير العدسة/الكاميرا</button>
+            <button class="btn-cam" onclick="switchCamera()">🔄 التنقل بين الكاميرات الخلفية</button>
         </div>
 
         <script>
             let html5QrCode;
             let currentDeviceId = null;
-            let videoDevices = [];
+            let backDevices = [];
             let deviceIndex = 0;
             let lastScannedCode = "";
             let lastScanTime = 0;
@@ -393,16 +393,30 @@ def advanced_camera_scanner(key_suffix="default"):
                 try {{
                     const devices = await Html5Qrcode.getCameras();
                     if (devices && devices.length) {{
-                        videoDevices = devices;
-                        let mainCam = devices.find(d => 
+                        // فلترة الكاميرات واستبعاد الكاميرا الأمامية (selfie / front) تماماً
+                        backDevices = devices.filter(d => {{
+                            const label = d.label.toLowerCase();
+                            return !label.includes("front") && !label.includes("user") && !label.includes("selfie") && !label.includes("أمامية");
+                        }});
+
+                        // إذا لم يستطع التمييز بالاسم، نأخذ القائمة كما هي
+                        if (backDevices.length === 0) {{
+                            backDevices = devices;
+                        }}
+
+                        // البحث عن الكاميرا الأساسية / الرئيسية
+                        let mainCam = backDevices.find(d => 
                             d.label.toLowerCase().includes("back 0") || 
                             d.label.toLowerCase().includes("main") || 
                             d.label.toLowerCase().includes("camera 0") ||
-                            d.label.toLowerCase().includes("primary")
+                            d.label.toLowerCase().includes("primary") ||
+                            d.label.toLowerCase().includes("rear")
                         );
+
                         if (!mainCam) {{
-                            mainCam = devices[devices.length - 1];
+                            mainCam = backDevices[0];
                         }}
+
                         currentDeviceId = mainCam.id;
                         startScanner(currentDeviceId);
                     }} else {{
@@ -422,19 +436,22 @@ def advanced_camera_scanner(key_suffix="default"):
             }}
 
             function startScannerWithFacingMode() {{
+                // إجبار النظام على استخدام الكاميرا الخلفية حصراً (environment)
                 runScanner({{ facingMode: {{ exact: "environment" }} }});
             }}
 
             function runScanner(cameraConfig) {{
                 html5QrCode = new Html5Qrcode("reader_{key_suffix}");
-                const config = {{ fps: 25, qrbox: {{ width: 260, height: 260 }} }};
+                // رفع الـ FPS لـ 30 لإتاحة المسح والتسجيل الفوري بمجرد ظهور الـ QR
+                const config = {{ fps: 30, qrbox: {{ width: 260, height: 260 }} }};
 
                 html5QrCode.start(
                     cameraConfig,
                     config,
                     (decodedText) => {{
                         const now = Date.now();
-                        if (decodedText === lastScannedCode && (now - lastScanTime) < 2500) {{
+                        // منع تكرار قراءة نفس الرمز بنفس اللحظة (انتظار 1.2 ثانية فقط)
+                        if (decodedText === lastScannedCode && (now - lastScanTime) < 1200) {{
                             return;
                         }}
                         lastScannedCode = decodedText;
@@ -443,27 +460,31 @@ def advanced_camera_scanner(key_suffix="default"):
                         const box = document.getElementById("reader_box_{key_suffix}");
                         const status = document.getElementById("status_{key_suffix}");
                         box.classList.add("scan-success");
-                        status.innerText = "✅ تم القراءة والتسجيل الفوري: " + decodedText;
+                        status.innerText = "⚡ تم التسجيل الفوري: " + decodedText;
 
+                        // إرسال الكود فوراً لـ Streamlit
                         sendToStreamlit(decodedText);
 
                         setTimeout(() => {{
                             box.classList.remove("scan-success");
-                            status.innerText = "📷 الكاميرا الأساسية تعمل.. وجّه الـ QR للعدسة";
-                            // إعادة تعيين القيمة لإفراغ أي تخزين مؤقت
+                            status.innerText = "⚡ الكاميرا الخلفية تعمل.. وجّه الـ QR للمسح الفوري";
+                            // تفريغ القيمة فوراً لتهيئة القارئ للكارت التالي
                             sendToStreamlit(null);
-                        }}, 1500);
+                        }}, 1000);
                     }},
                     (errorMessage) => {{}}
                 ).catch(err => {{
-                    console.error("Camera Start Error", err);
+                    // في حالة عدم دعم exact environment ينزل تلقائياً لـ environment العادي
+                    if (typeof cameraConfig === 'object' && cameraConfig.facingMode) {{
+                        runScanner({{ facingMode: "environment" }});
+                    }}
                 }});
             }}
 
             function switchCamera() {{
-                if (videoDevices.length > 1) {{
-                    deviceIndex = (deviceIndex + 1) % videoDevices.length;
-                    currentDeviceId = videoDevices[deviceIndex].id;
+                if (backDevices.length > 1) {{
+                    deviceIndex = (deviceIndex + 1) % backDevices.length;
+                    currentDeviceId = backDevices[deviceIndex].id;
                     startScanner(currentDeviceId);
                 }} else {{
                     startScannerWithFacingMode();
@@ -862,7 +883,6 @@ if "attendance" in tab_dict:
 
         if active_session:
             with st.form(f"manual_attendance_form_{st.session_state.manual_reset_counter}"):
-                # تم إلغاء القيمة الافتراضية
                 manual_code_str = st.text_input("أو أدخل الكود يدوياً واضغط تسجيل:", value="", placeholder="أدخل كود العضو...")
                 submit_manual = st.form_submit_button("✅ تسجيل يدوي سريع")
 
@@ -924,7 +944,6 @@ if "evaluations" in tab_dict:
         with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
             eval_team = st.selectbox("الفريق", ["الفريق الأول", "الفريق الثاني"], key="eval_team_select")
             
-            # تفريغ القيمة الافتراضية
             s_code_input = st.text_input(
                 "كود الكشاف",
                 value=st.session_state.eval_scanned_code,
@@ -958,7 +977,6 @@ if "evaluations" in tab_dict:
                             "التقييمات",
                             [t_date, clean_s_code, found_member_name, eval_team, s_type, s_val, s_notes],
                         ):
-                            # تفريغ القيمة الممسوحة بعد الرفع بنجاح
                             st.session_state.eval_scanned_code = ""
                             st.session_state.eval_reset_counter += 1
                             st.success(f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} ({eval_team}) بنجاح!")
