@@ -2,20 +2,12 @@ import datetime
 import json
 import os
 import time
-import threading
 from zoneinfo import ZoneInfo
 import firebase_admin
 from firebase_admin import credentials, db
 import pandas as pd
 from PIL import Image
 import streamlit as st
-
-try:
-    from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, VideoHTMLAttributes
-    import av
-    HAS_WEBRTC = True
-except Exception:
-    HAS_WEBRTC = False
 
 CAIRO_TZ = ZoneInfo("Africa/Cairo")
 
@@ -47,42 +39,15 @@ st.markdown(
 )
 
 # --- 🔥 تهيئة Firebase للحالات الحية واللحظية ---
-raw_private_key = (
-    "-----BEGIN PRIVATE KEY-----\n"
-    "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\n"
-    "KKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n"
-    "+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\n"
-    "yy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\n"
-    "IWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\n"
-    "ti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\n"
-    "qb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\n"
-    "iSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\n"
-    "hdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\n"
-    "ffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\n"
-    "hTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\n"
-    "naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\n"
-    "lJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\n"
-    "1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\n"
-    "xUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n"
-    "9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\n"
-    "NuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\n"
-    "JnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\n"
-    "fWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\n"
-    "8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\n"
-    "00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\n"
-    "L5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\n"
-    "wdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\n"
-    "a6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\n"
-    "G65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\n"
-    "B3RFZh7bqFkM82JJfMF6Lg==\n"
-    "-----END PRIVATE KEY-----"
-)
-
 FIREBASE_CREDS = {
     "type": "service_account",
     "project_id": "scout-app-d5614",
     "private_key_id": "6d124414e35bdcf820dd3315a85cb549f13df03e",
-    "private_key": raw_private_key.replace("\\n", "\n"),
+    "private_key": (
+        "-----BEGIN PRIVATE"
+        " KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\n1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\n00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\nL5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\nB3RFZh7bqFkM82JJfMF6Lg==\n-----END"
+        " PRIVATE KEY-----\n"
+    ),
     "client_email": (
         "firebase-adminsdk-fbsvc@scout-app-d5614.iam.gserviceaccount.com"
     ),
@@ -180,83 +145,6 @@ try:
 except Exception:
   HAS_PYZBAR = False
 
-# --- 📷 كاميرا QR الخلفية 1x لأندرويد ---
-CAMERA_CONSTRAINTS = {
-    "video": {
-        "facingMode": {"ideal": "environment"},
-        "width": {"ideal": 1280},
-        "height": {"ideal": 720},
-        "zoom": {"ideal": 1.0},
-    },
-    "audio": False,
-}
-
-
-if HAS_WEbrtc if "HAS_WEBRTC" in globals() else HAS_WEBRTC:
-  class QRVideoProcessor(VideoProcessorBase):
-
-    def __init__(self):
-      self.lock = threading.Lock()
-      self.latest_code = None
-      self.last_scan_time = 0.0
-
-    def recv(self, frame):
-      img = frame.to_ndarray(format="bgr24")
-
-      now = time.time()
-      if now - self.last_scan_time >= 0.20:
-        self.last_scan_time = now
-        try:
-          detected = None
-          if HAS_ZXING:
-            results = zxingcpp.read_barcodes(img)
-            if results:
-              detected = results[0].text
-          if not detected and HAS_PYZBAR:
-            decoded = decode(img)
-            if decoded:
-              detected = decoded[0].data.decode("utf-8")
-
-          if detected:
-            clean_digits = "".join(filter(str.isdigit, str(detected)))
-            clean_value = (
-                clean_digits if clean_digits else str(detected).strip()
-            )
-            if clean_value:
-              with self.lock:
-                self.latest_code = clean_value
-        except Exception:
-          pass
-
-      return av.VideoFrame.from_ndarray(img, format="bgr24")
-
-
-def get_qr_code_from_rear_camera(component_key):
-  """فتح الكاميرا الخلفية الأساسية 1x ومسح QR تلقائياً."""
-  if not HAS_WEBRTC:
-    return None
-
-  ctx = webrtc_streamer(
-      key=component_key,
-      video_processor_factory=QRVideoProcessor,
-      media_stream_constraints=CAMERA_CONSTRAINTS,
-      rtc_configuration={
-          "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-      },
-      desired_playing_state=True,
-      media_toggle_controls=False,
-      sendback_audio=False,
-      video_html_attrs=VideoHTMLAttributes(
-          autoPlay=True, controls=True, style={"width": "100%"}
-      ),
-  )
-
-  if ctx.video_processor:
-    with ctx.video_processor.lock:
-      return ctx.video_processor.latest_code
-  return None
-
-
 # --- Google Sheets ---
 try:
   from google.oauth2.service_account import Credentials
@@ -324,6 +212,7 @@ def append_to_google_sheet(sheet_name, row_data):
 
 
 def append_rows_to_google_sheet(sheet_name, rows_data):
+  """إضافة مجموعة صفوف دفعة واحدة لضمان عدم تجاوز طلبات Google API."""
   try:
     client = get_gsheet_client()
     if client:
@@ -691,6 +580,7 @@ if "attendance" in tab_dict:
     selected_key = "team_1" if selected_team == "الفريق الأول" else "team_2"
     active_session = live_sessions.get(selected_key, None)
 
+    # جلب المسودة الحية من Firebase وتحويل المفاتيح إلى نصوص نظيفة
     scanned_members = {}
     if active_session:
       draft_scans = get_draft_scans_firebase(selected_team)
@@ -733,6 +623,7 @@ if "attendance" in tab_dict:
             now_egypt = datetime.datetime.now(CAIRO_TZ)
             today = now_egypt.strftime("%Y-%m-%d")
 
+            # 1. جلب أعضاء الفريق المحدد فقط
             team_members = (
                 st.session_state.members[
                     st.session_state.members["الفريق"] == selected_team
@@ -744,6 +635,7 @@ if "attendance" in tab_dict:
             rows_to_upload = []
             new_att_records = []
 
+            # 2. المرور على جميع أعضاء الفريق بدون استثناء
             for _, row in team_members.iterrows():
               raw_code = row.get("كود العضو", "")
               clean_code_str = str(raw_code).strip()
@@ -751,6 +643,7 @@ if "attendance" in tab_dict:
                   "اسم الكشاف", row.get("الاسم", "غير معروف")
               )
 
+              # المطابقة
               if clean_code_str in scanned_members:
                 t_str, sc = scanned_members[clean_code_str]
                 st_name = "حاضر"
@@ -759,6 +652,7 @@ if "attendance" in tab_dict:
                 sc = 0.0
                 st_name = "غائب"
 
+              # تجهيز الصف للرفع الجماعي
               row_data = [
                   today,
                   raw_code,
@@ -780,6 +674,7 @@ if "attendance" in tab_dict:
                   "درجة الحضور": sc,
               })
 
+            # 3. إرسال الصفوف دفعة واحدة للسحاب
             if rows_to_upload:
               if append_rows_to_google_sheet("الحضور", rows_to_upload):
                 st.session_state.attendance = pd.concat(
@@ -790,6 +685,7 @@ if "attendance" in tab_dict:
                     ignore_index=True,
                 )
 
+                # إغلاق الجلسة ومسح المسودة من Firebase
                 close_session_firebase(selected_team)
                 clear_draft_scans_firebase(selected_team)
 
@@ -822,63 +718,59 @@ if "attendance" in tab_dict:
 
     if active_session:
       st.subheader(f"📷 التقاط الكارت والتسجيل التلقائي ({selected_team})")
-      extracted = None
-      if HAS_WEBRTC:
-        extracted = get_qr_code_from_rear_camera("attendance_qr_camera")
-      else:
-        img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
-        if img_file is not None:
-          extracted = extract_qr_code(img_file)
+      img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
 
-      if extracted:
-        clean_extracted = str(extracted).strip()
-        m = (
-            st.session_state.members[
-                (
-                    st.session_state.members["كود العضو"]
-                    .astype(str)
-                    .str.strip()
-                    == clean_extracted
-                )
-                & (st.session_state.members["الفريق"] == selected_team)
-            ]
-            if "الفريق" in st.session_state.members.columns
-            else st.session_state.members[
-                st.session_state.members["كود العضو"].astype(str).str.strip()
-                == clean_extracted
-            ]
-        )
+      if img_file is not None:
+        extracted = extract_qr_code(img_file)
+        if extracted:
+          clean_extracted = str(extracted).strip()
+          m = (
+              st.session_state.members[
+                  (
+                      st.session_state.members["كود العضو"]
+                      .astype(str)
+                      .str.strip()
+                      == clean_extracted
+                  )
+                  & (st.session_state.members["الفريق"] == selected_team)
+              ]
+              if "الفريق" in st.session_state.members.columns
+              else st.session_state.members[
+                  st.session_state.members["كود العضو"].astype(str).str.strip()
+                  == clean_extracted
+              ]
+          )
 
-        if not m.empty:
-          row_data = m.iloc[0]
-          m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
+          if not m.empty:
+            row_data = m.iloc[0]
+            m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
 
-          if clean_extracted not in scanned_members:
-            t_now = datetime.datetime.now(CAIRO_TZ).strftime("%H:%M:%S")
-            save_draft_scan_firebase(
-                selected_team,
-                clean_extracted,
-                m_name,
-                t_now,
-                curr_score,
-                st.session_state.current_username,
-            )
-            st.success(
-                f"🎉 تم تسجيل حضور: {m_name} ({selected_team}) - كود:"
-                f" {clean_extracted}"
-            )
-            st.balloons()
+            if clean_extracted not in scanned_members:
+              t_now = datetime.datetime.now(CAIRO_TZ).strftime("%H:%M:%S")
+              save_draft_scan_firebase(
+                  selected_team,
+                  clean_extracted,
+                  m_name,
+                  t_now,
+                  curr_score,
+                  st.session_state.current_username,
+              )
+              st.success(
+                  f"🎉 تم تسجيل حضور: {m_name} ({selected_team}) - كود:"
+                  f" {clean_extracted}"
+              )
+              st.balloons()
+            else:
+              st.info(
+                  f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة."
+              )
           else:
-            st.info(
-                f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة."
+            st.error(
+                f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء"
+                f" {selected_team}!"
             )
         else:
-          st.error(
-              f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء"
-              f" {selected_team}!"
-          )
-      else:
-        st.error("❌ لم يتم التعرف على الرمز.")
+          st.error("❌ لم يتم التعرف على الرمز.")
     else:
       st.info(
           "💡 لا توجد جلسة مفتوحة لهذا الفريق. قم باختيار الفريق ثم اضغط **🚀"
@@ -961,23 +853,18 @@ if "evaluations" in tab_dict:
         st.rerun()
 
     if st.session_state.show_eval_camera:
-      extracted_eval = None
-      if HAS_WEBRTC:
-        extracted_eval = get_qr_code_from_rear_camera("evaluation_qr_camera")
-      else:
-        eval_img = st.camera_input(
-            "التقط صورة كارت الكشاف للتقييم", key="eval_cam"
-        )
-        if eval_img is not None:
-          extracted_eval = extract_qr_code(eval_img)
-
-      if extracted_eval:
-        st.session_state.eval_scanned_code = str(extracted_eval).strip()
-        st.session_state.show_eval_camera = False
-        st.success(f"تم التقاط الكود: {extracted_eval}")
-        st.rerun()
-      else:
-        st.error("لم يتم التعرف على الرمز.")
+      eval_img = st.camera_input(
+          "التقط صورة كارت الكشاف للتقييم", key="eval_cam"
+      )
+      if eval_img is not None:
+        extracted_eval = extract_qr_code(eval_img)
+        if extracted_eval:
+          st.session_state.eval_scanned_code = str(extracted_eval).strip()
+          st.session_state.show_eval_camera = False
+          st.success(f"تم التقاط الكود: {extracted_eval}")
+          st.rerun()
+        else:
+          st.error("لم يتم التعرف على الرمز.")
 
     with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
       eval_team = st.selectbox(
@@ -1036,8 +923,7 @@ if "evaluations" in tab_dict:
               st.session_state.eval_scanned_code = ""
               st.session_state.eval_reset_counter += 1
               st.success(
-                  f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name}"
-                  f" ({eval_team}) بنجاح!"
+                  f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} ({eval_team}) بنجاح!"
               )
               time.sleep(1)
               st.rerun()
