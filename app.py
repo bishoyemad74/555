@@ -11,7 +11,7 @@ from PIL import Image
 import streamlit as st
 
 try:
-    from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
+    from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, VideoHTMLAttributes
     import av
     HAS_WEBRTC = True
 except Exception:
@@ -53,7 +53,7 @@ FIREBASE_CREDS = {
     "private_key_id": "6d124414e35bdcf820dd3315a85cb549f13df03e",
     "private_key": (
         "-----BEGIN PRIVATE"
-        " KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\n1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\n00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\nL5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\nB3RFZh7bqFkM82JJfMF6Lg==\n-----END"
+        " KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\n1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\n00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\nL5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\B3RFZh7bqFkM82JJfMF6Lg==\n-----END"
         " PRIVATE KEY-----\n"
     ),
     "client_email": (
@@ -156,12 +156,9 @@ except Exception:
 # --- 📷 كاميرا QR الخلفية 1x لأندرويد ---
 CAMERA_CONSTRAINTS = {
     "video": {
-        # نطلب الكاميرا الخلفية، مع ideal بدل exact حتى لا ترفض
-        # بعض أجهزة أندرويد الطلب إذا كانت أسماء/قدرات الكاميرات مختلفة.
         "facingMode": {"ideal": "environment"},
         "width": {"ideal": 1280},
         "height": {"ideal": 720},
-        # محاولة البدء على 1x؛ دعم الزوم يعتمد على المتصفح والجهاز.
         "zoom": {"ideal": 1.0},
     },
     "audio": False,
@@ -178,7 +175,6 @@ if HAS_WEBRTC:
         def recv(self, frame):
             img = frame.to_ndarray(format="bgr24")
 
-            # لا نفحص كل فريم لتقليل الحمل على الهاتف.
             now = time.time()
             if now - self.last_scan_time >= 0.20:
                 self.last_scan_time = now
@@ -217,10 +213,12 @@ def get_qr_code_from_rear_camera(component_key):
         rtc_configuration={
             "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
         },
-        # تشغيل الكاميرا مباشرة بدل ظهور مشغل فيديو ينتظر الضغط على START.
         desired_playing_state=True,
         media_toggle_controls=False,
         sendback_audio=False,
+        video_html_attrs=VideoHTMLAttributes(
+            autoPlay=True, controls=True, style={"width": "100%"}
+        ),
     )
 
     if ctx.video_processor:
@@ -296,7 +294,6 @@ def append_to_google_sheet(sheet_name, row_data):
 
 
 def append_rows_to_google_sheet(sheet_name, rows_data):
-  """إضافة مجموعة صفوف دفعة واحدة لضمان عدم تجاوز طلبات Google API."""
   try:
     client = get_gsheet_client()
     if client:
@@ -664,7 +661,6 @@ if "attendance" in tab_dict:
     selected_key = "team_1" if selected_team == "الفريق الأول" else "team_2"
     active_session = live_sessions.get(selected_key, None)
 
-    # جلب المسودة الحية من Firebase وتحويل المفاتيح إلى نصوص نظيفة
     scanned_members = {}
     if active_session:
       draft_scans = get_draft_scans_firebase(selected_team)
@@ -707,7 +703,6 @@ if "attendance" in tab_dict:
             now_egypt = datetime.datetime.now(CAIRO_TZ)
             today = now_egypt.strftime("%Y-%m-%d")
 
-            # 1. جلب أعضاء الفريق المحدد فقط
             team_members = (
                 st.session_state.members[
                     st.session_state.members["الفريق"] == selected_team
@@ -719,7 +714,6 @@ if "attendance" in tab_dict:
             rows_to_upload = []
             new_att_records = []
 
-            # 2. المرور على جميع أعضاء الفريق بدون استثناء
             for _, row in team_members.iterrows():
               raw_code = row.get("كود العضو", "")
               clean_code_str = str(raw_code).strip()
@@ -727,7 +721,6 @@ if "attendance" in tab_dict:
                   "اسم الكشاف", row.get("الاسم", "غير معروف")
               )
 
-              # المطابقة
               if clean_code_str in scanned_members:
                 t_str, sc = scanned_members[clean_code_str]
                 st_name = "حاضر"
@@ -736,7 +729,6 @@ if "attendance" in tab_dict:
                 sc = 0.0
                 st_name = "غائب"
 
-              # تجهيز الصف للرفع الجماعي
               row_data = [
                   today,
                   raw_code,
@@ -758,7 +750,6 @@ if "attendance" in tab_dict:
                   "درجة الحضور": sc,
               })
 
-            # 3. إرسال الصفوف دفعة واحدة للسحاب
             if rows_to_upload:
               if append_rows_to_google_sheet("الحضور", rows_to_upload):
                 st.session_state.attendance = pd.concat(
@@ -769,7 +760,6 @@ if "attendance" in tab_dict:
                     ignore_index=True,
                 )
 
-                # إغلاق الجلسة ومسح المسودة من Firebase
                 close_session_firebase(selected_team)
                 clear_draft_scans_firebase(selected_team)
 
