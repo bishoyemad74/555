@@ -264,25 +264,6 @@ def update_leaderboard_in_gsheet(df_leaderboard):
         st.error(f"خطأ في ترتيب الأعضاء: {e}")
     return False
 
-def extract_qr_code(image_file):
-    try:
-        img = Image.open(image_file)
-        if HAS_ZXING:
-            results = zxingcpp.read_barcodes(img)
-            if results:
-                raw_text = results[0].text
-                clean_digits = "".join(filter(str.isdigit, raw_text))
-                return clean_digits if clean_digits else raw_text
-        if HAS_PYZBAR:
-            decoded = decode(img)
-            if decoded:
-                raw_text = decoded[0].data.decode("utf-8")
-                clean_digits = "".join(filter(str.isdigit, raw_text))
-                return clean_digits if clean_digits else raw_text
-    except Exception:
-        pass
-    return None
-
 def check_login(username, password):
     try:
         users_df = load_data_from_gsheet("المستخدمين")
@@ -317,8 +298,8 @@ def check_login(username, password):
         pass
     return False, None, {}
 
-# --- 🎥 قارئ الكاميرا المباشر المستمر بدون تعليق ---
-def continuous_camera_scanner(key_suffix="default"):
+# --- 🎥 قارئ الكاميرا المباشر مع تصفية وتصحيح الأكواد الوهمية ---
+def filtered_camera_scanner(key_suffix="default"):
     html_code = f"""
     <!DOCTYPE html>
     <html>
@@ -342,19 +323,24 @@ def continuous_camera_scanner(key_suffix="default"):
             let isCooldown = false;
 
             function sendCodeToStreamlit(code) {{
-                if (isCooldown) return;
+                // استخراج الأرقام فقط
+                let cleanDigits = code.replace(/\\D/g, '');
+                
+                // تجاهل الأكواد الوهمية أو القصيرة جداً (الأكواد الصحيحة عادة 5 أرقام أو أكثر)
+                if (cleanDigits.length < 5 || isCooldown) return;
+                
                 isCooldown = true;
                 
-                // إرسال الكود فوراً لـ Streamlit
+                // إرسال الكود الحقيقي فقط
                 window.parent.postMessage({{
                     type: "streamlit:setComponentValue",
-                    value: code
+                    value: cleanDigits
                 }}, "*");
 
-                // إعادة تفعيل القارئ تلقائياً بعد ثانيتين لمسح الكروت الأخرى
+                // مهلة ثانيتين قبل القراءة التالية
                 setTimeout(() => {{
                     isCooldown = false;
-                }}, 2000);
+                }}, 2500);
             }}
 
             function startCamera() {{
@@ -369,7 +355,6 @@ def continuous_camera_scanner(key_suffix="default"):
                     }},
                     (error) => {{}}
                 ).catch(err => {{
-                    // تجربة الكاميرا الافتراضية إذا فشل النمط البيئي
                     html5QrCode.start(
                         {{ facingMode: "user" }},
                         config,
@@ -482,8 +467,6 @@ with col_logout:
 
 st.divider()
 
-if "form_reset_counter" not in st.session_state:
-    st.session_state.form_reset_counter = 0
 if "eval_reset_counter" not in st.session_state:
     st.session_state.eval_reset_counter = 0
 if "manual_reset_counter" not in st.session_state:
@@ -517,10 +500,8 @@ if "scores" not in st.session_state:
             "تاريخ التقييم", "كود العضو", "اسم الكشاف", "الفريق", "نوع التقييم", "الدرجة (من 10)", "ملاحظات"
         ])
 
-if "eval_scanned_code" not in st.session_state:
-    st.session_state.eval_scanned_code = ""
-if "show_eval_camera" not in st.session_state:
-    st.session_state.show_eval_camera = False
+if "last_processed_code" not in st.session_state:
+    st.session_state.last_processed_code = ""
 
 available_tabs = []
 tab_keys = []
@@ -597,7 +578,7 @@ if "attendance" in tab_dict:
                     now_egypt = get_now()
                     today_date = now_egypt.strftime("%Y-%m-%d %H:%M")
                     open_session_firebase(selected_team, st.session_state.current_username, now_ts, today_date)
-                    st.success(f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح عبر Firebase!")
+                    st.success(f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح!")
                     time.sleep(0.3)
                     st.rerun()
 
@@ -653,7 +634,7 @@ if "attendance" in tab_dict:
                                 close_session_firebase(selected_team)
                                 clear_draft_scans_firebase(selected_team)
 
-                                st.success(f"🎉 تم تسجيل حضور وغياب ({len(rows_to_upload)}) عضو لـ ({selected_team}) بنجاح! ☁️")
+                                st.success(f"🎉 تم تسجيل حضور وغياب ({len(rows_to_upload)}) عضو لـ ({selected_team}) بنجاح!")
                                 time.sleep(1)
                                 st.rerun()
                             else:
@@ -676,13 +657,13 @@ if "attendance" in tab_dict:
         if active_session:
             st.subheader(f"📷 مسح الكارت وتسجيل الحضور المباشر ({selected_team})")
             
-            # القارئ المستمر والمباشر
-            extracted = continuous_camera_scanner(key_suffix="att_cam")
+            # عرض الكاميرا مع الفلتر المنقح
+            extracted = filtered_camera_scanner(key_suffix="att_cam")
 
-            if extracted:
-                clean_extracted = "".join(filter(str.isdigit, str(extracted)))
-                if not clean_extracted:
-                    clean_extracted = str(extracted).strip()
+            # معالجة القراءة الحقيقية فقط
+            if extracted and str(extracted).strip() != st.session_state.last_processed_code:
+                clean_extracted = str(extracted).strip()
+                st.session_state.last_processed_code = clean_extracted
 
                 m = (
                     st.session_state.members[
@@ -709,7 +690,7 @@ if "attendance" in tab_dict:
                         )
                         st.success(f"🎉 تم تسجيل حضور: **{m_name}** | الكود: **{clean_extracted}**")
                         st.balloons()
-                        time.sleep(0.3)
+                        time.sleep(0.5)
                         st.rerun()
                     else:
                         st.info(f"ℹ️ الكشاف {m_name} مسجل حضور بالفعل.")
@@ -721,7 +702,7 @@ if "attendance" in tab_dict:
 
         st.divider()
 
-        # 📋 عرض قائمة الحضور الفورية
+        # 📋 عرض قائمة الحضور
         if scanned_members:
             st.markdown("### 📋 قائمة الأعضاء الحاضرين في الجلسة الحالية:")
             scanned_list = [
@@ -777,17 +758,17 @@ if "evaluations" in tab_dict:
     with tab_dict["evaluations"]:
         st.subheader("📝 إضافة تقييم أو نشاط كشفي")
         
-        extracted_eval = continuous_camera_scanner(key_suffix="eval_cam")
+        extracted_eval = filtered_camera_scanner(key_suffix="eval_cam")
+        eval_scanned_val = ""
         if extracted_eval:
-            st.session_state.eval_scanned_code = str(extracted_eval).strip()
-            st.success(f"تم التقاط الكود: {extracted_eval}")
+            eval_scanned_val = str(extracted_eval).strip()
 
         with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
             eval_team = st.selectbox("الفريق", ["الفريق الأول", "الفريق الثاني"], key="eval_team_select")
             
             s_code_input = st.text_input(
                 "كود الكشاف",
-                value=st.session_state.eval_scanned_code,
+                value=eval_scanned_val,
                 placeholder="أدخل الكود أو امسحه بالكاميرا",
             )
             s_type = st.selectbox("نوع التقييم", [
@@ -818,7 +799,6 @@ if "evaluations" in tab_dict:
                             "التقييمات",
                             [t_date, clean_s_code, found_member_name, eval_team, s_type, s_val, s_notes],
                         ):
-                            st.session_state.eval_scanned_code = ""
                             st.session_state.eval_reset_counter += 1
                             st.success(f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} ({eval_team}) بنجاح!")
                             time.sleep(0.5)
