@@ -35,6 +35,29 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# --- 🔥 إجبار متصفح الموبايل على استخدام الكاميرا الخلفية الأساسية بالزوم 1.0x ومنع الـ Ultra-Wide ---
+st.components.v1.html(
+    """
+<script>
+const applyCameraConstraints = () => {
+    const constraints = {
+        video: {
+            facingMode: { exact: "environment" },
+            zoom: 1.0
+        }
+    };
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia(constraints).catch(err => {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        });
+    }
+};
+applyCameraConstraints();
+</script>
+""",
+    height=0,
+)
+
 # --- 🔥 تهيئة Firebase للحالات الحية واللحظية ---
 FIREBASE_CREDS = {
     "type": "service_account",
@@ -72,8 +95,9 @@ if not firebase_admin._apps:
 # --- 🕒 دالة التوقيت الموحد لتفادي الفوارق الزمنية ---
 EGYPT_TZ = datetime.timezone(datetime.timedelta(hours=3))
 
+
 def get_now():
-    return datetime.datetime.now(EGYPT_TZ)
+  return datetime.datetime.now(EGYPT_TZ)
 
 
 # --- دوال التعامل مع Firebase ---
@@ -104,7 +128,9 @@ def close_session_firebase(team_name):
   ref.delete()
 
 
-def save_draft_scan_firebase(team_name, code, name, time_str, score, username):
+def save_draft_scan_firebase(
+    team_name, code, name, time_str, score, username
+):
   key_team = "team_1" if team_name == "الفريق الأول" else "team_2"
   ref = db.reference(f"drafts/{key_team}/{code}")
   ref.set({
@@ -278,9 +304,7 @@ def update_leaderboard_in_gsheet(df_leaderboard):
       try:
         sheet = sh.worksheet("ترتيب الأعضاء")
       except Exception:
-        sheet = sh.add_worksheet(
-            title="ترتيب الأعضاء", rows="100", cols="10"
-        )
+        sheet = sh.add_worksheet(title="ترتيب الأعضاء", rows="100", cols="10")
       sheet.clear()
       headers = df_leaderboard.columns.tolist()
       data = df_leaderboard.astype(str).values.tolist()
@@ -420,9 +444,7 @@ with col_pwd:
 
   @st.dialog("🔑 تغيير كلمة السر")
   def change_password_dialog():
-    st.write(
-        f"تغيير كلمة السر لحساب: **{st.session_state.current_username}**"
-    )
+    st.write(f"تغيير كلمة السر لحساب: **{st.session_state.current_username}**")
     with st.form("change_pass_form"):
       old_p = st.text_input("كلمة السر الحالية", type="password")
       new_p1 = st.text_input("كلمة السر الجديدة", type="password")
@@ -611,7 +633,10 @@ if "attendance" in tab_dict:
           today_date = now_egypt.strftime("%Y-%m-%d %H:%M")
 
           open_session_firebase(
-              selected_team, st.session_state.current_username, now_ts, today_date
+              selected_team,
+              st.session_state.current_username,
+              now_ts,
+              today_date,
           )
           st.success(
               f"🎉 تم بدء الجلسة لـ ({selected_team}) بنجاح عبر Firebase!"
@@ -721,7 +746,9 @@ if "attendance" in tab_dict:
 
     if active_session:
       st.subheader(f"📷 الكاميرا الفورية - مسح الكيو آر كود ({selected_team})")
-      img_file = st.camera_input("كاميرا تسجيل الحضور الفورية", label_visibility="collapsed")
+      img_file = st.camera_input(
+          "كاميرا تسجيل الحضور الفورية", label_visibility="collapsed"
+      )
 
       if img_file is not None:
         extracted = extract_qr_code(img_file)
@@ -764,9 +791,7 @@ if "attendance" in tab_dict:
               )
               st.balloons()
             else:
-              st.info(
-                  f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة."
-              )
+              st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة.")
           else:
             st.error(
                 f"❌ الكود ({clean_extracted}) غير مسجل ضمن أعضاء"
@@ -855,7 +880,9 @@ if "evaluations" in tab_dict:
 
     if st.session_state.show_eval_camera:
       eval_img = st.camera_input(
-          "التقط صورة كارت الكشاف للتقييم", key="eval_cam", label_visibility="collapsed"
+          "التقط صورة كارت الكشاف للتقييم",
+          key="eval_cam",
+          label_visibility="collapsed",
       )
       if eval_img is not None:
         extracted_eval = extract_qr_code(eval_img)
@@ -924,7 +951,8 @@ if "evaluations" in tab_dict:
               st.session_state.eval_scanned_code = ""
               st.session_state.eval_reset_counter += 1
               st.success(
-                  f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} ({eval_team}) بنجاح!"
+                  f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name}"
+                  f" ({eval_team}) بنجاح!"
               )
               time.sleep(1)
               st.rerun()
