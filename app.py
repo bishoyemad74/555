@@ -1011,11 +1011,6 @@ if "leaderboard" in tab_dict:
         st.session_state.members = load_data_from_gsheet("الأعضاء")
         st.rerun()
 
-    with col_sync:
-      if st.button("☁️ رفع ترتيب الأعضاء إلى Google Sheets"):
-        if not leaderboard.empty:
-          if update_leaderboard_in_gsheet(leaderboard):
-            st.success("تم تحديث ورقة 'ترتيب الأعضاء' سحابياً بنجاح! 🎉")
 
     if not leaderboard.empty:
       sub_t1, sub_t2, sub_all = st.tabs(
