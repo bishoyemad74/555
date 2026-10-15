@@ -174,9 +174,13 @@ def get_gsheet_client():
     try:
       if "gcp_service_account" in st.secrets:
         creds_dict = dict(st.secrets["gcp_service_account"])
+      elif "GCP_JSON" in st.secrets:
+        creds_dict = json.loads(st.secrets["GCP_JSON"])
     except Exception:
       pass
   if creds_dict:
+    if "private_key" in creds_dict:
+      creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     return gspread.authorize(creds)
   return None
@@ -762,7 +766,6 @@ if "attendance" in tab_dict:
         extracted = extract_qr_code(img_file)
         if extracted:
           clean_extracted = str(extracted).strip()
-          # البحث في كل الأعضاء بغض النظر عن الفريق لتسجيل الحضور لأي فريق
           m = (
               st.session_state.members[
                   st.session_state.members["كود العضو"]
@@ -824,7 +827,6 @@ if "attendance" in tab_dict:
         if submit_manual:
           if manual_code_str.strip():
             clean_manual = str(manual_code_str.strip()).strip()
-            # البحث في كل الأعضاء بغض النظر عن الفريق لتسجيل الحضور لأي فريق
             m = (
                 st.session_state.members[
                     st.session_state.members["كود العضو"]
