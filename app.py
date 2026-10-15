@@ -165,37 +165,18 @@ def get_gsheet_client():
       "https://www.googleapis.com/auth/drive",
   ]
   creds_dict = None
-  
-  # استخدام نفس بيانات FIREBASE_CREDS آمنة ومطابقة تماماً لتجنب مشاكل Secrets
-  global FIREBASE_CREDS
-  if FIREBASE_CREDS and "private_key" in FIREBASE_CREDS:
-    creds_dict = dict(FIREBASE_CREDS)
-
-  if not creds_dict and "GCP_JSON" in os.environ:
+  if "GCP_JSON" in os.environ:
     try:
       creds_dict = json.loads(os.environ["GCP_JSON"])
     except Exception:
       pass
-
   if not creds_dict:
     try:
       if "gcp_service_account" in st.secrets:
         creds_dict = dict(st.secrets["gcp_service_account"])
-      elif "GCP_JSON" in st.secrets:
-        creds_dict = json.loads(st.secrets["GCP_JSON"])
     except Exception:
       pass
-
   if creds_dict:
-    if "private_key" in creds_dict:
-      # إصلاح مشكلة الأسطر الجديدة في المفتاح الخاص تلقائياً
-      pk = str(creds_dict["private_key"])
-      pk = pk.replace("\\n", "\n")
-      if "BEGIN PRIVATE KEY" in pk and not pk.startswith("-----BEGIN"):
-        # تنظيف أي رموز زايدة
-        pass
-      creds_dict["private_key"] = pk
-      
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     return gspread.authorize(creds)
   return None
@@ -781,6 +762,7 @@ if "attendance" in tab_dict:
         extracted = extract_qr_code(img_file)
         if extracted:
           clean_extracted = str(extracted).strip()
+          # البحث في كل الأعضاء بغض النظر عن الفريق لتسجيل الحضور لأي فريق
           m = (
               st.session_state.members[
                   st.session_state.members["كود العضو"]
@@ -842,6 +824,7 @@ if "attendance" in tab_dict:
         if submit_manual:
           if manual_code_str.strip():
             clean_manual = str(manual_code_str.strip()).strip()
+            # البحث في كل الأعضاء بغض النظر عن الفريق لتسجيل الحضور لأي فريق
             m = (
                 st.session_state.members[
                     st.session_state.members["كود العضو"]
