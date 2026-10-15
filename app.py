@@ -45,7 +45,7 @@ FIREBASE_CREDS = {
     "private_key_id": "6d124414e35bdcf820dd3315a85cb549f13df03e",
     "private_key": (
         "-----BEGIN PRIVATE"
-        " KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\n1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\n00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\nL5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\B3RFZh7bqFkM82JJfMF6Lg==\n-----END"
+        " KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\r\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\nL5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\B3RFZh7bqFkM82JJfMF6Lg==\n-----END"
         " PRIVATE KEY-----\n"
     ),
     "client_email": (
@@ -73,7 +73,6 @@ if not firebase_admin._apps:
   )
 
 
-# --- دوال التعامل مع Firebase ---
 def get_live_sessions_firebase():
   try:
     ref = db.reference("active_sessions")
@@ -130,22 +129,6 @@ def clear_draft_scans_firebase(team_name):
   ref.delete()
 
 
-# --- مكتبات الباركود ---
-try:
-  import zxingcpp
-
-  HAS_ZXING = True
-except ImportError:
-  HAS_ZXING = False
-
-try:
-  from pyzbar.pyzbar import decode
-
-  HAS_PYZBAR = True
-except Exception:
-  HAS_PYZBAR = False
-
-# --- Google Sheets ---
 try:
   from google.oauth2.service_account import Credentials
   import gspread
@@ -212,7 +195,6 @@ def append_to_google_sheet(sheet_name, row_data):
 
 
 def append_rows_to_google_sheet(sheet_name, rows_data):
-  """إضافة مجموعة صفوف دفعة واحدة لضمان عدم تجاوز طلبات Google API."""
   try:
     client = get_gsheet_client()
     if client:
@@ -287,26 +269,6 @@ def update_leaderboard_in_gsheet(df_leaderboard):
   except Exception as e:
     st.error(f"خطأ في ترتيب الأعضاء: {e}")
   return False
-
-
-def extract_qr_code(image_file):
-  try:
-    img = Image.open(image_file)
-    if HAS_ZXING:
-      results = zxingcpp.read_barcodes(img)
-      if results:
-        raw_text = results[0].text
-        clean_digits = "".join(filter(str.isdigit, raw_text))
-        return clean_digits if clean_digits else raw_text
-    if HAS_PYZBAR:
-      decoded = decode(img)
-      if decoded:
-        raw_text = decoded[0].data.decode("utf-8")
-        clean_digits = "".join(filter(str.isdigit, raw_text))
-        return clean_digits if clean_digits else raw_text
-  except Exception:
-    pass
-  return None
 
 
 def check_login(username, password):
@@ -509,10 +471,8 @@ if "scores" not in st.session_state:
         "ملاحظات",
     ])
 
-if "eval_scanned_code" not in st.session_state:
-  st.session_state.eval_scanned_code = ""
-if "show_eval_camera" not in st.session_state:
-  st.session_state.show_eval_camera = False
+if "auto_scanned_code" not in st.session_state:
+  st.session_state.auto_scanned_code = ""
 
 available_tabs = []
 tab_keys = []
@@ -580,7 +540,6 @@ if "attendance" in tab_dict:
     selected_key = "team_1" if selected_team == "الفريق الأول" else "team_2"
     active_session = live_sessions.get(selected_key, None)
 
-    # جلب المسودة الحية من Firebase وتحويل المفاتيح إلى نصوص نظيفة
     scanned_members = {}
     if active_session:
       draft_scans = get_draft_scans_firebase(selected_team)
@@ -623,7 +582,6 @@ if "attendance" in tab_dict:
             now_egypt = datetime.datetime.now(CAIRO_TZ)
             today = now_egypt.strftime("%Y-%m-%d")
 
-            # 1. جلب أعضاء الفريق المحدد للغائبين فقط
             team_members = (
                 st.session_state.members[
                     st.session_state.members["الفريق"] == selected_team
@@ -636,7 +594,6 @@ if "attendance" in tab_dict:
             new_att_records = []
             scanned_codes_set = set(scanned_members.keys())
 
-            # 2. تسجيل الحاضرين الفعليين (سواء من هذا الفريق أو غيره)
             for c_code, (t_str, sc) in scanned_members.items():
               m_match = (
                   st.session_state.members[
@@ -680,7 +637,6 @@ if "attendance" in tab_dict:
                   "درجة الحضور": sc,
               })
 
-            # 3. تسجيل الغياب فقط لأعضاء الفريق صاحب الجلسة الذين لم يحضروا
             for _, row in team_members.iterrows():
               raw_code = row.get("كود العضو", "")
               clean_code_str = str(raw_code).strip()
@@ -710,7 +666,6 @@ if "attendance" in tab_dict:
                     "درجة الحضور": 0.0,
                 })
 
-            # 4. إرسال الصفوف دفعة واحدة للسحاب
             if rows_to_upload:
               if append_rows_to_google_sheet("الحضور", rows_to_upload):
                 st.session_state.attendance = pd.concat(
@@ -721,12 +676,11 @@ if "attendance" in tab_dict:
                     ignore_index=True,
                 )
 
-                # إغلاق الجلسة ومسح المسودة من Firebase
                 close_session_firebase(selected_team)
                 clear_draft_scans_firebase(selected_team)
 
                 st.success(
-                    f"🎉 تم ترحيل سجلات الحضور والغياب لـ ({selected_team}) بنجاح! ☁️"
+                    f"🎉 تم ترحيل سجلات الحضور والغياب لجلسة ({selected_team}) بنجاح! ☁️"
                 )
                 time.sleep(1)
                 st.rerun()
@@ -752,153 +706,235 @@ if "attendance" in tab_dict:
     st.divider()
 
     if active_session:
-      st.subheader(f"📷 التقاط الكارت والتسجيل التلقائي ({selected_team})")
-      img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
+      st.subheader(f"📷 مسح مباشر بالـ QR للـ ({selected_team})")
 
-      if img_file is not None:
-        extracted = extract_qr_code(img_file)
-        if extracted:
-          clean_extracted = str(extracted).strip()
-          # البحث في كل الأعضاء بغض النظر عن الفريق لتسجيل الحضور لأي فريق
-          m = (
+      # مكون JavaScript ذكي يفتح الكاميرا الخلفية ويقوم بالمسح الفوري وإرسال الكود تلقائياً لـ Streamlit
+      html_live_scanner = f"""
+      <div style="text-align: center; background: #f0f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+          <div id="reader-live" style="width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden;"></div>
+          <button id="btn-start-scan" onclick="startScanner()" style="background-color: #2E7D32; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">🟢 فتح الكاميرا للمسح التلقائي</button>
+          <button id="btn-stop-scan" onclick="stopScanner()" style="background-color: #C62828; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: none; width: 100%;">إغلاق الكاميرا</button>
+          <p id="scan-status" style="color: #1565C0; font-weight: bold; margin-top: 10px; font-size: 15px;"></p>
+      </div>
+
+      <script src="https://unpkg.com/html5-qrcode"></script>
+      <script>
+          let html5QrCode = null;
+
+          function startScanner() {
+              document.getElementById('btn-start-scan').style.display = 'none';
+              document.getElementById('btn-stop-scan').style.display = 'block';
+              document.getElementById('scan-status').innerText = "جاري تفعيل الكاميرا الخلفية...";
+
+              html5QrCode = new Html5Qrcode("reader-live");
+              
+              Html5Qrcode.getCameras().then(devices => {
+                  if (devices && devices.length) {
+                      let camId = devices.length > 1 ? devices[devices.length - 1].id : devices[0].id;
+                      for (let i = 0; i < devices.length; i++) {
+                          let label = devices[i].label.toLowerCase();
+                          if ((label.includes('back') || label.includes('rear') || label.includes('environment')) && !label.includes('wide')) {
+                              camId = devices[i].id;
+                              break;
+                          }
+                      }
+
+                      html5QrCode.start(
+                          camId ? {{ deviceId: {{ exact: camId }} }} : {{ facingMode: "environment" }},
+                          {{ fps: 20, qrbox: {{ width: 250, height: 250 }} }},
+                          (decodedText) => {
+                              document.getElementById('scan-status.innerText = "✅ تم التقاط الكود: " + decodedText;
+                              // إرسال الكود فوراً عبر الـ URL لتسجيله تلقائياً بدون ضغطات
+                              window.location.search = `?auto_code=${{encodeURIComponent(decodedText)}}&team={selected_team}`;
+                              stopScanner();
+                          },
+                          (errorMessage) => {{}}
+                      ).catch(err => {
+                          document.getElementById('scan-status').innerText = "خطأ في تشغيل الكاميرا: " + err;
+                      });
+                  }
+              }).catch(err => {
+                  document.getElementById('scan-status').innerText = "لا توجد كاميرات متاحة.";
+              });
+          }
+
+          function stopScanner() {
+              if (html5QrCode) {
+                  html5QrCode.stop().then(() => {
+                      document.getElementById('btn-start-scan').style.display = 'block';
+                      document.getElementById('btn-stop-scan').style.display = 'none';
+                  }).catch(err => {{}});
+              }
+          }
+      </script>
+      """
+      st.components.v1.html(html_live_scanner, height=420)
+
+      # التقطيص التلقائي للكود الممرر عبر الـ URL وتسجيل الحضور فوراً في Firebase
+      query_p = st.query_params
+      if "auto_code" in query_p:
+        scanned_code_val = query_p["auto_code"]
+        st.query_params.clear()
+        if scanned_code_val:
+          clean_code = str(scanned_code_val).strip()
+          m_match = (
               st.session_state.members[
                   st.session_state.members["كود العضو"]
                   .astype(str)
                   .str.strip()
-                  == clean_extracted
+                  == clean_code
               ]
               if not st.session_state.members.empty
               else pd.DataFrame()
           )
 
-          if not m.empty:
-            row_data = m.iloc[0]
-            m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
-            m_team_orig = row_data.get("الفريق", "غير محدد")
+          if not m_match.empty:
+            r_data = m_match.iloc[0]
+            m_name = r_data.get("اسم الكشاف", r_data.get("الاسم", "كشاف"))
+            m_orig_team = r_data.get("الفريق", "غير محدد")
 
-            if clean_extracted not in scanned_members:
+            if clean_code not in scanned_members:
               t_now = datetime.datetime.now(CAIRO_TZ).strftime("%H:%M:%S")
               save_draft_scan_firebase(
                   selected_team,
-                  clean_extracted,
+                  clean_code,
                   m_name,
                   t_now,
                   curr_score,
                   st.session_state.current_username,
               )
               st.success(
-                  f"🎉 تم تسجيل حضور: {m_name} (الفريق الأصلي: {m_team_orig}) في جلسة {selected_team} - كود:"
-                  f" {clean_extracted}"
+                  f"🎉 تم تسجيل الحضور تلقائياً: {m_name} (الفريق الأصلي:"
+                  f" {m_orig_team}) | الدرجة: {curr_score}/10"
               )
               st.balloons()
+              time.sleep(1)
+              st.rerun()
             else:
-              st.info(
-                  f"ℹ️ الكشاف {m_name} مسجل بالفعل في هذه الجلسة."
-              )
+              st.info(f"ℹ️ الكشاف {m_name} مسجل مسبقاً في هذه الجلسة.")
           else:
             st.error(
-                f"❌ الكود ({clean_extracted}) غير مسجل نهائياً ضمن قاعدة بيانات الأعضاء!"
+                f"❌ الكود الممسوح ({clean_code}) غير موجود في قاعدة بيانات"
+                " الأعضاء!"
             )
-        else:
-          st.error("❌ لم يتم التعرف على الرمز.")
-    else:
-      st.info(
-          "💡 لا توجد جلسة مفتوحة لهذا الفريق. قم باختيار الفريق ثم اضغط **🚀"
-          " بدء الاجتماع / الجلسة**."
-      )
 
     st.divider()
 
-    if active_session:
-      with st.form(
-          f"manual_attendance_form_{st.session_state.manual_reset_counter}"
-      ):
-        manual_code_str = st.text_input(
-            "أو أدخل الكود يدوياً واضغط تسجيل:", value=""
+    # خيار الإدخال اليدوي كبديل احتياطي
+    with st.form("manual_attendance_form"):
+      manual_code_str = st.text_input("أو أدخل الكود يدوياً:")
+      submit_manual = st.form_submit_button("✅ تسجيل يدوي سريع")
+      if submit_manual and manual_code_str.strip():
+        clean_manual = str(manual_code_str.strip()).strip()
+        m = (
+            st.session_state.members[
+                st.session_state.members["كود العضو"]
+                .astype(str)
+                .str.strip()
+                == clean_manual
+            ]
+            if not st.session_state.members.empty
+            else pd.DataFrame()
         )
-        submit_manual = st.form_submit_button("✅ تسجيل يدوي سريع")
-
-        if submit_manual:
-          if manual_code_str.strip():
-            clean_manual = str(manual_code_str.strip()).strip()
-            # البحث في كل الأعضاء بغض النظر عن الفريق لتسجيل الحضور لأي فريق
-            m = (
-                st.session_state.members[
-                    st.session_state.members["كود العضو"]
-                    .astype(str)
-                    .str.strip()
-                    == clean_manual
-                ]
-                if not st.session_state.members.empty
-                else pd.DataFrame()
+        if not m.empty:
+          row_data = m.iloc[0]
+          m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
+          if clean_manual not in scanned_members:
+            t_now = datetime.datetime.now(CAIRO_TZ).strftime("%H:%M:%S")
+            save_draft_scan_firebase(
+                selected_team,
+                clean_manual,
+                m_name,
+                t_now,
+                curr_score,
+                st.session_state.current_username,
             )
-
-            if not m.empty:
-              row_data = m.iloc[0]
-              m_name = row_data.get("اسم الكشاف", row_data.get("الاسم", "كشاف"))
-              m_team_orig = row_data.get("الفريق", "غير محدد")
-              if clean_manual not in scanned_members:
-                t_now = (
-                    datetime.datetime.now(CAIRO_TZ)
-                ).strftime("%H:%M:%S")
-
-                save_draft_scan_firebase(
-                    selected_team,
-                    clean_manual,
-                    m_name,
-                    t_now,
-                    curr_score,
-                    st.session_state.current_username,
-                )
-                st.session_state.manual_reset_counter += 1
-                st.success(
-                    f"🎉 تم تسجيل: {m_name} (الفريق الأصلي: {m_team_orig}) | الدرجة:"
-                    f" {curr_score}/10"
-                )
-                time.sleep(0.8)
-                st.rerun()
-              else:
-                st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
-            else:
-              st.error("❌ الكود غير مسجل في قاعدة البيانات!")
+            st.success(f"🎉 تم تسجيل: {m_name} | الدرجة: {curr_score}/10")
+            time.sleep(0.8)
+            st.rerun()
           else:
-            st.warning("يرجى إدخال كود الكشاف أولاً.")
+            st.info(f"ℹ️ الكشاف {m_name} مسجل بالفعل.")
+        else:
+          st.error("❌ الكود غير مسجل في قاعدة البيانات!")
 
 # --- Tab: التقييمات ---
 if "evaluations" in tab_dict:
   with tab_dict["evaluations"]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
-    col_cam_btn, _ = st.columns([1, 1])
-    with col_cam_btn:
-      if st.button(
-          "📷 فتح/إغلاق الكاميرا لمسح الكود", key="toggle_eval_cam_btn"
-      ):
-        st.session_state.show_eval_camera = (
-            not st.session_state.show_eval_camera
-        )
-        st.rerun()
 
-    if st.session_state.show_eval_camera:
-      eval_img = st.camera_input(
-          "التقط صورة كارت الكشاف للتقييم", key="eval_cam"
-      )
-      if eval_img is not None:
-        extracted_eval = extract_qr_code(eval_img)
-        if extracted_eval:
-          st.session_state.eval_scanned_code = str(extracted_eval).strip()
-          st.session_state.show_eval_camera = False
-          st.success(f"تم التقاط الكود: {extracted_eval}")
-          st.rerun()
-        else:
-          st.error("لم يتم التعرف على الرمز.")
+    html_live_scanner_eval = """
+    <div style="text-align: center; background: #f0f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+        <div id="reader-live-eval" style="width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden;"></div>
+        <button id="btn-start-eval" onclick="startEvalScanner()" style="background-color: #2E7D32; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">🟢 فتح الكاميرا لمسح تقييم الكشاف</button>
+        <button id="btn-stop-eval" onclick="stopEvalScanner()" style="background-color: #C62828; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: none; width: 100%;">إغلاق الكاميرا</button>
+        <p id="eval-scan-status" style="color: #1565C0; font-weight: bold; margin-top: 10px; font-size: 15px;"></p>
+    </div>
 
-    with st.form(f"score_form_{st.session_state.eval_reset_counter}"):
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+        let html5QrCodeEval = null;
+
+        function startEvalScanner() {
+            document.getElementById('btn-start-eval').style.display = 'none';
+            document.getElementById('btn-stop-eval').style.display = 'block';
+            document.getElementById('eval-scan-status').innerText = "جاري تفعيل الكاميرا...";
+
+            html5QrCodeEval = new Html5Qrcode("reader-live-eval");
+            
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length) {
+                    let camId = devices.length > 1 ? devices[devices.length - 1].id : devices[0].id;
+                    for (let i = 0; i < devices.length; i++) {
+                        let label = devices[i].label.toLowerCase();
+                        if ((label.includes('back') || label.includes('rear') || label.includes('environment')) && !label.includes('wide')) {
+                            camId = devices[i].id;
+                            break;
+                        }
+                    }
+
+                    html5QrCodeEval.start(
+                        camId ? {{ deviceId: {{ exact: camId }} }} : {{ facingMode: "environment" }},
+                        {{ fps: 20, qrbox: {{ width: 250, height: 250 }} }},
+                        (decodedText) => {
+                            document.getElementById('eval-scan-status').innerText = "✅ تم التقاط الكود: " + decodedText;
+                            window.location.search = `?auto_eval_code=${{encodeURIComponent(decodedText)}}`;
+                            stopEvalScanner();
+                        },
+                        (errorMessage) => {{}}
+                    ).catch(err => {
+                        document.getElementById('eval-scan-status').innerText = "خطأ: " + err;
+                    });
+                }
+            }).catch(err => {
+                document.getElementById('eval-scan-status').innerText = "لا توجد كاميرات.";
+            });
+        }
+
+        function stopEvalScanner() {
+            if (html5QrCodeEval) {
+                html5QrCodeEval.stop().then(() => {
+                    document.getElementById('btn-start-eval').style.display = 'block';
+                    document.getElementById('btn-stop-eval').style.display = 'none';
+                }).catch(err => {{}});
+            }
+        }
+    </script>
+    """
+    st.components.v1.html(html_live_scanner_eval, height=420)
+
+    query_eval_p = st.query_params
+    scanned_eval_val = ""
+    if "auto_eval_code" in query_eval_p:
+      scanned_eval_val = query_eval_p["auto_eval_code"]
+      st.query_params.clear()
+
+    with st.form("score_form"):
       eval_team = st.selectbox(
           "الفريق", ["الفريق الأول", "الفريق الثاني"], key="eval_team_select"
       )
       s_code_input = st.text_input(
           "كود الكشاف",
-          value=st.session_state.eval_scanned_code,
+          value=str(scanned_eval_val).strip() if scanned_eval_val else "",
           placeholder="أدخل الكود أو امسحه بالكاميرا",
       )
       s_type = st.selectbox("نوع التقييم", [
@@ -946,8 +982,6 @@ if "evaluations" in tab_dict:
                     s_notes,
                 ],
             ):
-              st.session_state.eval_scanned_code = ""
-              st.session_state.eval_reset_counter += 1
               st.success(
                   f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} ({eval_team}) بنجاح!"
               )
@@ -1132,7 +1166,7 @@ if "directory" in tab_dict:
     )
 
     if st.button("إضافة لخدمة الكشافة"):
-      if m_name.strip():
+      | m_name.strip():
         cleaned_input_name = " ".join(m_name.strip().split())
         try:
           max_c = (
@@ -1198,55 +1232,53 @@ if "sheet_link" in tab_dict:
 # --- Tab: إدارة الحسابات ---
 if "accounts" in tab_dict:
   with tab_dict["accounts"]:
-    st.subheader("⚙️ إضافة حساب جديد وتحديد الصلاحيات")
-    all_possible_tabs = [
+    st.subheader("⚙️ إدارة الصلاحيات والحسابات")
+    all_tabs_list = [
         "تسجيل الحضور",
         "التقييمات",
         "لوحة الصدارة",
         "دليل الكشافة",
         "الشيت السحابي",
     ]
-    new_u_role = st.selectbox(
-        "نوع الحساب", ["كابتن", "عضو", "آدمن"], key="user_role_select"
+    u_role_choice = st.selectbox(
+        "الصلاحية", ["كابتن", "عضو", "آدمن"], key="new_role_sel"
     )
-
-    if new_u_role == "آدمن":
-      selected_tabs = all_possible_tabs
-    elif new_u_role == "عضو":
-      selected_tabs = ["لوحة الصدارة"]
+    if u_role_choice == "آدمن":
+      chosen_tabs = all_tabs_list
+    elif u_role_choice == "عضو":
+      chosen_tabs = ["لوحة الصدارة"]
     else:
-      selected_tabs = st.multiselect(
-          "حدد القوائم المتاحة لـ (كابتن):",
-          options=all_possible_tabs,
+      chosen_tabs = st.multiselect(
+          "القوائم المتاحة للقائد:",
+          all_tabs_list,
           default=[
               "تسجيل الحضور",
               "التقييمات",
               "لوحة الصدارة",
               "دليل الكشافة",
           ],
-          key="captain_perms",
       )
 
-    with st.form("add_user_form", clear_on_submit=True):
-      new_u_name = st.text_input("اسم المستخدم الجديد", key="input_u_name")
-      new_u_pass = st.text_input(
-          "كلمة السر الجديدة", type="password", key="input_u_pass"
-      )
-      submit_user = st.form_submit_button("إضافة الحساب وحفظه سحابياً")
-      if submit_user:
-        if new_u_name.strip() and new_u_pass.strip():
-          perms_str = ", ".join(selected_tabs)
-          new_row = [
-              new_u_name.strip(),
-              new_u_pass.strip(),
-              new_u_role,
-              perms_str,
-          ]
-          if append_to_google_sheet("المستخدمين", new_row):
-            st.success(f"🎉 تم إنشاء حساب ({new_u_name}) بنجاح!")
+    with st.form("new_user_form", clear_on_submit=True):
+      new_username_val = st.text_input("اسم المستخدم")
+      new_pass_val = st.text_input("كلمة السر", type="password")
+      btn_add_u = st.form_submit_button("حفظ وحفظه سحابياً")
+      if btn_add_u:
+        if new_username_val.strip() and new_pass_val.strip():
+          p_str = ", ".join(chosen_tabs)
+          if append_to_google_sheet(
+              "المستخدمين",
+              [
+                  new_username_val.strip(),
+                  new_pass_val.strip(),
+                  u_role_choice,
+                  p_str,
+              ],
+          ):
+            st.success("🎉 تم إنشاء الحساب بنجاح!")
             st.rerun()
 
     st.divider()
-    users_list = load_data_from_gsheet("المستخدمين")
-    if not users_list.empty:
-      st.dataframe(users_list, use_container_width=True)
+    df_users = load_data_from_gsheet("المستخدمين")
+    if not df_users.empty:
+      st.dataframe(df_users, use_container_width=True)
