@@ -73,7 +73,6 @@ if not firebase_admin._apps:
   )
 
 
-# --- دوال التعامل مع Firebase ---
 def get_live_sessions_firebase():
   try:
     ref = db.reference("active_sessions")
@@ -130,7 +129,6 @@ def clear_draft_scans_firebase(team_name):
   ref.delete()
 
 
-# --- مكتبات الباركود ---
 try:
   import zxingcpp
 
@@ -145,7 +143,6 @@ try:
 except Exception:
   HAS_PYZBAR = False
 
-# --- Google Sheets ---
 try:
   from google.oauth2.service_account import Credentials
   import gspread
@@ -212,7 +209,6 @@ def append_to_google_sheet(sheet_name, row_data):
 
 
 def append_rows_to_google_sheet(sheet_name, rows_data):
-  """إضافة مجموعة صفوف دفعة واحدة لضمان عدم تجاوز طلبات Google API."""
   try:
     client = get_gsheet_client()
     if client:
@@ -287,6 +283,26 @@ def update_leaderboard_in_gsheet(df_leaderboard):
   except Exception as e:
     st.error(f"خطأ في ترتيب الأعضاء: {e}")
   return False
+
+
+def extract_qr_code(image_file):
+  try:
+    img = Image.open(image_file)
+    if HAS_ZXING:
+      results = zxingcpp.read_barcodes(img)
+      if results:
+        raw_text = results[0].text
+        clean_digits = "".join(filter(str.isdigit, raw_text))
+        return clean_digits if clean_digits else raw_text
+    if HAS_PYZBAR:
+      decoded = decode(img)
+      if decoded:
+        raw_text = decoded[0].data.decode("utf-8")
+        clean_digits = "".join(filter(str.isdigit, raw_text))
+        return clean_digits if clean_digits else raw_text
+  except Exception:
+    pass
+  return None
 
 
 def check_login(username, password):
@@ -489,8 +505,10 @@ if "scores" not in st.session_state:
         "ملاحظات",
     ])
 
-if "eval_scanned_code" not in st.session_state:
-  st.session_state.eval_scanned_code = ""
+if "scanned_att_code" not in st.session_state:
+  st.session_state.scanned_att_code = ""
+if "scanned_eval_code" not in st.session_state:
+  st.session_state.scanned_eval_code = ""
 
 available_tabs = []
 tab_keys = []
@@ -558,7 +576,6 @@ if "attendance" in tab_dict:
     selected_key = "team_1" if selected_team == "الفريق الأول" else "team_2"
     active_session = live_sessions.get(selected_key, None)
 
-    # جلب المسودة الحية من Firebase
     scanned_members = {}
     if active_session:
       draft_scans = get_draft_scans_firebase(selected_team)
@@ -657,7 +674,7 @@ if "attendance" in tab_dict:
               })
 
             for _, row in team_members.iterrows():
-              raw_code = row.get("كoud العضو", row.get("كود العضو", ""))
+              raw_code = row.get("كود العضو", "")
               clean_code_str = str(raw_code).strip()
               member_name = row.get(
                   "اسم الكشاف", row.get("الاسم", "غير معروف")
@@ -725,84 +742,34 @@ if "attendance" in tab_dict:
     st.divider()
 
     if active_session:
-      st.subheader(f"📷 الكاميرا الخلفية الأساسية لتسجيل الحضور ({selected_team})")
+      st.subheader(
+          f"📷 كاميرا مسح الكاركيز / QR Code للحضور ({selected_team})"
+      )
 
-      # استخدام مكون HTML مخصص مع حقل إدخال مخفي ينقل الكود بسلاسة إلى Streamlit
-      html_camera_att = f"""
-      <div style="text-align: center; background: #f0f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-          <div id="reader-att" style="width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden;"></div>
-          <button id="start-att-btn" onclick="startCameraAtt()" style="background-color: #1565C0; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">📷 فتح الكاميرا الخلفية الأساسية</button>
-          <button id="stop-att-btn" onclick="stopCameraAtt()" style="background-color: #C62828; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: none; width: 100%;">إغلاق الكاميرا</button>
-          <p id="att-status" style="color: #2E7D32; font-weight: bold; margin-top: 10px; font-size: 15px;"></p>
-      </div>
+      # استخدام مكون الكاميرا الأصلي الموثوق في Streamlit مع معالجة الباركود التلقائية
+      att_img_file = st.camera_input(
+          "التقاط صورة لـ QR Code الكشاف لتسجيل حضوره", key="cam_input_att"
+      )
+      if att_img_file is not None:
+        extracted_code = extract_qr_code(att_img_file)
+        if extracted_code:
+          st.session_state.scanned_att_code = str(extracted_code).strip()
+          st.success(f"✅ تم التعرف على الكود بنجاح: {extracted_code}")
+        else:
+          st.warning(
+              "⚠️ لم يتم التعرف على الـ QR في الصورة بدقة، يرجى إعادة الالتقاط"
+              " بوضوح أو استخدام الإدخال اليدوي أدناه."
+          )
 
-      <script src="https://unpkg.com/html5-qrcode"></script>
-      <script>
-          let html5QrCodeAtt = null;
-
-          function startCameraAtt() {
-              document.getElementById('start-att-btn').style.display = 'none';
-              document.getElementById('stop-att-btn').style.display = 'block';
-              document.getElementById('att-status').innerText = "جاري تفعيل الكاميرا الخلفية الأساسية...";
-
-              html5QrCodeAtt = new Html5Qrcode("reader-att");
-              
-              Html5Qrcode.getCameras().then(devices => {
-                  if (devices && devices.length) {
-                      let cameraIndex = devices.length > 1 ? devices.length - 1 : 0;
-                      for (let i = 0; i < devices.length; i++) {
-                          let label = devices[i].label.toLowerCase();
-                          if ((label.includes('back') || label.includes('rear') || label.includes('environment')) && !label.includes('wide') && !label.includes('ultra')) {
-                              cameraIndex = i;
-                              break;
-                          }
-                      }
-                      let selectedCamId = devices[cameraIndex].id;
-
-                      html5QrCodeAtt.start(
-                          selectedCamId ? {{ deviceId: {{ exact: selectedCamId }} }} : {{ facingMode: "environment" }},
-                          {{ fps: 15, qrbox: {{ width: 220, height: 220 }} }},
-                          (decodedText) => {
-                              document.getElementById('att-status').innerHTML = "✅ الكود المكتشف: <b style='color:red; font-size:18px;'>" + decodedText + "</b><br>اكتب الكود أدناه أو انسخه واضغط تسجيل.";
-                              
-                              // حفظ الكود في Session Storage لكي يقرأه بايثون بسهولة
-                              window.parent.document.querySelector("input[aria-label*='أو أدخل الكود']").value = decodedText;
-                              
-                              stopCameraAtt();
-                          },
-                          (errorMessage) => {{}}
-                      ).catch(err => {
-                          document.getElementById('att-status').innerText = "خطأ في تشغيل الكاميرا: " + err;
-                      });
-                  }
-              }).catch(err => {
-                  document.getElementById('att-status').innerText = "لا توجد كاميرات متاحة.";
-              });
-          }
-
-          function stopCameraAtt() {
-              if (html5QrCodeAtt) {
-                  html5QrCodeAtt.stop().then(() => {
-                      document.getElementById('start-att-btn').style.display = 'block';
-                      document.getElementById('stop-att-btn').style.display = 'none';
-                  }).catch(err => {{}});
-              }
-          }
-      </script>
-      """
-      st.components.v1.html(html_camera_att, height=400)
-
-    st.divider()
-
-    if active_session:
       with st.form(
           f"manual_attendance_form_{st.session_state.manual_reset_counter}"
       ):
         manual_code_str = st.text_input(
-            "أو أدخل الكود يدوياً (أو سيظهر تلقائياً من المسح):", value=""
+            "كود الكشاف (يظهر تلقائياً أو يُكتب يدوياً):",
+            value=st.session_state.scanned_att_code,
         )
         submit_manual = st.form_submit_button(
-            "✅ تأكيد وتسجيل الكشاف في الجلسة"
+            "✅ تسجيل الكشاف في الجلسة ومزامنة Firebase"
         )
 
         if submit_manual:
@@ -837,9 +804,10 @@ if "attendance" in tab_dict:
                     st.session_state.current_username,
                 )
                 st.session_state.manual_reset_counter += 1
+                st.session_state.scanned_att_code = ""
                 st.success(
-                    f"🎉 تم تسجيل: {m_name} (الفريق الأصلي: {m_team_orig}) | الدرجة:"
-                    f" {curr_score}/10"
+                    f"🎉 تم تسجيل الحضور بنجاح: {m_name} (الفريق الأصلي:"
+                    f" {m_team_orig}) | الدرجة: {curr_score}/10"
                 )
                 time.sleep(0.8)
                 st.rerun()
@@ -855,75 +823,28 @@ if "evaluations" in tab_dict:
   with tab_dict["evaluations"]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
 
-    html_camera_eval = """
-    <div style="text-align: center; background: #f0f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-        <div id="reader-eval" style="width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden;"></div>
-        <button id="start-eval-btn" onclick="startCameraEval()" style="background-color: #1565C0; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">📷 فتح الكاميرا الخلفية للتقييم</button>
-        <button id="stop-eval-btn" onclick="stopCameraEval()" style="background-color: #C62828; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: none; width: 100%;">إغلاق الكاميرا</button>
-        <p id="eval-status" style="color: #2E7D32; font-weight: bold; margin-top: 10px; font-size: 15px;"></p>
-    </div>
-
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script>
-        let html5QrCodeEval = null;
-
-        function startCameraEval() {
-            document.getElementById('start-eval-btn').style.display = 'none';
-            document.getElementById('stop-eval-btn').style.display = 'block';
-            document.getElementById('eval-status').innerText = "جاري تفعيل الكاميرا الخلفية...";
-
-            html5QrCodeEval = new Html5Qrcode("reader-eval");
-            
-            Html5Qrcode.getCameras().then(devices => {
-                if (devices && devices.length) {
-                    let cameraIndex = devices.length > 1 ? devices.length - 1 : 0;
-                    for (let i = 0; i < devices.length; i++) {
-                        let label = devices[i].label.toLowerCase();
-                        if ((label.includes('back') || label.includes('rear') || label.includes('environment')) && !label.includes('wide') && !label.includes('ultra')) {
-                            cameraIndex = i;
-                            break;
-                        }
-                    }
-                    let selectedCamId = devices[cameraIndex].id;
-
-                    html5QrCodeEval.start(
-                        selectedCamId ? {{ deviceId: {{ exact: selectedCamId }} }} : {{ facingMode: "environment" }},
-                        {{ fps: 15, qrbox: {{ width: 220, height: 220 }} }},
-                        (decodedText) => {
-                            document.getElementById('eval-status').innerHTML = "✅ الكود المكتشف: <b style='color:red; font-size:18px;'>" + decodedText + "</b>";
-                            window.parent.document.querySelector("input[aria-label*='كود الكشاف']").value = decodedText;
-                            stopCameraEval();
-                        },
-                        (errorMessage) => {{}}
-                    ).catch(err => {
-                        document.getElementById('eval-status').innerText = "خطأ في تشغيل الكاميرا: " + err;
-                    });
-                }
-            }).catch(err => {
-                document.getElementById('eval-status').innerText = "لا توجد كاميرات متاحة.";
-            });
-        }
-
-        function stopCameraEval() {
-            if (html5QrCodeEval) {
-                html5QrCodeEval.stop().then(() => {
-                    document.getElementById('start-eval-btn').style.display = 'block';
-                    document.getElementById('stop-eval-btn').style.display = 'none';
-                }).catch(err => {{}});
-            }
-        }
-    </script>
-    """
-    st.components.v1.html(html_camera_eval, height=400)
+    eval_img_file = st.camera_input(
+        "التقاط صورة لـ QR Code الكشاف للتقييم", key="cam_input_eval"
+    )
+    if eval_img_file is not None:
+      extracted_eval = extract_qr_code(eval_img_file)
+      if extracted_eval:
+        st.session_state.scanned_eval_code = str(extracted_eval).strip()
+        st.success(f"✅ تم التعرف على الكود بنجاح: {extracted_eval}")
+      else:
+        st.warning(
+            "⚠️ لم يتم التعرف على الـ QR في الصورة، يرجى إعادة الالتقاط أو الكتابة"
+            " يدوياً."
+        )
 
     with st.form("score_form"):
       eval_team = st.selectbox(
           "الفريق", ["الفريق الأول", "الفريق الثاني"], key="eval_team_select"
       )
       s_code_input = st.text_input(
-          "كود الكشاف (يظهر تلقائياً عند المسح)",
-          value="",
-          placeholder="أدخل الكود أو امسحه بالكاميرا",
+          "كود الكشاف",
+          value=st.session_state.scanned_eval_code,
+          placeholder="أدخل الكود أو التقط صورة بالكاميرا أعلاه",
       )
       s_type = st.selectbox("نوع التقييم", [
           "الزي الكشفي",
@@ -970,6 +891,7 @@ if "evaluations" in tab_dict:
                     s_notes,
                 ],
             ):
+              st.session_state.scanned_eval_code = ""
               st.success(
                   f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} ({eval_team}) بنجاح!"
               )
