@@ -45,7 +45,7 @@ FIREBASE_CREDS = {
     "private_key_id": "6d124414e35bdcf820dd3315a85cb549f13df03e",
     "private_key": (
         "-----BEGIN PRIVATE"
-        " KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\n1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\n00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\nL5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\B3RFZh7bqFkM82JJfMF6Lg==\n-----END"
+        " KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\n00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\nL5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\B3RFZh7bqFkM82JJfMF6Lg==\n-----END"
         " PRIVATE KEY-----\n"
     ),
     "client_email": (
@@ -623,7 +623,7 @@ if "attendance" in tab_dict:
             now_egypt = datetime.datetime.now(CAIRO_TZ)
             today = now_egypt.strftime("%Y-%m-%d")
 
-            # 1. جلب أعضاء الفريق صاحب الجلسة المفتوحة فقط للغائبين
+            # جلب أعضاء الفريق صاحب الجلسة فقط للغائبين
             team_members = (
                 st.session_state.members[
                     st.session_state.members["الفريق"] == selected_team
@@ -636,7 +636,7 @@ if "attendance" in tab_dict:
             new_att_records = []
             scanned_codes_set = set(scanned_members.keys())
 
-            # 2. تسجيل الحاضرين الفعليين (سواء من هذا الفريق أو غيره ممن تم مسح كارتهم)
+            # تسجيل الحاضرين الفعليين (سواء من هذا الفريق أو غيره)
             for c_code, (t_str, sc) in scanned_members.items():
               m_match = (
                   st.session_state.members[
@@ -680,7 +680,7 @@ if "attendance" in tab_dict:
                   "درجة الحضور": sc,
               })
 
-            # 3. تسجيل الغياب فقط لأعضاء الفريق صاحب الجلسة الذين لم يحضروا
+            # تسجيل الغياب فقط لأعضاء الفريق صاحب الجلسة الذين لم يحضروا
             for _, row in team_members.iterrows():
               raw_code = row.get("كود العضو", "")
               clean_code_str = str(raw_code).strip()
@@ -710,7 +710,6 @@ if "attendance" in tab_dict:
                     "درجة الحضور": 0.0,
                 })
 
-            # 4. رفع البيانات للسحاب وإغلاق الجلسة المفتوحة فقط
             if rows_to_upload:
               if append_rows_to_google_sheet("الحضور", rows_to_upload):
                 st.session_state.attendance = pd.concat(
@@ -751,10 +750,11 @@ if "attendance" in tab_dict:
     st.divider()
 
     if active_session:
-      st.subheader(f"📷 الكاميرا المخصصة للعدسة الخلفية الأساسية ({selected_team})")
+      st.subheader(f"📷 الكاميرا الخلفية الأساسية لتسجيل الحضور ({selected_team})")
 
-      # استخدام مكون HTML مخصص لاختيار العدسة الخلفية الأساسية (رقم 2 غالباً أو البيئة الأساسية مباشرة وتخطي الأمامية)
-      html_back_camera_attendance = f"""
+      # استخدام HTML5-QRCode مع تجاوز مشاكل f-string وتحديد الكاميرا الخلفية بدقة
+      html_back_camera_attendance = (
+          """
       <div style="text-align: center; background: #f0f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
           <div id="reader-att" style="width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden;"></div>
           <button id="start-att-btn" onclick="startCameraAtt()" style="background-color: #1565C0; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">📷 فتح الكاميرا الخلفية الأساسية</button>
@@ -775,7 +775,6 @@ if "attendance" in tab_dict:
               
               Html5Qrcode.getCameras().then(devices => {
                   if (devices && devices.length) {
-                      // اختيار الكاميرا الخلفية الأساسية تحديداً (تجاوز الأمامية والواسعة)
                       let cameraIndex = devices.length > 1 ? devices.length - 1 : 0;
                       for (let i = 0; i < devices.length; i++) {
                           let label = devices[i].label.toLowerCase();
@@ -787,16 +786,16 @@ if "attendance" in tab_dict:
                       let selectedCamId = devices[cameraIndex].id;
 
                       html5QrCodeAtt.start(
-                          selectedCamId ? {{ deviceId: {{ exact: selectedCamId }} }} : {{ facingMode: "environment" }},
-                          {{ fps: 15, qrbox: {{ width: 220, height: 220 }} }},
+                          selectedCamId ? { deviceId: { exact: selectedCamId } } : { facingMode: "environment" },
+                          { fps: 15, qrbox: { width: 220, height: 220 } },
                           (decodedText) => {
                               document.getElementById('att-status').innerText = "تم القراءة بنجاح: " + decodedText;
-                              // إرسال كود الكشاف مباشرة إلى Streamlit
-                              const queryParams = new URLSearchParams(window.location.search);
-                              window.location.search = `?scanned_code=${{encodeURIComponent(decodedText)}}&team={selected_team}`;
+                              window.location.search = "?scanned_code=" + encodeURIComponent(decodedText) + "&team=" + encodeURIComponent('"""
+          + selected_team
+          + """');
                               stopCameraAtt();
                           },
-                          (errorMessage) => {{}}
+                          (errorMessage) => {}
                       ).catch(err => {
                           document.getElementById('att-status').innerText = "خطأ في تشغيل الكاميرا: " + err;
                       });
@@ -812,18 +811,18 @@ if "attendance" in tab_dict:
                       document.getElementById('start-att-btn').style.display = 'block';
                       document.getElementById('stop-att-btn').style.display = 'none';
                       document.getElementById('att-status').innerText = "";
-                  }).catch(err => {{}});
+                  }).catch(err => {});
               }
           }
       </script>
       """
+      )
       st.components.v1.html(html_back_camera_attendance, height=380)
 
-      # استقبال الكود الممسوح عبر الـ URL لتسجيله فوراً
+      # استقبال الكود الممسوح عبر الـ URL
       query_params = st.query_params
       if "scanned_code" in query_params:
         extracted = query_params["scanned_code"]
-        # مسح البارامتر من الرابط لمنع التكرار
         st.query_params.clear()
         if extracted:
           clean_extracted = str(extracted).strip()
@@ -933,7 +932,6 @@ if "evaluations" in tab_dict:
   with tab_dict["evaluations"]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
 
-    # كاميرا مخصصة للتقييمات للعدسة الخلفية الأساسية
     html_back_camera_eval = """
     <div style="text-align: center; background: #f0f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
         <div id="reader-eval" style="width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden;"></div>
@@ -966,14 +964,14 @@ if "evaluations" in tab_dict:
                     let selectedCamId = devices[cameraIndex].id;
 
                     html5QrCodeEval.start(
-                        selectedCamId ? {{ deviceId: {{ exact: selectedCamId }} }} : {{ facingMode: "environment" }},
-                        {{ fps: 15, qrbox: {{ width: 220, height: 220 }} }},
+                        selectedCamId ? { deviceId: { exact: selectedCamId } } : { facingMode: "environment" },
+                        { fps: 15, qrbox: { width: 220, height: 220 } },
                         (decodedText) => {
                             document.getElementById('eval-status').innerText = "تم القراءة بنجاح: " + decodedText;
-                            window.location.search = `?eval_scanned_code=${{encodeURIComponent(decodedText)}}`;
+                            window.location.search = "?eval_scanned_code=" + encodeURIComponent(decodedText);
                             stopCameraEval();
                         },
-                        (errorMessage) => {{}}
+                        (errorMessage) => {}
                     ).catch(err => {
                         document.getElementById('eval-status').innerText = "خطأ في تشغيل الكاميرا: " + err;
                     });
@@ -989,14 +987,13 @@ if "evaluations" in tab_dict:
                     document.getElementById('start-eval-btn').style.display = 'block';
                     document.getElementById('stop-eval-btn').style.display = 'none';
                     document.getElementById('eval-status').innerText = "";
-                }).catch(err => {{}});
+                }).catch(err => {});
             }
         }
     </script>
     """
     st.components.v1.html(html_back_camera_eval, height=380)
 
-    # استقبال كود التقييم الممسوح عبر الرابط
     q_params_eval = st.query_params
     if "eval_scanned_code" in q_params_eval:
       scanned_val = q_params_eval["eval_scanned_code"]
@@ -1347,7 +1344,7 @@ if "accounts" in tab_dict:
       submit_user = st.form_submit_button("إضافة الحساب وحفظه سحابياً")
       if submit_user:
         if new_u_name.strip() and new_u_pass.strip():
-          perms_str = ", من ".join(selected_tabs)
+          perms_str = ", ".join(selected_tabs)
           new_row = [
               new_u_name.strip(),
               new_u_pass.strip(),
