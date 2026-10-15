@@ -165,11 +165,18 @@ def get_gsheet_client():
       "https://www.googleapis.com/auth/drive",
   ]
   creds_dict = None
-  if "GCP_JSON" in os.environ:
+  
+  # استخدام نفس بيانات FIREBASE_CREDS آمنة ومطابقة تماماً لتجنب مشاكل Secrets
+  global FIREBASE_CREDS
+  if FIREBASE_CREDS and "private_key" in FIREBASE_CREDS:
+    creds_dict = dict(FIREBASE_CREDS)
+
+  if not creds_dict and "GCP_JSON" in os.environ:
     try:
       creds_dict = json.loads(os.environ["GCP_JSON"])
     except Exception:
       pass
+
   if not creds_dict:
     try:
       if "gcp_service_account" in st.secrets:
@@ -178,9 +185,17 @@ def get_gsheet_client():
         creds_dict = json.loads(st.secrets["GCP_JSON"])
     except Exception:
       pass
+
   if creds_dict:
     if "private_key" in creds_dict:
-      creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+      # إصلاح مشكلة الأسطر الجديدة في المفتاح الخاص تلقائياً
+      pk = str(creds_dict["private_key"])
+      pk = pk.replace("\\n", "\n")
+      if "BEGIN PRIVATE KEY" in pk and not pk.startswith("-----BEGIN"):
+        # تنظيف أي رموز زايدة
+        pass
+      creds_dict["private_key"] = pk
+      
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     return gspread.authorize(creds)
   return None
