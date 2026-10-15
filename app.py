@@ -45,7 +45,7 @@ FIREBASE_CREDS = {
     "private_key_id": "6d124414e35bdcf820dd3315a85cb549f13df03e",
     "private_key": (
         "-----BEGIN PRIVATE"
-        " KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\r\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\nL5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\B3RFZh7bqFkM82JJfMF6Lg==\n-----END"
+        " KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\n9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\r\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\L5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\B3RFZh7bqFkM82JJfMF6Lg==\n-----END"
         " PRIVATE KEY-----\n"
     ),
     "client_email": (
@@ -471,9 +471,6 @@ if "scores" not in st.session_state:
         "ملاحظات",
     ])
 
-if "auto_scanned_code" not in st.session_state:
-  st.session_state.auto_scanned_code = ""
-
 available_tabs = []
 tab_keys = []
 if st.session_state.permissions.get("can_attendance", True):
@@ -708,8 +705,9 @@ if "attendance" in tab_dict:
     if active_session:
       st.subheader(f"📷 مسح مباشر بالـ QR للـ ({selected_team})")
 
-      # مكون JavaScript ذكي يفتح الكاميرا الخلفية ويقوم بالمسح الفوري وإرسال الكود تلقائياً لـ Streamlit
-      html_live_scanner = f"""
+      # استخدام تعبيرات سليم آمنة تماماً بدون تداخل أقواس f-string
+      html_live_scanner = (
+          """
       <div style="text-align: center; background: #f0f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
           <div id="reader-live" style="width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden;"></div>
           <button id="btn-start-scan" onclick="startScanner()" style="background-color: #2E7D32; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">🟢 فتح الكاميرا للمسح التلقائي</button>
@@ -740,15 +738,16 @@ if "attendance" in tab_dict:
                       }
 
                       html5QrCode.start(
-                          camId ? {{ deviceId: {{ exact: camId }} }} : {{ facingMode: "environment" }},
-                          {{ fps: 20, qrbox: {{ width: 250, height: 250 }} }},
+                          camId ? { deviceId: { exact: camId } } : { facingMode: "environment" },
+                          { fps: 20, qrbox: { width: 250, height: 250 } },
                           (decodedText) => {
-                              document.getElementById('scan-status.innerText = "✅ تم التقاط الكود: " + decodedText;
-                              // إرسال الكود فوراً عبر الـ URL لتسجيله تلقائياً بدون ضغطات
-                              window.location.search = `?auto_code=${{encodeURIComponent(decodedText)}}&team={selected_team}`;
+                              document.getElementById('scan-status').innerText = "✅ تم التقاط الكود: " + decodedText;
+                              window.location.search = "?auto_code=" + encodeURIComponent(decodedText) + "&team=" + encodeURIComponent('"""
+          + selected_team
+          + """');
                               stopScanner();
                           },
-                          (errorMessage) => {{}}
+                          (errorMessage) => {}
                       ).catch(err => {
                           document.getElementById('scan-status').innerText = "خطأ في تشغيل الكاميرا: " + err;
                       });
@@ -763,14 +762,14 @@ if "attendance" in tab_dict:
                   html5QrCode.stop().then(() => {
                       document.getElementById('btn-start-scan').style.display = 'block';
                       document.getElementById('btn-stop-scan').style.display = 'none';
-                  }).catch(err => {{}});
+                  }).catch(err => {});
               }
           }
       </script>
       """
+      )
       st.components.v1.html(html_live_scanner, height=420)
 
-      # التقطيص التلقائي للكود الممرر عبر الـ URL وتسجيل الحضور فوراً في Firebase
       query_p = st.query_params
       if "auto_code" in query_p:
         scanned_code_val = query_p["auto_code"]
@@ -820,7 +819,6 @@ if "attendance" in tab_dict:
 
     st.divider()
 
-    # خيار الإدخال اليدوي كبديل احتياطي
     with st.form("manual_attendance_form"):
       manual_code_str = st.text_input("أو أدخل الكود يدوياً:")
       submit_manual = st.form_submit_button("✅ تسجيل يدوي سريع")
@@ -893,14 +891,14 @@ if "evaluations" in tab_dict:
                     }
 
                     html5QrCodeEval.start(
-                        camId ? {{ deviceId: {{ exact: camId }} }} : {{ facingMode: "environment" }},
-                        {{ fps: 20, qrbox: {{ width: 250, height: 250 }} }},
+                        camId ? { deviceId: { exact: camId } } : { facingMode: "environment" },
+                        { fps: 20, qrbox: { width: 250, height: 250 } },
                         (decodedText) => {
                             document.getElementById('eval-scan-status').innerText = "✅ تم التقاط الكود: " + decodedText;
-                            window.location.search = `?auto_eval_code=${{encodeURIComponent(decodedText)}}`;
+                            window.location.search = "?auto_eval_code=" + encodeURIComponent(decodedText);
                             stopEvalScanner();
                         },
-                        (errorMessage) => {{}}
+                        (errorMessage) => {}
                     ).catch(err => {
                         document.getElementById('eval-scan-status').innerText = "خطأ: " + err;
                     });
@@ -915,7 +913,7 @@ if "evaluations" in tab_dict:
                 html5QrCodeEval.stop().then(() => {
                     document.getElementById('btn-start-eval').style.display = 'block';
                     document.getElementById('btn-stop-eval').style.display = 'none';
-                }).catch(err => {{}});
+                }).catch(err => {});
             }
         }
     </script>
@@ -1166,7 +1164,7 @@ if "directory" in tab_dict:
     )
 
     if st.button("إضافة لخدمة الكشافة"):
-      | m_name.strip():
+      if m_name.strip():
         cleaned_input_name = " ".join(m_name.strip().split())
         try:
           max_c = (
