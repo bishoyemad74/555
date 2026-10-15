@@ -580,7 +580,7 @@ if "attendance" in tab_dict:
     selected_key = "team_1" if selected_team == "الفريق الأول" else "team_2"
     active_session = live_sessions.get(selected_key, None)
 
-    # جلب المسودة الحية من Firebase وتحويل المفاتيح إلى نصوص نظيفة
+    # جلب المسودة الحية من Firebase
     scanned_members = {}
     if active_session:
       draft_scans = get_draft_scans_firebase(selected_team)
@@ -623,7 +623,7 @@ if "attendance" in tab_dict:
             now_egypt = datetime.datetime.now(CAIRO_TZ)
             today = now_egypt.strftime("%Y-%m-%d")
 
-            # 1. جلب أعضاء الفريق المحدد للغائبين فقط
+            # جلب أعضاء الفريق المحدد للغائبين فقط
             team_members = (
                 st.session_state.members[
                     st.session_state.members["الفريق"] == selected_team
@@ -636,7 +636,7 @@ if "attendance" in tab_dict:
             new_att_records = []
             scanned_codes_set = set(scanned_members.keys())
 
-            # 2. تسجيل الحاضرين الفعليين (سواء من هذا الفريق أو غيره)
+            # تسجيل الحاضرين الفعليين (سواء من هذا الفريق أو غيره)
             for c_code, (t_str, sc) in scanned_members.items():
               m_match = (
                   st.session_state.members[
@@ -680,7 +680,7 @@ if "attendance" in tab_dict:
                   "درجة الحضور": sc,
               })
 
-            # 3. تسجيل الغياب فقط لأعضاء الفريق صاحب الجلسة الذين لم يحضروا
+            # تسجيل الغياب فقط لأعضاء الفريق صاحب الجلسة الذين لم يحضروا
             for _, row in team_members.iterrows():
               raw_code = row.get("كود العضو", "")
               clean_code_str = str(raw_code).strip()
@@ -710,7 +710,6 @@ if "attendance" in tab_dict:
                     "درجة الحضور": 0.0,
                 })
 
-            # 4. إرسال الصفوف دفعة واحدة للسحاب
             if rows_to_upload:
               if append_rows_to_google_sheet("الحضور", rows_to_upload):
                 st.session_state.attendance = pd.concat(
@@ -721,7 +720,6 @@ if "attendance" in tab_dict:
                     ignore_index=True,
                 )
 
-                # إغلاق الجلسة ومسح المسودة من Firebase
                 close_session_firebase(selected_team)
                 clear_draft_scans_firebase(selected_team)
 
@@ -753,13 +751,17 @@ if "attendance" in tab_dict:
 
     if active_session:
       st.subheader(f"📷 التقاط الكارت والتسجيل التلقائي ({selected_team})")
-      img_file = st.camera_input("اضغط التقاط الصورة لقرائتها وتسجيلها فوراً")
+      # استخدام خاصية تحديد الكاميرا الخلفية عبر الوسائط المباشرة للمتصفح
+      img_file = st.camera_input(
+          "اضغط التقاط الصورة لقرائتها وتسجيلها فوراً",
+          help="تأكد من اختيار الكاميرا الخلفية الأساسية من إعدادات الموبايل",
+      )
 
       if img_file is not None:
         extracted = extract_qr_code(img_file)
         if extracted:
           clean_extracted = str(extracted).strip()
-          # البحث في كل الأعضاء بغض النظر عن الفريق لتسجيل الحضور لأي فريق
+          # السماح بتسجيل الكشاف بغض النظر عن فريقه في الجلسة المفتوحة
           m = (
               st.session_state.members[
                   st.session_state.members["كود العضو"]
@@ -821,7 +823,6 @@ if "attendance" in tab_dict:
         if submit_manual:
           if manual_code_str.strip():
             clean_manual = str(manual_code_str.strip()).strip()
-            # البحث في كل الأعضاء بغض النظر عن الفريق لتسجيل الحضور لأي فريق
             m = (
                 st.session_state.members[
                     st.session_state.members["كود العضو"]
