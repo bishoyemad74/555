@@ -130,6 +130,20 @@ def clear_draft_scans_firebase(team_name):
 
 
 try:
+  import zxingcpp
+
+  HAS_ZXING = True
+except ImportError:
+  HAS_ZXING = False
+
+try:
+  from pyzbar.pyzbar import decode
+
+  HAS_PYZBAR = True
+except Exception:
+  HAS_PYZBAR = False
+
+try:
   from google.oauth2.service_account import Credentials
   import gspread
 
@@ -208,6 +222,26 @@ def append_rows_to_google_sheet(sheet_name, rows_data):
         f" {str(e)}"
     )
   return False
+
+
+def extract_qr_code(image_file):
+  try:
+    img = Image.open(image_file)
+    if HAS_ZXING:
+      results = zxingcpp.read_barcodes(img)
+      if results:
+        raw_text = results[0].text
+        clean_digits = "".join(filter(str.isdigit, raw_text))
+        return clean_digits if clean_digits else raw_text
+    if HAS_PYZBAR:
+      decoded = decode(img)
+      if decoded:
+        raw_text = decoded[0].data.decode("utf-8")
+        clean_digits = "".join(filter(str.isdigit, raw_text))
+        return clean_digits if clean_digits else raw_text
+  except Exception:
+    pass
+  return None
 
 
 def verify_current_password(username, current_password):
@@ -420,8 +454,6 @@ if "form_reset_counter" not in st.session_state:
   st.session_state.form_reset_counter = 0
 if "eval_reset_counter" not in st.session_state:
   st.session_state.eval_reset_counter = 0
-if "manual_reset_counter" not in st.session_state:
-  st.session_state.manual_reset_counter = 0
 
 # --- تهيئة البيانات ---
 if "members" not in st.session_state or st.session_state.members.empty:
@@ -703,137 +735,72 @@ if "attendance" in tab_dict:
     st.divider()
 
     if active_session:
-      st.subheader(f"📷 المسح التلقائي والعرض للتأكيد ({selected_team})")
+      st.subheader(f"📷 مسح الكارت بالكاميرا لتسجيل الحضور ({selected_team})")
 
-      # استقبال الكود الممسوح وعرضه للمراجعة قبل التسجيل
-      query_p = st.query_params
-      scanned_code_preview = ""
-      if "detect_code" in query_p:
-        scanned_code_preview = query_p["detect_code"]
+      # استخدام مكون الكاميرا الموثوق والمستقر في Streamlit مع مراجعة الكود قبل الحفظ
+      att_img_file = st.camera_input(
+          "التقاط صورة لـ QR Code الكشاف", key="camera_attendance_input"
+      )
 
-      if scanned_code_preview:
-        clean_preview_code = str(scanned_code_preview).strip()
-        m_match = (
-            st.session_state.members[
-                st.session_state.members["كود العضو"].astype(str).str.strip()
-                == clean_preview_code
-            ]
-            if not st.session_state.members.empty
-            else pd.DataFrame()
-        )
-
-        if not m_match.empty:
-          r_data = m_match.iloc[0]
-          m_name = r_data.get("اسم الكشاف", r_data.get("الاسم", "كشاف"))
-          m_orig_team = r_data.get("الفريق", "غير محدد")
-
-          st.warning(
-              f"⚠️ تم قراءة الكود بنجاح! هل تريد تسجيل الكشاف: **{m_name}**"
-              f" (الفريق الأصلي: {m_orig_team})؟"
+      if att_img_file is not None:
+        extracted_code = extract_qr_code(att_img_file)
+        if extracted_code:
+          clean_code = str(extracted_code).strip()
+          m_match = (
+              st.session_state.members[
+                  st.session_state.members["كود العضو"]
+                  .astype(str)
+                  .str.strip()
+                  == clean_code
+              ]
+              if not st.session_state.members.empty
+              else pd.DataFrame()
           )
-          col_yes, col_no = st.columns(2)
-          with col_yes:
-            if st.button("✅ نعم، سجل الحضور"):
-              st.query_params.clear()
-              if clean_preview_code not in scanned_members:
+
+          if not m_match.empty:
+            r_data = m_match.iloc[0]
+            m_name = r_data.get("اسم الكشاف", r_data.get("الاسم", "كشاف"))
+            m_orig_team = r_data.get("الفريق", "غير محدد")
+
+            st.success(f"✅ تم قراءة كود الكشاف بنجاح: {clean_code}")
+            st.info(
+                f"👤 اسم الكشاف: **{m_name}** | الفريق الأصلي: **{m_orig_team}**"
+            )
+
+            if st.button("✅ تأكيد وتسجيل حضور الكشاف فوراً"):
+              if clean_code not in scanned_members:
                 t_now = datetime.datetime.now(CAIRO_TZ).strftime("%H:%M:%S")
                 save_draft_scan_firebase(
                     selected_team,
-                    clean_preview_code,
+                    clean_code,
                     m_name,
                     t_now,
                     curr_score,
                     st.session_state.current_username,
                 )
                 st.success(
-                    f"🎉 تم تسجيل حضور الكشاف {m_name} بنجاح! | الدرجة:"
-                    f" {curr_score}/10"
+                    f"🎉 تم تسجيل حضور {m_name} بنجاح! | الدرجة: {curr_score}/10"
                 )
                 st.balloons()
                 time.sleep(1)
                 st.rerun()
               else:
-                st.info(f"ℹ️ الكشاف {m_name} مسجل مسبقاً في هذه الجلسة.")
-          with col_no:
-            if st.button("❌ إلغاء"):
-              st.query_params.clear()
-              st.rerun()
+                st.warning(f"ℹ️ الكشاف {m_name} مسجل مسبقاً في هذه الجلسة.")
+          else:
+            st.error(
+                f"❌ الكود الممسوح ({clean_code}) غير موجود في قاعدة بيانات"
+                " الأعضاء!"
+            )
         else:
-          st.error(
-              f"❌ الكود الممسوح ({clean_preview_code}) غير موجود في قاعدة"
-              " بيانات الأعضاء!"
+          st.warning(
+              "⚠️ لم يتم التعرف على الـ QR في الصورة بوضوح، يرجى إعادة الالتقاط"
+              " مع إضاءة أفضل."
           )
-          if st.button("إعادة المحاولة"):
-            st.query_params.clear()
-            st.rerun()
-
-      # واجهة الكاميرا التي تلتقط الكود وتظهره فوراً للمراجعة دون ضغطة التقاط عشوائية
-      html_live_scanner = (
-          """
-      <div style="text-align: center; background: #f0f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-          <div id="reader-live" style="width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden;"></div>
-          <button id="btn-start-scan" onclick="startScanner()" style="background-color: #2E7D32; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">🟢 فتح الكاميرا للمسح الفوري</button>
-          <button id="btn-stop-scan" onclick="stopScanner()" style="background-color: #C62828; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: none; width: 100%;">إغلاق الكاميرا</button>
-          <p id="scan-status" style="color: #1565C0; font-weight: bold; margin-top: 10px; font-size: 15px;"></p>
-      </div>
-
-      <script src="https://unpkg.com/html5-qrcode"></script>
-      <script>
-          let html5QrCode = null;
-
-          function startScanner() {
-              document.getElementById('btn-start-scan').style.display = 'none';
-              document.getElementById('btn-stop-scan').style.display = 'block';
-              document.getElementById('scan-status').innerText = "جاري تفعيل الكاميرا... وجهها نحو الـ QR";
-
-              html5QrCode = new Html5Qrcode("reader-live");
-              
-              Html5Qrcode.getCameras().then(devices => {
-                  if (devices && devices.length) {
-                      let camId = devices.length > 1 ? devices[devices.length - 1].id : devices[0].id;
-                      for (let i = 0; i < devices.length; i++) {
-                          let label = devices[i].label.toLowerCase();
-                          if ((label.includes('back') || label.includes('rear') || label.includes('environment')) && !label.includes('wide')) {
-                              camId = devices[i].id;
-                              break;
-                          }
-                      }
-
-                      html5QrCode.start(
-                          camId ? { deviceId: { exact: camId } } : { facingMode: "environment" },
-                          { fps: 20, qrbox: { width: 250, height: 250 } },
-                          (decodedText) => {
-                              document.getElementById('scan-status').innerText = "✅ تم قراءة الـ QR بنجاح!";
-                              stopScanner();
-                              window.location.search = "?detect_code=" + encodeURIComponent(decodedText);
-                          },
-                          (errorMessage) => {}
-                      ).catch(err => {
-                          document.getElementById('scan-status').innerText = "خطأ في تشغيل الكاميرا: " + err;
-                      });
-                  }
-              }).catch(err => {
-                  document.getElementById('scan-status').innerText = "لا توجد كاميرات متاحة.";
-              });
-          }
-
-          function stopScanner() {
-              if (html5QrCode) {
-                  html5QrCode.stop().then(() => {
-                      document.getElementById('btn-start-scan').style.display = 'block';
-                      document.getElementById('btn-stop-scan').style.display = 'none';
-                  }).catch(err => {});
-              }
-          }
-      </script>
-      """
-      )
-      st.components.v1.html(html_live_scanner, height=420)
 
     st.divider()
 
     with st.form("manual_attendance_form"):
-      manual_code_str = st.text_input("أو أدخل الكود يدوياً:")
+      manual_code_str = st.text_input("أو أدخل كود العضو يدوياً:")
       submit_manual = st.form_submit_button("✅ تسجيل يدوي سريع")
       if submit_manual and manual_code_str.strip():
         clean_manual = str(manual_code_str.strip()).strip()
@@ -873,76 +840,20 @@ if "evaluations" in tab_dict:
   with tab_dict["evaluations"]:
     st.subheader("📝 إضافة تقييم أو نشاط كشفي")
 
-    query_eval_p = st.query_params
+    eval_img_file = st.camera_input(
+        "التقاط صورة لـ QR Code للتقييم", key="camera_eval_input"
+    )
     scanned_eval_val = ""
-    if "detect_eval_code" in query_eval_p:
-      scanned_eval_val = query_eval_p["detect_eval_code"]
 
-    if scanned_eval_val:
-      st.info(f"📌 تم قراءة كود التقييم بنجاح: {scanned_eval_val}")
-      if st.button("إعادة مسح كود جديد"):
-        st.query_params.clear()
-        st.rerun()
-
-    html_live_scanner_eval = """
-    <div style="text-align: center; background: #f0f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-        <div id="reader-live-eval" style="width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden;"></div>
-        <button id="btn-start-eval" onclick="startEvalScanner()" style="background-color: #2E7D32; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">🟢 فتح الكاميرا لمسح التقييم</button>
-        <button id="btn-stop-eval" onclick="stopEvalScanner()" style="background-color: #C62828; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: none; width: 100%;">إغلاق الكاميرا</button>
-        <p id="eval-scan-status" style="color: #1565C0; font-weight: bold; margin-top: 10px; font-size: 15px;"></p>
-    </div>
-
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script>
-        let html5QrCodeEval = null;
-
-        function startEvalScanner() {
-            document.getElementById('btn-start-eval').style.display = 'none';
-            document.getElementById('btn-stop-eval').style.display = 'block';
-            document.getElementById('eval-scan-status').innerText = "جاري تفعيل الكاميرا...";
-
-            html5QrCodeEval = new Html5Qrcode("reader-live-eval");
-            
-            Html5Qrcode.getCameras().then(devices => {
-                if (devices && devices.length) {
-                    let camId = devices.length > 1 ? devices[devices.length - 1].id : devices[0].id;
-                    for (let i = 0; i < devices.length; i++) {
-                        let label = devices[i].label.toLowerCase();
-                        if ((label.includes('back') || label.includes('rear') || label.includes('environment')) && !label.includes('wide')) {
-                            camId = devices[i].id;
-                            break;
-                        }
-                    }
-
-                    html5QrCodeEval.start(
-                        camId ? { deviceId: { exact: camId } } : { facingMode: "environment" },
-                        { fps: 20, qrbox: { width: 250, height: 250 } },
-                        (decodedText) => {
-                            document.getElementById('eval-scan-status').innerText = "✅ تم القراءة بنجاح!";
-                            stopEvalScanner();
-                            window.location.search = "?detect_eval_code=" + encodeURIComponent(decodedText);
-                        },
-                        (errorMessage) => {}
-                    ).catch(err => {
-                        document.getElementById('eval-scan-status').innerText = "خطأ: " + err;
-                    });
-                }
-            }).catch(err => {
-                document.getElementById('eval-scan-status').innerText = "لا توجد كاميرات.";
-            });
-        }
-
-        function stopEvalScanner() {
-            if (html5QrCodeEval) {
-                html5QrCodeEval.stop().then(() => {
-                    document.getElementById('btn-start-eval').style.display = 'block';
-                    document.getElementById('btn-stop-eval').style.display = 'none';
-                }).catch(err => {});
-            }
-        }
-    </script>
-    """
-    st.components.v1.html(html_live_scanner_eval, height=420)
+    if eval_img_file is not None:
+      extracted_eval = extract_qr_code(eval_img_file)
+      if extracted_eval:
+        scanned_eval_val = str(extracted_eval).strip()
+        st.success(f"✅ تم قراءة كود التقييم بنجاح: {scanned_eval_val}")
+      else:
+        st.warning(
+            "⚠️ لم يتم التعرف على الـ QR في الصورة، يرجى إعادة الالتقاط."
+        )
 
     with st.form("score_form"):
       eval_team = st.selectbox(
@@ -951,7 +862,7 @@ if "evaluations" in tab_dict:
       s_code_input = st.text_input(
           "كود الكشاف",
           value=str(scanned_eval_val).strip() if scanned_eval_val else "",
-          placeholder="أدخل الكود أو امسحه بالكاميرا",
+          placeholder="أدخل الكود أو التقط صورة بالكاميرا أعلاه",
       )
       s_type = st.selectbox("نوع التقييم", [
           "الزي الكشفي",
@@ -998,7 +909,6 @@ if "evaluations" in tab_dict:
                     s_notes,
                 ],
             ):
-              st.query_params.clear()
               st.success(
                   f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} ({eval_team}) بنجاح!"
               )
