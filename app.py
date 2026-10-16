@@ -45,7 +45,7 @@ FIREBASE_CREDS = {
     "private_key_id": "6d124414e35bdcf820dd3315a85cb549f13df03e",
     "private_key": (
         "-----BEGIN PRIVATE"
-        " KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\nqb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\r\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\L5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\B3RFZh7bqFkM82JJfMF6Lg==\n-----END"
+        " KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCYm6jNDnHySab6\nKKyOVo2LZhCmOeegCWsnaMbW/3vYK9h1tEBMO97Du6rDlG0JryUH+Wg3vUfQBif6\n+n89U+ZUjI+xvFmQv0sZ8KV54CQK9wG82C687z4yDA2XqU4YCFwD8mnrDmB7Yzlz\nyy++XWT6LqCkCRGO7xA0bxGNbSJSlZuJsW4apOxWDurxVzJdDij6s0eSEyzMSWNQ\nIWb44xjzbF1TIf+jdFb98adcCyV1BQf8NHt13vHlWdPVuzp3l3HXqeiHUepgIuo0\nti7WAW/bQzkvUMa4shpSE0ejxptQ0xQyMsqWbH0Vdulss+NgFPQD5iORVOVZJrlo\qb8wuI1DAgMBAAECggEAEw0fqhW7EOGz+DfartxMSFJCEtZYvahfWaihZha36bkz\niSIrArlYqnvDqi3d3N8iEthGc+rry6LxG8po1wmhz/1KNQiL79+Jqx/ZMJlUNpA2\nhdJBJ3IAhDPwAHZw2tw0TIPXSDJfxheRhQyhFbVIFVl70W6WZA8hKUKSYOL2bXOx\nffOi9HbcmeRUf1RyGnZSCi/LfwobWbiHoWtBtlrjp49VHAbWO3B4QdrpaMOLH/ck\nhTuj8VN+bBfFt34MUfGol4cC/SEWEyytbU3OVwNjtmAw2O7FO1AUHy9BoIpThfJk\naYrl/JWeDL6HLb9d1Hn43eglp1RCpL4RsdXVoN1QaQKBgQDJ+hlgrULlR0uWfeVx\nlJ26xiUAfMdiRGiD6WqoXfH/6QELxNqWJ+hMdbvf1EJnhSn9Ytq/ruVTdNU5p4KQ\1ALmMp0HHge52V0/iM2qMHZ3/VZt2b9jwVV9BaQK0KqxLcO2fJluf6HtjhwFTA+b\nxUiEcVpD4lyqPog+QJr4/jemmQKBgQDBbSO4AIvIPB7DVoy6KwFhwGl9jH4T6VXO\9bqSz62W0BhI9JVpAS5GMS/fejys3i8aS37mkUiCVpqK5xc0KRiGqe2nCQH/NICn\nNuxEugPZuenAjQqlcIHiDONcbxt5e+kyT+F/ho5mtxHszUiQ5BoSTOjpunSwKQGA\nJnYEXU9oOwKBgFwCadMnusS18NIysfZG7H+sSijpru6uGSqWh7cBbP/Whlp1J9ql\nfWZvb9GsYT/FYvaCNQKDSwb0vznPfGQ7oMJ7Jhua64wXYCpUSNSR1TYeG2RZgJ2R\r\n8j7M9gjTPB8QqQqVwlObIwoT5eHn32hnu/xRovwvv2TyraAmUDLDpFhpAoGAdwuD\00hKv5b43AJVpHK5a/8vLb0dD4YpcLHd/WNiFBLJD4Wwuyql3z+Alks2MrKgTM+w\L5m1BbrlbJ3jsw+j76WABbDOkNIwaDmuWnId0o/QpNhpd/7xgT2rZQVg5Hj1wihV\nwdX/qIn9tz907O/md+Lr6oX+MTlbmhKRygffymcCgYAkq/1HmSXOj3RCCoY15rt7\na6DnEp3oC1gVBQ9o1A6sjqs/60R6eHqyX347+lFxeLVUHvMucAvCNhs+85VrQtQV\ncG65TPRojplHvt09jAitJF2ZEqT1Vg692kzdIiBl2I0+5WBMETZki7xU+5gRh+nT\B3RFZh7bqFkM82JJfMF6Lg==\n-----END"
         " PRIVATE KEY-----\n"
     ),
     "client_email": (
@@ -703,61 +703,76 @@ if "attendance" in tab_dict:
     st.divider()
 
     if active_session:
-      st.subheader(f"📷 مسح مباشر بالـ QR للـ ({selected_team})")
+      st.subheader(f"📷 المسح التلقائي والعرض للتأكيد ({selected_team})")
 
-      # معالجة الكود المباشر القادم من الباركود فوراً
+      # استقبال الكود الممسوح وعرضه للمراجعة قبل التسجيل
       query_p = st.query_params
-      if "auto_code" in query_p:
-        scanned_code_val = query_p["auto_code"]
-        st.query_params.clear()
-        if scanned_code_val:
-          clean_code = str(scanned_code_val).strip()
-          m_match = (
-              st.session_state.members[
-                  st.session_state.members["كود العضو"]
-                  .astype(str)
-                  .str.strip()
-                  == clean_code
-              ]
-              if not st.session_state.members.empty
-              else pd.DataFrame()
+      scanned_code_preview = ""
+      if "detect_code" in query_p:
+        scanned_code_preview = query_p["detect_code"]
+
+      if scanned_code_preview:
+        clean_preview_code = str(scanned_code_preview).strip()
+        m_match = (
+            st.session_state.members[
+                st.session_state.members["كود العضو"].astype(str).str.strip()
+                == clean_preview_code
+            ]
+            if not st.session_state.members.empty
+            else pd.DataFrame()
+        )
+
+        if not m_match.empty:
+          r_data = m_match.iloc[0]
+          m_name = r_data.get("اسم الكشاف", r_data.get("الاسم", "كشاف"))
+          m_orig_team = r_data.get("الفريق", "غير محدد")
+
+          st.warning(
+              f"⚠️ تم قراءة الكود بنجاح! هل تريد تسجيل الكشاف: **{m_name}**"
+              f" (الفريق الأصلي: {m_orig_team})؟"
           )
-
-          if not m_match.empty:
-            r_data = m_match.iloc[0]
-            m_name = r_data.get("اسم الكشاف", r_data.get("الاسم", "كشاف"))
-            m_orig_team = r_data.get("الفريق", "غير محدد")
-
-            if clean_code not in scanned_members:
-              t_now = datetime.datetime.now(CAIRO_TZ).strftime("%H:%M:%S")
-              save_draft_scan_firebase(
-                  selected_team,
-                  clean_code,
-                  m_name,
-                  t_now,
-                  curr_score,
-                  st.session_state.current_username,
-              )
-              st.success(
-                  f"🎉 تم تسجيل الحضور تلقائياً: {m_name} (الفريق الأصلي:"
-                  f" {m_orig_team}) | الدرجة: {curr_score}/10"
-              )
-              st.balloons()
-              time.sleep(1)
+          col_yes, col_no = st.columns(2)
+          with col_yes:
+            if st.button("✅ نعم، سجل الحضور"):
+              st.query_params.clear()
+              if clean_preview_code not in scanned_members:
+                t_now = datetime.datetime.now(CAIRO_TZ).strftime("%H:%M:%S")
+                save_draft_scan_firebase(
+                    selected_team,
+                    clean_preview_code,
+                    m_name,
+                    t_now,
+                    curr_score,
+                    st.session_state.current_username,
+                )
+                st.success(
+                    f"🎉 تم تسجيل حضور الكشاف {m_name} بنجاح! | الدرجة:"
+                    f" {curr_score}/10"
+                )
+                st.balloons()
+                time.sleep(1)
+                st.rerun()
+              else:
+                st.info(f"ℹ️ الكشاف {m_name} مسجل مسبقاً في هذه الجلسة.")
+          with col_no:
+            if st.button("❌ إلغاء"):
+              st.query_params.clear()
               st.rerun()
-            else:
-              st.info(f"ℹ️ الكشاف {m_name} مسجل مسبقاً في هذه الجلسة.")
-          else:
-            st.error(
-                f"❌ الكود الممسوح ({clean_code}) غير موجود في قاعدة بيانات"
-                " الأعضاء!"
-            )
+        else:
+          st.error(
+              f"❌ الكود الممسوح ({clean_preview_code}) غير موجود في قاعدة"
+              " بيانات الأعضاء!"
+          )
+          if st.button("إعادة المحاولة"):
+            st.query_params.clear()
+            st.rerun()
 
+      # واجهة الكاميرا التي تلتقط الكود وتظهره فوراً للمراجعة دون ضغطة التقاط عشوائية
       html_live_scanner = (
           """
       <div style="text-align: center; background: #f0f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
           <div id="reader-live" style="width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden;"></div>
-          <button id="btn-start-scan" onclick="startScanner()" style="background-color: #2E7D32; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">🟢 فتح الكاميرا للمسح التلقائي</button>
+          <button id="btn-start-scan" onclick="startScanner()" style="background-color: #2E7D32; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">🟢 فتح الكاميرا للمسح الفوري</button>
           <button id="btn-stop-scan" onclick="stopScanner()" style="background-color: #C62828; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: none; width: 100%;">إغلاق الكاميرا</button>
           <p id="scan-status" style="color: #1565C0; font-weight: bold; margin-top: 10px; font-size: 15px;"></p>
       </div>
@@ -769,7 +784,7 @@ if "attendance" in tab_dict:
           function startScanner() {
               document.getElementById('btn-start-scan').style.display = 'none';
               document.getElementById('btn-stop-scan').style.display = 'block';
-              document.getElementById('scan-status').innerText = "جاري تفعيل الكاميرا الخلفية...";
+              document.getElementById('scan-status').innerText = "جاري تفعيل الكاميرا... وجهها نحو الـ QR";
 
               html5QrCode = new Html5Qrcode("reader-live");
               
@@ -788,11 +803,9 @@ if "attendance" in tab_dict:
                           camId ? { deviceId: { exact: camId } } : { facingMode: "environment" },
                           { fps: 20, qrbox: { width: 250, height: 250 } },
                           (decodedText) => {
-                              document.getElementById('scan-status').innerText = "✅ تم التقاط الكود: " + decodedText;
-                              window.location.search = "?auto_code=" + encodeURIComponent(decodedText) + "&team=" + encodeURIComponent('"""
-          + selected_team
-          + """');
+                              document.getElementById('scan-status').innerText = "✅ تم قراءة الـ QR بنجاح!";
                               stopScanner();
+                              window.location.search = "?detect_code=" + encodeURIComponent(decodedText);
                           },
                           (errorMessage) => {}
                       ).catch(err => {
@@ -862,14 +875,19 @@ if "evaluations" in tab_dict:
 
     query_eval_p = st.query_params
     scanned_eval_val = ""
-    if "auto_eval_code" in query_eval_p:
-      scanned_eval_val = query_eval_p["auto_eval_code"]
-      st.query_params.clear()
+    if "detect_eval_code" in query_eval_p:
+      scanned_eval_val = query_eval_p["detect_eval_code"]
+
+    if scanned_eval_val:
+      st.info(f"📌 تم قراءة كود التقييم بنجاح: {scanned_eval_val}")
+      if st.button("إعادة مسح كود جديد"):
+        st.query_params.clear()
+        st.rerun()
 
     html_live_scanner_eval = """
     <div style="text-align: center; background: #f0f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
         <div id="reader-live-eval" style="width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden;"></div>
-        <button id="btn-start-eval" onclick="startEvalScanner()" style="background-color: #2E7D32; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">🟢 فتح الكاميرا لمسح تقييم الكشاف</button>
+        <button id="btn-start-eval" onclick="startEvalScanner()" style="background-color: #2E7D32; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">🟢 فتح الكاميرا لمسح التقييم</button>
         <button id="btn-stop-eval" onclick="stopEvalScanner()" style="background-color: #C62828; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: none; width: 100%;">إغلاق الكاميرا</button>
         <p id="eval-scan-status" style="color: #1565C0; font-weight: bold; margin-top: 10px; font-size: 15px;"></p>
     </div>
@@ -900,9 +918,9 @@ if "evaluations" in tab_dict:
                         camId ? { deviceId: { exact: camId } } : { facingMode: "environment" },
                         { fps: 20, qrbox: { width: 250, height: 250 } },
                         (decodedText) => {
-                            document.getElementById('eval-scan-status').innerText = "✅ تم التقاط الكود: " + decodedText;
-                            window.location.search = "?auto_eval_code=" + encodeURIComponent(decodedText);
+                            document.getElementById('eval-scan-status').innerText = "✅ تم القراءة بنجاح!";
                             stopEvalScanner();
+                            window.location.search = "?detect_eval_code=" + encodeURIComponent(decodedText);
                         },
                         (errorMessage) => {}
                     ).catch(err => {
@@ -980,6 +998,7 @@ if "evaluations" in tab_dict:
                     s_notes,
                 ],
             ):
+              st.query_params.clear()
               st.success(
                   f"تم تسجيل تقييم ({s_type}) للكشاف {found_member_name} ({eval_team}) بنجاح!"
               )
